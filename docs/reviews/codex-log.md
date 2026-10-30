@@ -15,3 +15,4 @@ Every unit of Phase 0 work (one row of the execution table in `docs/phase0-plan.
 | 2026-10-30 | 5 (19 issues, board population) | 2 | ebee0c2 | GREEN | none | Re-run was a no-op (idempotency proof) |
 | 2026-10-30 | 6 (standup issues #20 #21, sprint-1 plan skeleton) | 1 | ebee0c2 | GREEN | none | |
 | 2026-10-30 | 7a (HW3 branches, prompts, scorecard template) | 1 | ebee0c2 | CHANGES REQUESTED | [med] untracked docs and screenshots carry across branch switches; [med] A2/A3 cannot detect a broken stock filter | Docs committed on `docs/phase0-records`; each run in its own clean worktree, screenshots outside; eval-only fixture edits E1-E3 added |
+| 2026-10-30 | 7a (HW3 branches, prompts, scorecard template) | 2 | ebee0c2 | GREEN | none | Waiting on user: Antigravity runs |
