@@ -44,6 +44,6 @@ Screenshots are saved to `~/Desktop/hw3-screenshots/` (outside both worktrees) a
 
 1. Open the before worktree folder in Antigravity. Confirm `ls AGENTS.md docs` fails (neither exists). Open the rules and customization settings and the global rules file, disable any active rules, and screenshot the empty rules panel to `~/Desktop/hw3-screenshots/before-rules-empty.png`.
 2. Fresh chat, paste the before prompt, let it finish. Answer follow-up questions with "use your judgement". Commit the output as-is: `git add -A && git commit -m "hw3: before run output"`. Push.
-3. Open the after worktree folder in Antigravity. Screenshot AGENTS.md shown as loaded to `~/Desktop/hw3-screenshots/after-agents-loaded.png`.
+3. Open the after worktree folder in Antigravity. Keep global rules disabled, same as the before run, so AGENTS.md is the only rules source. Screenshot AGENTS.md shown as loaded to `~/Desktop/hw3-screenshots/after-agents-loaded.png`.
 4. Fresh chat, paste the after prompt. Let the agent make its own commits. Commit any leftover output as-is. Push.
 5. Send back: both output SHAs, the model name and settings, and confirm the two screenshots are in `~/Desktop/hw3-screenshots/`.
