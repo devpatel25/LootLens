@@ -1,0 +1,71 @@
+{
+  "demo": true,
+  "label": "Demo data. Prices, stock, and listings are made up for testing. They are not live retailer prices.",
+  "item": {
+    "id": "item-samba",
+    "name": "Adidas Samba OG",
+    "category": "shoes",
+    "sizes": ["8", "9", "10"],
+    "selectedSize": "9",
+    "typicalPrice": 100
+  },
+  "stores": [
+    { "id": "store-adidas", "name": "Adidas", "domain": "adidas.com" },
+    { "id": "store-amazon", "name": "Amazon", "domain": "amazon.com" },
+    { "id": "store-walmart", "name": "Walmart", "domain": "walmart.com" },
+    { "id": "store-fbm", "name": "Facebook Marketplace", "domain": "facebook.com" },
+    { "id": "store-kickswap", "name": "KickSwap (fictional demo store)", "domain": "kickswap.example" }
+  ],
+  "listings": [
+    {
+      "id": "lst-adidas",
+      "itemId": "item-samba",
+      "storeId": "store-adidas",
+      "price": 100,
+      "condition": "new",
+      "url": "https://example.com/demo/adidas-samba",
+      "stockBySize": { "8": 6, "9": 4, "10": 0 },
+      "updatedAt": "2026-10-29T14:00:00Z"
+    },
+    {
+      "id": "lst-amazon",
+      "itemId": "item-samba",
+      "storeId": "store-amazon",
+      "price": 84.99,
+      "condition": "new",
+      "url": "https://example.com/demo/amazon-samba",
+      "stockBySize": { "8": 3, "9": 0, "10": 2 },
+      "updatedAt": "2026-10-29T15:30:00Z"
+    },
+    {
+      "id": "lst-walmart",
+      "itemId": "item-samba",
+      "storeId": "store-walmart",
+      "price": 92.5,
+      "condition": "new",
+      "url": "https://example.com/demo/walmart-samba",
+      "stockBySize": { "8": 1, "9": 2, "10": 5 },
+      "updatedAt": "2026-10-29T12:10:00Z"
+    },
+    {
+      "id": "lst-fbm",
+      "itemId": "item-samba",
+      "storeId": "store-fbm",
+      "price": 60,
+      "condition": "used",
+      "url": "https://example.com/demo/fbm-samba",
+      "stockBySize": { "8": 0, "9": 1, "10": 0 },
+      "updatedAt": "2026-10-28T20:45:00Z"
+    },
+    {
+      "id": "lst-kickswap",
+      "itemId": "item-samba",
+      "storeId": "store-kickswap",
+      "price": 118,
+      "condition": "resale",
+      "url": "https://example.com/demo/kickswap-samba",
+      "stockBySize": { "8": 2, "9": 3, "10": 1 },
+      "updatedAt": "2026-10-29T09:05:00Z"
+    }
+  ]
+}
