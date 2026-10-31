@@ -18,7 +18,10 @@ test("shopper compares an item's price across stores", async ({ page }) => {
   await expect(table.getByRole("row", { name: /Amazon/ })).toContainText("Out of stock");
 });
 
+// With cacheComponents, notFound() after streaming starts keeps status 200 and
+// renders the not-found UI, so assert on what the shopper sees.
 test("unknown item shows not found", async ({ page }) => {
-  const res = await page.goto("/items/does-not-exist");
-  expect(res?.status()).toBe(404);
+  await page.goto("/items/does-not-exist");
+  await expect(page.getByRole("heading", { name: "This page could not be found." })).toBeVisible();
+  await expect(page.getByRole("table")).toHaveCount(0);
 });

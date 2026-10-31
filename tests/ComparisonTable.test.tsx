@@ -55,7 +55,7 @@ describe("ComparisonTable", () => {
 
   it("keeps the fictional store labelled fictional", () => {
     render(<ComparisonTable comparison={demo()} />);
-    expect(within(row(/KickSwap/)).getByText(/fictional/i)).toBeTruthy();
+    expect(within(row(/KickSwap/)).getByRole("rowheader", { name: /fictional/i })).toBeTruthy();
   });
 
   it("labels the source of every listing", () => {
