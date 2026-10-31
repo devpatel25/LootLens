@@ -12,7 +12,7 @@ Outline only. Each bullet names the evidence to cite. Target: 1 to 2 pages, plai
 
 - Feature: Story 3, cross-store price view (issue #9), fixture-backed, no DB or auth.
 - Same baseline (`hw3-baseline`), branches differ by one commit (AGENTS.md). Clean worktree per run.
-- Same model and settings: Claude Opus 5.5, high effort, Claude Code desktop app. Rules record shows nothing else loaded (`evidence/rules-evidence.md`).
+- Same model and settings: Claude Opus 5.5, high effort, Claude Code desktop app. Rules record shows no user or project rules loaded beyond the app defaults, which were identical in both runs (`evidence/rules-evidence.md`).
 - Before prompt: one line. After prompt: names Story 3, the fixture, AGENTS.md, and the TDD commit format. Say plainly that the richer prompt is part of the intervention.
 - Deviation to own: planned Antigravity, ran in Claude Code. Give the reason (Kunal's choice) and what replaced the screenshots (rules record plus transcript check).
 
