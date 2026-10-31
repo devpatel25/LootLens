@@ -1,6 +1,6 @@
 # HW3 before/after scorecard
 
-> **Status: provisional.** Kunal's rules record and both transcripts are still pending. Until they confirm no global `CLAUDE.md`, memory, or plugins were active in the before run, treat the conclusions below as provisional.
+> **Status: provisional on transcripts.** Rules isolation is confirmed by Kunal's rules record (below). The two transcripts and his full results file are still pending; they will confirm the prompts as pasted and that the after run read AGENTS.md.
 
 Feature: Story 3, cross-store price view (issue #9). Prompts and run steps: [prompts.md](prompts.md).
 
@@ -12,9 +12,24 @@ Feature: Story 3, cross-store price view (issue #9). Prompts and run steps: [pro
 | Starting SHA | `e96c9a3` | `e8902ae` |
 | Output SHA | `b9018ef` | `1852308` |
 | Harness, model, settings | Claude Code, Claude Opus 5.5, high effort | same |
-| Rules active | none (evidence: Kunal's rules record, pending) | AGENTS.md (evidence: rules record and transcript, pending) |
+| Rules active | none beyond app defaults (Kunal's rules record) | AGENTS.md, read because the prompt pointed to it (transcript pending) |
 | Worktree | `~/lootlens-hw3/before` (Kunal's machine) | `~/lootlens-hw3/after` (Kunal's machine) |
 | Prompt | brief (1 line) | references Story 3, the fixture, and AGENTS.md |
+
+### Rules record (Kunal, PR #22 comment, 2026-10-31 05:22 UTC)
+
+Same for both runs:
+
+| Source | State |
+|---|---|
+| `~/.claude/CLAUDE.md` | none |
+| Parent-folder or project `CLAUDE.md` | none |
+| Rules, skills, or agents folders; managed settings | none |
+| Hooks | none (`settings.json` sets only the theme) |
+| Plugins | none installed |
+| Auto-memory | no memory folder was created for either project |
+| Loaded anyway | the Claude desktop app's built-in system prompt and default skills, identical in both runs |
+| Cross-run leakage | none: the shared side-session notes folder was empty when each run started, and the after run's log never references the before run |
 
 The runs used Claude Code instead of the planned Antigravity; see the actual run record in [prompts.md](prompts.md).
 
