@@ -61,7 +61,7 @@ All passed. Before was at `e96c9a3` with no AGENTS.md or docs; after was at `e89
 - Self-reported: lint, typecheck, 26 Vitest tests and 3 Playwright tests pass (not re-run by the setup agent).
 - **Unusual: the agent edited AGENTS.md.** In `1fc7f2e` it added one line to the `lib/` layout map: `demoData.ts  fixture loader in API shapes, stand-in until a route is live`. It was committed as-is, per section 8.
 - It also added dependencies (`package.json` +3 lines, lockfile updated).
-- It paused once for a request that Kunal answered in the app. <!-- Kunal: say what it asked and what you answered -->
+- It paused once: the app asked Kunal to approve the `git commit` command (03:49:39 to 04:05:15 UTC). He approved it; the tool result carries no extra text, so no guidance was given.
 - Time: about 25 min (23:40:38 to the last commit at 00:05:15), including that pause.
 
 ## Other notes
