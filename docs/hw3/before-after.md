@@ -138,6 +138,7 @@ Checked by the agent on 2026-10-31 from `session-export-1793419571551` (before) 
 | Task text matches `prompts.md` exactly | yes | yes |
 | AGENTS.md in context | no (0 occurrences of its text) | yes, `instructions` attachment for `/Users/kunal/lootlens-hw3/after/AGENTS.md`, type Project, at session start |
 | Tool calls | 17 Bash, 5 Write, 3 Edit, 5 browser-preview calls (it screenshotted its own page) | 28 Bash, 11 Write, 5 Edit, 1 ToolSearch, no browser checks |
+| Told the other session exists | no (only the app's generic help text about linked sessions) | yes: one status line, "hw3-before ... (working)", at session start |
 | Messaged the other session | no | no |
 | Referenced the other run's folder or notes | no | no |
 | Human input during the run | none | one permission approval for the `git commit` command (03:49:39 to 04:05:15 UTC); the tool result carries no extra text, so no guidance was given |
@@ -149,6 +150,6 @@ Kunal's own UI screenshots of the before run (`screenshots/before-ui-kunal-deskt
 
 - Harness was Claude Code (Opus 5.5, high effort), not the planned Antigravity. Rules isolation is confirmed by the rules record and the transcript check above.
 - In these sessions (Claude desktop app), `AGENTS.md` was attached automatically from the project root, so the after run had the rules in context before reading the prompt. This is what these runs loaded, not a claim about every harness. The richer after prompt is still part of the intervention, stated above.
-- Both sessions received one extra app line, identically: "Work in the current project folder as it is. The user is not available for follow-up questions, so use your judgement on anything unclear."
-- The two runs ran in parallel on one machine. Each was told the other session existed ("Linked sessions") and shared a notes folder; neither sent a message to the other, and the after transcript never references the before folder or its notes.
+- Both sessions received the same two extra app lines around the prompt: a background line ("Work in the current project folder as it is. The user is not available for follow-up questions, so use your judgement on anything unclear.") and a pointer to a shared hand-over notes folder outside the repo.
+- The two runs ran in parallel on one machine and shared that notes folder. Only the after run was told a sibling session named `hw3-before` was working; it never messaged it, and its transcript never references the before folder or its notes. This is a small asymmetry between the runs, with no sign that it affected the output.
 - One run per condition. The scores describe these two runs, not the average behaviour of the model.

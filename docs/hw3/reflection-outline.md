@@ -42,7 +42,7 @@ Outline only. Each bullet names the evidence to cite. Target: 1 to 2 pages, plai
 
 - One run per condition; results describe these runs, not the model on average.
 - Richer prompt plus rules changed together, so their effects are not separated.
-- Different harness than planned; one identical extra app line in both sessions.
+- Different harness than planned; two identical extra app lines in both sessions; only the after session was told the before session existed (it never contacted it).
 - The scorer (Dev's agent) also wrote AGENTS.md, so the criteria favour its conventions. Codex review and fixture edits were the checks against that.
 
 ## 7. Next steps for Project 2 (2 to 3 sentences)

@@ -11,7 +11,11 @@
 
 - **Tool: Claude Code (Claude desktop app), not Antigravity.** Kunal chose to run it this way.
 - Model: `claude-opus-5-5` (Opus 5.5), effort `high`, permission mode `default`, fast mode off, default output style.
-- Each run was a brand-new session opened in its own worktree. Both sessions got the same extra system line, which the app requires: "Work in the current project folder as it is. The user is not available for follow-up questions, so use your judgement on anything unclear." Apart from that line, each one got only its exact prompt from `docs/hw3/prompts.md`.
+- Each run was a brand-new session opened in its own worktree. Each got its exact prompt from `docs/hw3/prompts.md` (confirmed word for word in each run's log), wrapped by the app in the same two extra lines for both runs:
+  - Background: "Work in the current project folder as it is. The user is not available for follow-up questions, so use your judgement on anything unclear."
+  - A pointer to a shared side-session notes folder outside the repo, for hand-over notes.
+- The after run's first message also had an app status line saying a sibling session named `hw3-before` was working. It never messaged that session or read its notes. The before run got no mention of the after session.
+- AGENTS.md loading: the app auto-loaded `~/lootlens-hw3/after/AGENTS.md` as project instructions at the start of the after run (23:40:39). The before run loaded no instruction files at all.
 - Global rules: there is no `~/.claude/CLAUDE.md`, no global rules, skills or agents, and no `CLAUDE.md`/`AGENTS.md` in any parent folder. `~/.claude/settings.json` only sets the theme. This was checked before the runs and replaces the two Antigravity screenshots (`before-rules-empty.png`, `after-agents-loaded.png`).
 - Both runs started at 23:40 ET on Oct 30 and ran in parallel, in separate worktrees.
 
