@@ -1,6 +1,6 @@
 # HW3 before/after scorecard
 
-> **Status: provisional on transcripts.** Rules isolation is confirmed by Kunal's rules record (below). The two transcripts and his full results file are still pending; they will confirm the prompts as pasted and that the after run read AGENTS.md.
+> **Status: verified.** Rules isolation, the exact prompts, and AGENTS.md loading are confirmed from Kunal's rules record, his results file (`evidence/`), and both session transcripts (see "Transcript check").
 
 Feature: Story 3, cross-store price view (issue #9). Prompts and run steps: [prompts.md](prompts.md).
 
@@ -12,11 +12,12 @@ Feature: Story 3, cross-store price view (issue #9). Prompts and run steps: [pro
 | Starting SHA | `e96c9a3` | `e8902ae` |
 | Output SHA | `b9018ef` | `1852308` |
 | Harness, model, settings | Claude Code, Claude Opus 5.5, high effort | same |
-| Rules active | none beyond app defaults (Kunal's rules record) | AGENTS.md, read because the prompt pointed to it (transcript pending) |
+| Rules active | none beyond app defaults (no instructions attachment in the transcript) | AGENTS.md, attached as a Project instructions file at session start in this session (03:40:39 UTC) |
 | Worktree | `~/lootlens-hw3/before` (Kunal's machine) | `~/lootlens-hw3/after` (Kunal's machine) |
 | Prompt | brief (1 line) | references Story 3, the fixture, and AGENTS.md |
+| Run time | about 3 min (23:40:29 to 23:43:42 ET) | about 25 min (23:40:38 to 00:05:15 ET), of which 16 min was waiting on a permission prompt |
 
-### Rules record (Kunal, PR #22 comment, 2026-10-31 05:22 UTC)
+### Rules record (Kunal, PR #22 comment, 2026-10-31 05:22 UTC; full version in `evidence/rules-evidence.md` and `evidence/kunal-results.md`)
 
 Same for both runs:
 
@@ -128,8 +129,26 @@ export function cheapestListing(listings: Listing[], size: string): Listing | nu
 7. **Ties are undefined in Story 3.** The runs broke ties differently. Proposed: ties go to a new listing, then the lower store name A-Z (product decision to confirm with Kunal).
 8. **Test dependencies.** Testing Library and jsdom are now needed for component tests. Proposed: list them in the AGENTS.md stack so later runs do not re-decide.
 
+## Transcript check
+
+Checked by the agent on 2026-10-31 from `session-export-1793419571551` (before) and `session-export-1793419571785` (after), Claude Code session logs exported by Kunal. The transcripts stay out of the repo; they hold the app's full system prompt and Kunal's local paths.
+
+| Question | Before | After |
+|---|---|---|
+| Task text matches `prompts.md` exactly | yes | yes |
+| AGENTS.md in context | no (0 occurrences of its text) | yes, `instructions` attachment for `/Users/kunal/lootlens-hw3/after/AGENTS.md`, type Project, at session start |
+| Tool calls | 17 Bash, 5 Write, 3 Edit, 5 browser-preview calls (it screenshotted its own page) | 28 Bash, 11 Write, 5 Edit, 1 ToolSearch, no browser checks |
+| Messaged the other session | no | no |
+| Referenced the other run's folder or notes | no | no |
+| Human input during the run | none | one permission approval for the `git commit` command (03:49:39 to 04:05:15 UTC); the tool result carries no extra text, so no guidance was given |
+| Environment detours | Node 14 first in PATH; switched to `/usr/local/bin` Node 24 | same, plus one `npm install` under Node 14 that it reverted before committing |
+
+Kunal's own UI screenshots of the before run (`screenshots/before-ui-kunal-desktop.jpg`, `screenshots/before-ui-kunal-mobile.jpg`) match the agent's capture.
+
 ## Caveats
 
-- Harness was Claude Code (Opus 5.5, high effort), not the planned Antigravity. Claude Code loads `~/.claude/CLAUDE.md`, parent-folder `CLAUDE.md` files, auto-memory, and plugins/hooks on its own; the before run counts as rules-free only if Kunal's rules record shows those were off. Pending.
-- Claude Code does not load `AGENTS.md` by itself; the after run read it because the after prompt said to. That is part of the intervention, stated above.
+- Harness was Claude Code (Opus 5.5, high effort), not the planned Antigravity. Rules isolation is confirmed by the rules record and the transcript check above.
+- In these sessions (Claude desktop app), `AGENTS.md` was attached automatically from the project root, so the after run had the rules in context before reading the prompt. This is what these runs loaded, not a claim about every harness. The richer after prompt is still part of the intervention, stated above.
+- Both sessions received one extra app line, identically: "Work in the current project folder as it is. The user is not available for follow-up questions, so use your judgement on anything unclear."
+- The two runs ran in parallel on one machine. Each was told the other session existed ("Linked sessions") and shared a notes folder; neither sent a message to the other, and the after transcript never references the before folder or its notes.
 - One run per condition. The scores describe these two runs, not the average behaviour of the model.
