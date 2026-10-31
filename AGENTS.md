@@ -27,6 +27,7 @@ lib/
   pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
   alerts.ts             pure alert evaluation
   types.ts              shared API response types (the API contract)
+  demoData.ts           fixture loader in API shapes, stand-in until a route is live
   db-guard.ts           assertNonProdDb()
   prisma.ts  auth.ts
 prisma/                 schema.prisma, seed.ts
