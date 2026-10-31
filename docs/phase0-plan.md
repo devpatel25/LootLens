@@ -6,7 +6,7 @@ Phase 0 also covers the HW3 deliverables (due Fri Oct 30 11:59 PM PT = 2026-10-3
 Sources read: the handoff doc, the HW2 PRD PDF, and the Project 1 submission PDF.
 
 Repo: `github.com/devpatel25/LootLens` (public), `main`, one commit (README + .gitignore). The local folder name has uppercase letters.
-Partner: Kunal Ghanwat (`KunalGhanwat3`). He has been invited but hasn't accepted yet.
+Partner: Kunal Ghanwat (`KunalGhanwat3`). He has been invited but hasn't accepted yet. _(Update Oct 31: invite accepted.)_
 
 ### Decisions locked by the user (Oct 30)
 - Stack: Next.js App Router + TS + Tailwind, Prisma + PostgreSQL, Auth.js (JWT sessions), Vitest, Playwright.
@@ -52,7 +52,7 @@ Partner: Kunal Ghanwat (`KunalGhanwat3`). He has been invited but hasn't accepte
 Today's work needs no Google credentials, no database, and no partner acceptance. Kunal's invite pending blocks nothing. His issues are labelled `owner:kunal` and assigned once he accepts.
 1. Scaffold + shared fixture, tagged `hw3-baseline` → 2. AGENTS.md (one commit on top of the baseline) → 3-6. Labels, milestones, board, issues → 8. HW3 before/after on fixtures → scorecard and AGENTS.md refinement → user writes the reflection and submits. Leave at least 2 hours of buffer for the reflection.
 
-Dev runs the HW3 experiment today because Kunal isn't on the repo yet. The UI it produces counts only as experiment output. Kunal's #9 builds the real comparison UI, and he may start from the "after" branch.
+Dev runs the HW3 experiment today because Kunal isn't on the repo yet. The UI it produces counts only as experiment output. Kunal's #9 builds the real comparison UI, and he may start from the "after" branch. _(Update Oct 31: Kunal ran both HW3 runs himself, in Claude Code with Opus 5.5; see `docs/hw3/prompts.md`.)_
 
 User prerequisite before step 5: run `gh auth refresh -s project`, because the token lacks the `project` scope.
 

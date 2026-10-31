@@ -8,11 +8,13 @@ Feature: Story 3, cross-store price view (issue #9). Prompts and run steps: [pro
 |---|---|---|
 | Branch | `hw3/before-comparison` | `hw3/after-comparison` |
 | Starting SHA | `e96c9a3` | `e8902ae` |
-| Output SHA | _tbd_ | _tbd_ |
-| Model and settings | _tbd_ | _tbd_ |
-| Rules active | none (screenshot: `screenshots/before-rules-empty.png`) | AGENTS.md (screenshot: `screenshots/after-agents-loaded.png`) |
-| Worktree | `LootLens-hw3-before` | `LootLens-hw3-after` |
+| Output SHA | `b9018ef` | `1852308` |
+| Harness, model, settings | Claude Code, Claude Opus 5.5, high effort | same |
+| Rules active | none (evidence: Kunal's rules record, pending) | AGENTS.md (evidence: rules record and transcript, pending) |
+| Worktree | `~/lootlens-hw3/before` (Kunal's machine) | `~/lootlens-hw3/after` (Kunal's machine) |
 | Prompt | brief (1 line) | references Story 3, the fixture, and AGENTS.md |
+
+The runs used Claude Code instead of the planned Antigravity; see the actual run record in [prompts.md](prompts.md).
 
 The after prompt is richer on purpose. Pointing the agent at the rules and the story is part of the context-engineering intervention, not a hidden variable.
 

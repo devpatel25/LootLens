@@ -1,7 +1,25 @@
 # HW3 before/after prompts
 
 Feature under test: Story 3, cross-store price view (issue #9).
-Harness: Antigravity. Same model and settings for both runs (record them in the scorecard).
+Planned harness: Antigravity. **Actual harness: Claude Code, Claude Opus 5.5, high effort, for both runs** (see "Actual run record" below). Same model and settings for both runs.
+
+## Actual run record
+
+Run by Kunal Ghanwat on Oct 30 to 31, 2026, on his machine.
+
+| | Before | After |
+|---|---|---|
+| Harness and model | Claude Code, Claude Opus 5.5, high effort | same |
+| Worktree | `~/lootlens-hw3/before` | `~/lootlens-hw3/after` |
+| Output SHA | `b9018ef` | `1852308` |
+| Commits | 1, made by the agent itself (`feat: cross-store price comparison page for demo item`) | 3, made by the agent: `test(#9)` failing tests, `feat(#9)`, `test(#9)` assertion tightening |
+| Rules evidence | Rules record and transcript (sent by Kunal; no Antigravity screenshots exist) | same |
+
+Differences from the planned steps below:
+
+- Claude Code was used instead of Antigravity, so there is no Antigravity rules-panel screenshot. Rules state is documented by Kunal's rules record instead.
+- The before agent committed its own output, so there is no separate `hw3: before run output` commit.
+- The worktrees lived on Kunal's machine, not at the `LootLens-hw3-*` paths listed under Isolation.
 
 ## Starting points
 
