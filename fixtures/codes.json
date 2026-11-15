@@ -52,59 +52,5 @@
       "provider": "DemoCash",
       "ratePct": 5
     }
-  },
-  {
-    "id": "code-adidas-dead",
-    "storeId": "store-adidas",
-    "storeName": "Adidas",
-    "code": "OLD25",
-    "label": "25% off",
-    "type": "pct",
-    "value": 25,
-    "minSpend": null,
-    "firstOrderOnly": false,
-    "expiresAt": null,
-    "status": "dead",
-    "lastCheckedAt": "2026-10-29T10:00:00.000Z",
-    "cashback": {
-      "provider": "DemoCash",
-      "ratePct": 5
-    }
-  },
-  {
-    "id": "code-adidas-stale",
-    "storeId": "store-adidas",
-    "storeName": "Adidas",
-    "code": "STALE15",
-    "label": "15% off",
-    "type": "pct",
-    "value": 15,
-    "minSpend": null,
-    "firstOrderOnly": false,
-    "expiresAt": null,
-    "status": "live",
-    "lastCheckedAt": "2026-10-28T10:00:00.000Z",
-    "cashback": {
-      "provider": "DemoCash",
-      "ratePct": 5
-    }
-  },
-  {
-    "id": "code-adidas-expired",
-    "storeId": "store-adidas",
-    "storeName": "Adidas",
-    "code": "EXPIRED20",
-    "label": "20% off",
-    "type": "pct",
-    "value": 20,
-    "minSpend": null,
-    "firstOrderOnly": false,
-    "expiresAt": "2026-10-28T00:00:00.000Z",
-    "status": "live",
-    "lastCheckedAt": "2026-10-29T13:00:00.000Z",
-    "cashback": {
-      "provider": "DemoCash",
-      "ratePct": 5
-    }
   }
 ]

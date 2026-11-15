@@ -48,7 +48,11 @@ export type Listing = {
   source: DataSource;
 };
 
-/** GET /api/codes. cashback is the store's highest-ratePct offer, or null. */
+/**
+ * GET /api/codes (default list: live, fresh, not expired; fixtures/codes.json).
+ * With showDead=true the full list is returned (fixtures/codes-all.json).
+ * cashback is the store's highest-ratePct offer, or null.
+ */
 export type Code = {
   id: string;
   storeId: string;
@@ -59,6 +63,7 @@ export type Code = {
   value: number;
   minSpend: number | null;
   firstOrderOnly: boolean;
+  /** A code with expiresAt before now is excluded from the default Codes list and from best totals, even when status is live. */
   expiresAt: string | null;
   status: "live" | "dead";
   lastCheckedAt: string;
