@@ -64,61 +64,69 @@ export async function seed(db: PrismaClient, now = new Date()): Promise<{ demoUs
   assertNonProdDb();
   const ago = (h: number) => new Date(now.getTime() - h * H);
 
-  const demo = await db.user.upsert({
-    where: { email: "demo@lootlens.test" },
-    update: { name: "Demo Shopper" },
-    create: { email: "demo@lootlens.test", name: "Demo Shopper" },
-  });
-  await db.userSettings.upsert({ where: { userId: demo.id }, update: {}, create: { userId: demo.id } });
+  // One transaction: a failed re-seed leaves the previous data in place.
+  const demoUserId = await db.$transaction(
+    async (tx) => {
+      const demo = await tx.user.upsert({
+        where: { email: "demo@lootlens.test" },
+        update: { name: "Demo Shopper" },
+        create: { email: "demo@lootlens.test", name: "Demo Shopper" },
+      });
+      await tx.userSettings.upsert({ where: { userId: demo.id }, update: {}, create: { userId: demo.id } });
 
-  for (const [id, name, domain, sellerName, isHttps, photoReviewCount, rating, fictional, pct] of STORES) {
-    const data = {
-      name, domain, sellerName, isHttps, photoReviewCount, rating, fictional,
-      cashback: pct ? [{ provider: "DemoCash", ratePct: pct }] : [],
-    };
-    await db.store.upsert({ where: { id }, update: data, create: { id, ...data } });
-  }
+      for (const [id, name, domain, sellerName, isHttps, photoReviewCount, rating, fictional, pct] of STORES) {
+        const data = {
+          name, domain, sellerName, isHttps, photoReviewCount, rating, fictional,
+          cashback: pct ? [{ provider: "DemoCash", ratePct: pct }] : [],
+        };
+        await tx.store.upsert({ where: { id }, update: data, create: { id, ...data } });
+      }
 
-  // Seed-owned data is replaced, never truncated: real users in previews keep their rows.
-  await db.item.deleteMany({ where: { userId: demo.id } });
-  await db.code.deleteMany();
+      // Seed-owned data is replaced, never truncated: real users in previews keep their rows.
+      await tx.item.deleteMany({ where: { userId: demo.id } });
+      await tx.code.deleteMany({ where: { id: { in: CODES.map((c) => c[0]) } } });
 
-  for (const it of ITEMS) {
-    await db.item.create({
-      data: {
-        userId: demo.id,
-        name: it.name,
-        category: it.category,
-        sizes: it.sizes,
-        selectedSize: it.selectedSize,
-        typicalPrice: it.typicalPrice,
-        lastRefreshedAt: ago(2),
-        listings: {
-          create: it.listings.map(([storeId, price, condition, stock]) => ({
-            storeId,
-            price,
-            condition,
-            stockBySize: stock,
-            source: "DEMO" as const,
-            url: `https://${STORES.find((s) => s[0] === storeId)![2]}/demo/${encodeURIComponent(it.name)}`,
-            priceHistory: { create: [{ price: price * 1.05, recordedAt: ago(72) }, { price, recordedAt: ago(1) }] },
-          })),
-        },
-      },
-    });
-  }
+      for (const it of ITEMS) {
+        await tx.item.create({
+          data: {
+            userId: demo.id,
+            name: it.name,
+            category: it.category,
+            sizes: it.sizes,
+            selectedSize: it.selectedSize,
+            typicalPrice: it.typicalPrice,
+            lastRefreshedAt: ago(2),
+            listings: {
+              create: it.listings.map(([storeId, price, condition, stock]) => ({
+                storeId,
+                price,
+                condition,
+                stockBySize: stock,
+                source: "DEMO" as const,
+                url: `https://${STORES.find((s) => s[0] === storeId)![2]}/demo/${encodeURIComponent(it.name)}`,
+                priceHistory: { create: [{ price: price * 1.05, recordedAt: ago(72) }, { price, recordedAt: ago(1) }] },
+              })),
+            },
+          },
+        });
+      }
 
-  await db.code.createMany({
-    data: CODES.map(([id, storeId, code, label, type, value, status, h, x]) => ({
-      id, storeId, code, label, type, value, status,
-      minSpend: x?.minSpend ?? null,
-      firstOrderOnly: x?.firstOrderOnly ?? false,
-      expiresAt: x?.expiresInHours === undefined ? null : ago(-x.expiresInHours),
-      lastCheckedAt: ago(h),
-    })),
-  });
+      await tx.code.createMany({
+        data: CODES.map(([id, storeId, code, label, type, value, status, h, x]) => ({
+          id, storeId, code, label, type, value, status,
+          minSpend: x?.minSpend ?? null,
+          firstOrderOnly: x?.firstOrderOnly ?? false,
+          expiresAt: x?.expiresInHours === undefined ? null : ago(-x.expiresInHours),
+          lastCheckedAt: ago(h),
+        })),
+      });
 
-  return { demoUserId: demo.id };
+      return demo.id;
+    },
+    { timeout: 30000 },
+  );
+
+  return { demoUserId };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
