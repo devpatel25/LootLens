@@ -66,11 +66,18 @@ export type Code = {
   /** A code with expiresAt before now is excluded from the default Codes list and from best totals, even when status is live. */
   expiresAt: string | null;
   status: "live" | "dead";
+  /** Fresh means strictly less than freshnessHours ago; exactly freshnessHours ago is stale. */
   lastCheckedAt: string;
   cashback: CashbackOffer | null;
 };
 
-/** Amounts are unrounded. total = price - code.discount - cashback.amount. */
+/**
+ * Applicable code rule: same store, status live, fresh (checked less than
+ * settings.freshnessHours ago), not expired, listing price >= minSpend, and not
+ * firstOrderOnly unless settings.firstOrderEligible. A pct value is a percent and a
+ * flat value is USD; the discount is capped at the price. Cashback is the store's
+ * highest ratePct offer applied to price minus discount.
+ * Amounts are unrounded. total = price - code.discount - cashback.amount. */
 export type BestDeal = {
   listingId: string;
   price: number;
