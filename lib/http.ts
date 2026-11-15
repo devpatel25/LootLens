@@ -1,17 +1,20 @@
 import type { z } from "zod";
+import { auth } from "@/lib/auth";
 
-export function ok<T>(_data: T, _status = 200): Response {
-  return new Response(null);
+export function ok<T>(data: T, status = 200): Response {
+  return Response.json({ data }, { status });
 }
 
-export function fail(_status: number, _code: string, _message: string, _extra?: { retryAfterSeconds?: number }): Response {
-  return new Response(null);
+export function fail(status: number, code: string, message: string, extra?: { retryAfterSeconds?: number }): Response {
+  return Response.json({ error: { code, message, ...extra } }, { status });
 }
 
 export async function requireUserId(): Promise<string | Response> {
-  return "";
+  const session = await auth();
+  return session?.user?.id ?? fail(401, "unauthorized", "Sign in required");
 }
 
-export function parse<T>(_schema: z.ZodType<T>, _input: unknown): T | Response {
-  return new Response(null);
+export function parse<T>(schema: z.ZodType<T>, input: unknown): T | Response {
+  const r = schema.safeParse(input);
+  return r.success ? r.data : fail(400, "bad_request", r.error.issues[0].message);
 }

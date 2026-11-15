@@ -1,15 +1,20 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
-export function routeDecision(_pathname: string, _signedIn: boolean): "next" | "redirect" | "unauthorized" {
-  return "next";
+const PUBLIC = ["/signin", "/api/auth", "/api/health", "/api/cron"];
+
+export function routeDecision(pathname: string, signedIn: boolean): "next" | "redirect" | "unauthorized" {
+  if (signedIn || PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "next";
+  return pathname === "/api" || pathname.startsWith("/api/") ? "unauthorized" : "redirect";
 }
 
 export const callbacks = {
-  jwt({ token }) {
+  jwt({ token, user }) {
+    if (user?.id) token.id = user.id;
     return token;
   },
-  session({ session }) {
+  session({ session, token }) {
+    if (token.id) session.user.id = token.id;
     return session;
   },
 } satisfies NextAuthConfig["callbacks"];
