@@ -53,11 +53,15 @@ describe("parse", () => {
   it("returns the value on success", () => {
     expect(parse(schema, { n: 1 })).toEqual({ n: 1 });
   });
+  it("omits the prefix when the issue has no path", async () => {
+    const res = parse(z.number(), "x") as Response;
+    expect((await res.json()).error.message).toBe(z.number().safeParse("x").error!.issues[0].message);
+  });
   it("400 bad_request with the first issue message", async () => {
     const res = parse(schema, { n: "x" }) as Response;
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error.code).toBe("bad_request");
-    expect(body.error.message).toBe(schema.safeParse({ n: "x" }).error!.issues[0].message);
+    expect(body.error.message).toBe(`n: ${schema.safeParse({ n: "x" }).error!.issues[0].message}`);
   });
 });

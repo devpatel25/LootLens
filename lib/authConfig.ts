@@ -25,3 +25,7 @@ export const authConfig = {
   pages: { signIn: "/signin" },
   callbacks,
 } satisfies NextAuthConfig;
+
+export function signInUrl(_pathname: string, _search: string): string {
+  return "/signin";
+}
