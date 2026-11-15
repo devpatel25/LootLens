@@ -37,7 +37,7 @@ npm run dev                  # http://localhost:3000
 
 ### Local database
 
-Tests use the `lootlens-pg` Docker container on port 5433 through `.env.test`. Run this once:
+Tests use the `lootlens-pg` Docker container on port 5433 through `.env.test`, in a separate `lootlens_test` database so test resets never touch your dev data. `db:test:migrate` creates `lootlens_test` if it is missing. Test helpers refuse any database whose name does not end in `_test`. Run this once:
 
 ```bash
 npm run db:up && npm run db:test:migrate

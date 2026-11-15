@@ -6,6 +6,10 @@ export function assertLocalDbHost(url: string | undefined): void {
   if (!["localhost", "127.0.0.1", "[::1]"].includes(hostOf(url))) {
     throw new Error("resetDb: DATABASE_URL host must be local");
   }
+  // hostOf already parsed it, so this cannot throw.
+  if (!new URL(url!).pathname.slice(1).endsWith("_test")) {
+    throw new Error("resetDb: database name must end with _test");
+  }
 }
 
 export async function resetDb(): Promise<void> {

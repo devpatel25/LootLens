@@ -1,9 +1,12 @@
-// Host of a URL, or of a scheme-less "host[:port][/path][?query]" or "user@host" value. "" when unparsable.
+// Host of a URL (decoded; "" when a host/hostaddr query param could override it), or of a scheme-less "host[:port][/path][?query]" or "user@host" value. "" when unparsable.
 export function hostOf(raw: string | undefined): string {
   const v = raw?.trim();
   if (!v) return "";
   try {
-    return new URL(v.includes("://") ? v : "x://" + v).hostname;
+    const u = new URL(v.includes("://") ? v : "x://" + v);
+    // pg takes the real host from ?host= / ?hostaddr= and percent-decodes the authority host.
+    if (u.searchParams.has("host") || u.searchParams.has("hostaddr")) return "";
+    return decodeURIComponent(u.hostname);
   } catch {
     return "";
   }
@@ -14,7 +17,8 @@ export function isDestructivePrismaCommand(argv: string[]): boolean {
   return argv.some(
     (a, i) =>
       (a === "migrate" && (argv[i + 1] === "dev" || argv[i + 1] === "reset")) ||
-      (a === "db" && argv[i + 1] === "push"),
+      (a === "migrate" && argv[i + 1] === "resolve") ||
+      (a === "db" && (argv[i + 1] === "push" || argv[i + 1] === "execute")),
   );
 }
 

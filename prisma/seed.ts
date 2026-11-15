@@ -1,4 +1,5 @@
-import { pathToFileURL } from "node:url";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { assertNonProdDb } from "@/lib/db-guard";
 import type { PrismaClient } from "@/lib/generated/prisma/client";
 
@@ -144,7 +145,16 @@ export async function seed(db: PrismaClient, now = new Date()): Promise<{ demoUs
   return { demoUserId };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// realpath both sides so a symlinked path still runs the seed.
+const isMain = (() => {
+  try {
+    return !!process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+})();
+
+if (isMain) {
   void (async () => {
     const { prisma } = await import("@/lib/prisma");
     await seed(prisma);
