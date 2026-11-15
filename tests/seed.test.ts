@@ -38,6 +38,18 @@ describe("seed", () => {
     expect(first.codes).toBeGreaterThanOrEqual(8);
   });
 
+  it("keeps codes it does not own when re-seeding", async () => {
+    await seed(prisma);
+    await prisma.code.create({
+      data: {
+        id: "ingested-1", storeId: "store-amazon", code: "INGESTED", label: "ingested",
+        type: "PCT", value: 5, status: "LIVE", lastCheckedAt: new Date(),
+      },
+    });
+    await seed(prisma);
+    expect(await prisma.code.findUnique({ where: { id: "ingested-1" } })).not.toBeNull();
+  });
+
   it("refuses to run when DB_TARGET=production", async () => {
     await seed(prisma);
     const before = await counts();
