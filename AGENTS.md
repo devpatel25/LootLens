@@ -33,7 +33,7 @@ lib/
 prisma/                 schema.prisma, migrations/, seed.ts
 prisma.config.ts        Prisma CLI config (env loading, seed command)
 fixtures/               demo JSON in API shapes, for UI work and tests
-tests/                  Vitest unit + integration (helpers/ for db reset and test users)
+tests/                  Vitest unit + integration (helpers/ for db reset)
 e2e/                    Playwright
 docs/                   architecture, API, schema, sprints, retros, reviews
 ```

@@ -77,7 +77,6 @@ describe("seed", () => {
     const before = await counts();
     vi.stubEnv("DB_TARGET", "production");
     await expect(seed(prisma)).rejects.toThrow(/DB_TARGET/);
-    vi.unstubAllEnvs();
     expect(await counts()).toEqual(before);
   });
 });
