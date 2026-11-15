@@ -63,7 +63,7 @@ describe("contract fixtures", () => {
       expect(["new", "used", "resale"]).toContain(l.condition);
       expect(l.source).toBe("demo");
     }
-    for (const k of codeList) {
+    for (const k of [...codeList, ...allCodes]) {
       expect(["pct", "flat"]).toContain(k.type);
       expect(["live", "dead"]).toContain(k.status);
     }
@@ -144,8 +144,7 @@ describe("contract fixtures", () => {
   });
 
   it("codes-all.json is a superset with dead, stale and expired codes", () => {
-    const all = allCodes.map((k) => k.id);
-    for (const k of codeList) expect(all).toContain(k.id);
+    expect(allCodes).toEqual(expect.arrayContaining(codeList));
     expect(allCodes.some((k) => k.status === "dead")).toBe(true);
     expect(allCodes.some(isStale)).toBe(true);
     expect(allCodes.some(isExpired)).toBe(true);
