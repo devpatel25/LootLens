@@ -122,6 +122,24 @@ describe("assertNonProdDb rejects", () => {
   });
 });
 
+describe("assertNonProdDb rejects URL host tricks", () => {
+  const env = (extra: Record<string, string>) => ({ DB_TARGET: "local", PROD_DB_HOST: PROD, ...extra });
+  it.each([
+    ["host query param", `postgresql://u:p@localhost/db?host=${PROD}`],
+    ["hostaddr query param", "postgresql://u:p@localhost/db?hostaddr=10.0.0.1"],
+    ["percent-encoded host", "postgresql://u:p@ep-x%2Eregion.aws.neon.tech/db"],
+  ])("DATABASE_URL with %s", (_n, u) => {
+    expect(() => assertNonProdDb(env({ DATABASE_URL: u }))).toThrow();
+  });
+  it("DATABASE_URL_UNPOOLED with a host query param", () => {
+    expect(() =>
+      assertNonProdDb(
+        env({ DATABASE_URL: url("localhost"), DATABASE_URL_UNPOOLED: `postgresql://u:p@localhost/db?host=${PROD}` }),
+      ),
+    ).toThrow();
+  });
+});
+
 describe("assertNonProdDb passes", () => {
   it.each(["local", "ci", "preview"])("DB_TARGET=%s with a different host", (target) => {
     expect(() =>
@@ -179,6 +197,8 @@ describe("isDestructivePrismaCommand", () => {
     ["migrate dev with flags", ["migrate", "dev", "--name", "x"]],
     ["migrate reset", ["migrate", "reset", "--force"]],
     ["db push", ["db", "push"]],
+    ["db execute", ["db", "execute", "--file", "x.sql"]],
+    ["migrate resolve", ["migrate", "resolve", "--applied", "x"]],
   ])("true for %s", (_name, rest) => {
     expect(isDestructivePrismaCommand(argv(...rest))).toBe(true);
   });
