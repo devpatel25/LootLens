@@ -29,9 +29,13 @@ lib/
   types.ts              shared API response types (the API contract)
   db-guard.ts           assertNonProdDb()
   prisma.ts  auth.ts
-prisma/                 schema.prisma, seed.ts
+  dto.ts  http.ts       Prisma row to API type mapping, route helpers
+  generated/            Prisma client output (gitignored)
+prisma/                 schema.prisma, migrations/, seed.ts
+prisma.config.ts        Prisma CLI config (env loading, seed command)
+proxy.ts                auth gate for pages and API (Next 16 middleware)
 fixtures/               demo JSON in API shapes, for UI work and tests
-tests/                  Vitest unit + integration
+tests/                  Vitest unit + integration (helpers/ for db reset and test users)
 e2e/                    Playwright
 docs/                   architecture, API, schema, sprints, retros, reviews
 ```
