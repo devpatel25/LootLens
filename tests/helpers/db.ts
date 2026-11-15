@@ -2,12 +2,22 @@ import { randomUUID } from "node:crypto";
 import { assertNonProdDb } from "@/lib/db-guard";
 import { prisma } from "@/lib/prisma";
 
-// Placeholder: the real check lands in the fix commit.
-export function assertLocalDbHost(_url: string | undefined = process.env.DATABASE_URL): void {}
+// Vitest never loads .env.local, so PROD_DB_HOST is unset here. Truncate only on a local host.
+export function assertLocalDbHost(url: string | undefined): void {
+  let host = "";
+  try {
+    host = new URL(url ?? "").hostname;
+  } catch {
+    // falls through to the throw
+  }
+  if (!["localhost", "127.0.0.1", "[::1]", "::1"].includes(host)) {
+    throw new Error("resetDb: DATABASE_URL host must be local");
+  }
+}
 
 export async function resetDb(): Promise<void> {
   assertNonProdDb();
-  assertLocalDbHost();
+  assertLocalDbHost(process.env.DATABASE_URL);
   const rows = await prisma.$queryRaw<{ tablename: string }[]>`
     SELECT tablename FROM pg_tables
     WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
