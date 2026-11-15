@@ -1,10 +1,21 @@
-// Stub for the red step; the fix commit replaces both.
-export function hostOf(_raw: string | undefined): string {
-  return "";
+// Host of a URL, or of a scheme-less "host[:port][/path][?query]" or "user@host" value. "" when unparsable.
+export function hostOf(raw: string | undefined): string {
+  const v = raw?.trim();
+  if (!v) return "";
+  try {
+    return new URL(v.includes("://") ? v : "x://" + v).hostname;
+  } catch {
+    return "";
+  }
 }
 
-export function isDestructivePrismaCommand(_argv: string[]): boolean {
-  return false;
+// Prisma CLI commands that write to the database. deploy, generate, status, diff and seed stay open.
+export function isDestructivePrismaCommand(argv: string[]): boolean {
+  return argv.some(
+    (a, i) =>
+      (a === "migrate" && (argv[i + 1] === "dev" || argv[i + 1] === "reset")) ||
+      (a === "db" && argv[i + 1] === "push"),
+  );
 }
 
 // Fail-closed: throws unless the env is clearly non-production. Messages never include URL or host values.
@@ -18,13 +29,6 @@ export function assertNonProdDb(
     throw new Error("assertNonProdDb: VERCEL_ENV is production");
   }
 
-  const hostOf = (value: string | undefined): string => {
-    try {
-      return new URL(value ?? "").hostname;
-    } catch {
-      return "";
-    }
-  };
   const hostname = hostOf(env.DATABASE_URL);
   if (!hostname) {
     throw new Error("assertNonProdDb: DATABASE_URL missing or unparsable");
@@ -36,13 +40,9 @@ export function assertNonProdDb(
     throw new Error("assertNonProdDb: DATABASE_URL_UNPOOLED unparsable");
   }
 
-  // PROD_DB_HOST may be a bare host, host:port, or a full URL.
+  // PROD_DB_HOST may be a bare host, host:port, host/path, user@host, or a full URL.
   const rawProd = env.PROD_DB_HOST?.trim();
-  const prod = rawProd
-    ? rawProd.includes("://")
-      ? hostOf(rawProd)
-      : rawProd.replace(/:\d+$/, "")
-    : "";
+  const prod = hostOf(rawProd);
   if (rawProd && !prod) {
     throw new Error("assertNonProdDb: PROD_DB_HOST unparsable");
   }
