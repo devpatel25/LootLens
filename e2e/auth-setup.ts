@@ -12,7 +12,7 @@ async function main(): Promise<void> {
   // On http the cookie is authjs.session-token, and the salt must equal the cookie name.
   const name = "authjs.session-token";
   const value = await encode({
-    token: { sub: demoUserId, id: demoUserId, email: "demo@lootlens.test", name: "Demo Shopper" },
+    token: { sub: demoUserId, email: "demo@lootlens.test", name: "Demo Shopper" },
     secret: process.env.AUTH_SECRET!,
     salt: name,
   });

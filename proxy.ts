@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import NextAuth from "next-auth";
-import { authConfig, routeDecision } from "@/lib/authConfig";
+import { authConfig, routeDecision, signInUrl } from "@/lib/authConfig";
 
 // Built from authConfig only, so the proxy never loads Prisma.
 const { auth } = NextAuth(authConfig);
@@ -10,7 +10,13 @@ export default auth((req) => {
   if (d === "unauthorized") {
     return Response.json({ error: { code: "unauthorized", message: "Sign in required" } }, { status: 401 });
   }
-  if (d === "redirect") return NextResponse.redirect(new URL("/signin", req.nextUrl));
+  if (d === "redirect") return NextResponse.redirect(new URL(signInUrl(req.nextUrl.pathname, req.nextUrl.search), req.nextUrl));
 });
 
-export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };
+// /api/* is always matched, even dotted paths. Static assets and metadata files stay public.
+export const config = {
+  matcher: [
+    "/api/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
+};

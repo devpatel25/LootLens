@@ -9,12 +9,8 @@ export function routeDecision(pathname: string, signedIn: boolean): "next" | "re
 }
 
 export const callbacks = {
-  jwt({ token, user }) {
-    if (user?.id) token.id = user.id;
-    return token;
-  },
   session({ session, token }) {
-    if (token.id) session.user.id = token.id;
+    if (token.sub) session.user.id = token.sub;
     return session;
   },
 } satisfies NextAuthConfig["callbacks"];
@@ -26,6 +22,6 @@ export const authConfig = {
   callbacks,
 } satisfies NextAuthConfig;
 
-export function signInUrl(_pathname: string, _search: string): string {
-  return "/signin";
+export function signInUrl(pathname: string, search: string): string {
+  return `/signin?callbackUrl=${encodeURIComponent(pathname + search)}`;
 }

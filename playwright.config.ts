@@ -11,10 +11,10 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${PORT}`, trace: "on-first-retry" },
   globalSetup: "./e2e/global-setup.ts",
   projects: [
-    { name: "anon", testMatch: /auth-anon\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "anon", testMatch: /-anon\.spec\.ts$/, use: { ...devices["Desktop Chrome"] } },
     {
       name: "authed",
-      testMatch: /(auth|smoke)\.spec\.ts/,
+      testIgnore: /-anon\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"], storageState: "e2e/.auth/user.json" },
     },
   ],

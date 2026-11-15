@@ -16,5 +16,7 @@ export async function requireUserId(): Promise<string | Response> {
 
 export function parse<T>(schema: z.ZodType<T>, input: unknown): T | Response {
   const r = schema.safeParse(input);
-  return r.success ? r.data : fail(400, "bad_request", r.error.issues[0].message);
+  if (r.success) return r.data;
+  const { path, message } = r.error.issues[0];
+  return fail(400, "bad_request", path.length ? `${path.join(".")}: ${message}` : message);
 }

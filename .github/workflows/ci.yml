@@ -49,10 +49,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npx prisma migrate deploy
-      - run: npm run db:seed
       - run: npm test
       - run: npx playwright install --with-deps chromium
-      - run: npm run db:seed
       - run: npm run test:e2e
       - name: Upload Playwright report
         if: failure()
