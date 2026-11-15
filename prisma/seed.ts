@@ -47,15 +47,30 @@ const ITEMS: I[] = [
   },
 ];
 
+// Real stores get their own search page for the item. Fictional stores use a reserved .example domain.
+const SEARCH: Record<string, (q: string) => string> = {
+  "store-amazon": (q) => `https://www.amazon.com/s?k=${q}`,
+  "store-walmart": (q) => `https://www.walmart.com/search?q=${q}`,
+  "store-target": (q) => `https://www.target.com/s?searchTerm=${q}`,
+  "store-ae": (q) => `https://www.ae.com/us/en/search?q=${q}`,
+  "store-br": (q) => `https://bananarepublic.gap.com/browse/search.do?searchText=${q}`,
+  "store-adidas": (q) => `https://www.adidas.com/us/search?q=${q}`,
+  "store-fbm": (q) => `https://www.facebook.com/marketplace/search?query=${q}`,
+  "store-kickswap": (q) => `https://kickswap.example/search?q=${q}`,
+};
+
 const H = 3_600_000;
 type C = [id: string, store: string, code: string, label: string, type: "PCT" | "FLAT", value: number, status: "LIVE" | "DEAD", checkedHoursAgo: number, extra?: { minSpend?: number; firstOrderOnly?: boolean; expiresInHours?: number }];
 const CODES: C[] = [
   ["code-adidas-20", "store-adidas", "SAMBA20", "20% off", "PCT", 20, "LIVE", 1],
-  ["code-walmart-10", "store-walmart", "SAVE10", "10% off, last checked a day ago", "PCT", 10, "LIVE", 30],
-  ["code-amazon-dead", "store-amazon", "DEADDEAL", "Expired promo marked dead", "PCT", 15, "DEAD", 2],
-  ["code-amazon-25", "store-amazon", "SAVE25", "$25 off $150 or more", "FLAT", 25, "LIVE", 2, { minSpend: 150 }],
-  ["code-ae-first15", "store-ae", "WELCOME15", "15% off, first order only", "PCT", 15, "LIVE", 3, { firstOrderOnly: true }],
-  ["code-target-expired", "store-target", "TGT20", "20% off (past its end date)", "PCT", 20, "LIVE", 1, { expiresInHours: -1 }],
+  // Checked 30 hours ago, so outside the default 24h freshness window.
+  ["code-walmart-10", "store-walmart", "SAVE10", "10% off", "PCT", 10, "LIVE", 30],
+  // Marked dead.
+  ["code-amazon-dead", "store-amazon", "DEADDEAL", "15% off", "PCT", 15, "DEAD", 2],
+  ["code-amazon-25", "store-amazon", "SAVE25", "$25 off orders over $150", "FLAT", 25, "LIVE", 2, { minSpend: 150 }],
+  ["code-ae-first15", "store-ae", "WELCOME15", "15% off your first order", "PCT", 15, "LIVE", 3, { firstOrderOnly: true }],
+  // Live, but its end date has passed.
+  ["code-target-expired", "store-target", "TGT20", "20% off", "PCT", 20, "LIVE", 1, { expiresInHours: -1 }],
   ["code-target-50", "store-target", "TGT50", "$50 off", "FLAT", 50, "LIVE", 2],
   ["code-br-10", "store-br", "BR10", "10% off", "PCT", 10, "LIVE", 4],
 ];
@@ -103,7 +118,7 @@ export async function seed(db: PrismaClient, now = new Date()): Promise<{ demoUs
                 condition,
                 stockBySize: stock,
                 source: "DEMO" as const,
-                url: `https://${STORES.find((s) => s[0] === storeId)![2]}/demo/${encodeURIComponent(it.name)}`,
+                url: SEARCH[storeId](encodeURIComponent(it.name)),
                 priceHistory: { create: [{ price: price * 1.05, recordedAt: ago(72) }, { price, recordedAt: ago(1) }] },
               })),
             },
