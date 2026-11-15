@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { routeDecision, signInUrl } from "@/lib/authConfig";
-import { pathToRegexp } from "next/dist/compiled/path-to-regexp";
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { config } from "@/proxy";
 
 describe("routeDecision signed out", () => {
@@ -40,9 +40,7 @@ describe("signInUrl", () => {
 
 describe("proxy matcher", () => {
   const matchers = config.matcher as string[];
-  // Next compiles each matcher with path-to-regexp and matches the whole path.
-  const regexes = matchers.map((m) => pathToRegexp(m));
-  const matched = (p: string) => regexes.some((r) => r.test(p));
+  const matched = (url: string) => unstable_doesMiddlewareMatch({ config, url });
 
   it("always matches /api through its own entry", () => {
     expect(matchers).toContain("/api/:path*");
