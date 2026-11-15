@@ -139,7 +139,6 @@ model Listing {
   updatedAt    DateTime       @updatedAt
 
   @@unique([itemId, storeId, condition])
-  @@index([itemId])
 }
 
 model PriceHistory {
@@ -171,6 +170,7 @@ model Code {
   updatedAt       DateTime   @updatedAt
 
   @@index([storeId, status])
+  @@index([lastCheckedById])
 }
 
 // @@unique([userId, itemId, size]) also serves "watches by userId + itemId" lookups.
@@ -191,6 +191,7 @@ model Watch {
   createdAt    DateTime @default(now())
 
   @@unique([userId, itemId, size])
+  @@index([itemId])
 }
 
 model Alert {
@@ -207,6 +208,8 @@ model Alert {
   createdAt DateTime  @default(now())
 
   @@index([userId, read, createdAt])
+  @@index([watchId])
+  @@index([itemId])
 }
 
 model UserSettings {

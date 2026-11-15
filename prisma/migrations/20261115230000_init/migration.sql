@@ -192,9 +192,6 @@ CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
 CREATE INDEX "Item_userId_idx" ON "Item"("userId");
 
 -- CreateIndex
-CREATE INDEX "Listing_itemId_idx" ON "Listing"("itemId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Listing_itemId_storeId_condition_key" ON "Listing"("itemId", "storeId", "condition");
 
 -- CreateIndex
@@ -204,10 +201,22 @@ CREATE INDEX "PriceHistory_listingId_recordedAt_idx" ON "PriceHistory"("listingI
 CREATE INDEX "Code_storeId_status_idx" ON "Code"("storeId", "status");
 
 -- CreateIndex
+CREATE INDEX "Code_lastCheckedById_idx" ON "Code"("lastCheckedById");
+
+-- CreateIndex
+CREATE INDEX "Watch_itemId_idx" ON "Watch"("itemId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Watch_userId_itemId_size_key" ON "Watch"("userId", "itemId", "size");
 
 -- CreateIndex
 CREATE INDEX "Alert_userId_read_createdAt_idx" ON "Alert"("userId", "read", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Alert_watchId_idx" ON "Alert"("watchId");
+
+-- CreateIndex
+CREATE INDEX "Alert_itemId_idx" ON "Alert"("itemId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserSettings_userId_key" ON "UserSettings"("userId");
