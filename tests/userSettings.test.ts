@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { ensureUserSettings } from "@/lib/auth";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ensureUserSettings, handleCreateUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resetDb } from "@/tests/helpers/db";
 
@@ -21,5 +21,14 @@ describe("ensureUserSettings", () => {
     await ensureUserSettings(userId);
     await ensureUserSettings(userId);
     expect(await prisma.userSettings.count({ where: { userId } })).toBe(1);
+  });
+});
+
+describe("handleCreateUser", () => {
+  it("resolves when the settings write fails, so sign-in is not aborted", async () => {
+    vi.spyOn(prisma.userSettings, "upsert").mockRejectedValue(new Error("db down"));
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(handleCreateUser({ user: { id: "u1" } })).resolves.toBeUndefined();
+    expect(log).toHaveBeenCalled();
   });
 });
