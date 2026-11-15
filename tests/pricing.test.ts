@@ -136,8 +136,11 @@ describe("trustFlags", () => {
     });
   });
   it("flags KickSwap in the fixture", () => {
-    const k = cmp.stores.find((s) => s.name === "KickSwap")!;
-    expect(trustFlags(k).lowTrust).toBe(true);
+    const k = cmp.stores.find((s) => s.name.startsWith("KickSwap"))!;
+    expect(trustFlags(k)).toEqual({
+      lowTrust: true,
+      reasons: ["no_https", "few_photo_reviews", "low_rating"],
+    });
   });
 });
 
