@@ -12,7 +12,8 @@
     "test:e2e": "playwright test",
     "db:up": "docker run -d --name lootlens-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=lootlens -p 5433:5432 postgres:17 || docker start lootlens-pg",
     "db:generate": "prisma generate",
-    "db:migrate": "tsx scripts/db-guard.ts && prisma generate && prisma migrate dev",
+    "db:migrate": "prisma migrate dev",
+    "db:test:migrate": "NODE_ENV=test prisma migrate deploy",
     "db:seed": "prisma db seed",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && prisma migrate deploy && next build"

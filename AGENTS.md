@@ -32,7 +32,6 @@ lib/
   generated/            Prisma client output (gitignored)
 prisma/                 schema.prisma, migrations/, seed.ts
 prisma.config.ts        Prisma CLI config (env loading, seed command)
-scripts/                db-guard.ts, the assertNonProdDb() pre-check for db:migrate
 fixtures/               demo JSON in API shapes, for UI work and tests
 tests/                  Vitest unit + integration (helpers/ for db reset and test users)
 e2e/                    Playwright

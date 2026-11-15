@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "Condition" AS ENUM ('NEW', 'USED', 'RESALE');
 
@@ -186,10 +189,19 @@ CREATE TABLE "UserSettings" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE INDEX "Account_userId_idx" ON "Account"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
 
 -- CreateIndex
+CREATE INDEX "Session_userId_idx" ON "Session"("userId");
+
+-- CreateIndex
 CREATE INDEX "Item_userId_idx" ON "Item"("userId");
+
+-- CreateIndex
+CREATE INDEX "Listing_storeId_idx" ON "Listing"("storeId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Listing_itemId_storeId_condition_key" ON "Listing"("itemId", "storeId", "condition");
@@ -262,3 +274,4 @@ ALTER TABLE "Alert" ADD CONSTRAINT "Alert_watchId_fkey" FOREIGN KEY ("watchId") 
 
 -- AddForeignKey
 ALTER TABLE "UserSettings" ADD CONSTRAINT "UserSettings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
