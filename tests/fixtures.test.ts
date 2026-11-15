@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import comparison from "@/fixtures/comparison.json";
 import wishlist from "@/fixtures/wishlist.json";
 import codes from "@/fixtures/codes.json";
+import codesAll from "@/fixtures/codes-all.json";
 import alerts from "@/fixtures/alerts.json";
 import settings from "@/fixtures/settings.json";
 import type { AlertsResponse, Code, ItemComparison, Settings, WishlistItem } from "@/lib/types";
@@ -25,13 +26,22 @@ type Json<T> = T extends string
 comparison satisfies Json<ItemComparison>;
 wishlist satisfies Json<WishlistItem>[];
 codes satisfies Json<Code>[];
+codesAll satisfies Json<Code>[];
 alerts satisfies Json<AlertsResponse>;
 settings satisfies Json<Settings>;
 
 const keys = (o: object) => Object.keys(o).sort();
 const c = comparison as unknown as ItemComparison;
 const codeList = codes as unknown as Code[];
+const allCodes = codesAll as unknown as Code[];
 const alertData = alerts as unknown as AlertsResponse;
+const NOW = Date.parse("2026-10-29T16:00:00.000Z");
+const DAY = 24 * 3600 * 1000;
+const isStale = (k: Code) => NOW - Date.parse(k.lastCheckedAt) >= DAY;
+const isExpired = (k: Code) => k.expiresAt !== null && Date.parse(k.expiresAt) < NOW;
+
+const ITEM_KEYS = ["category", "createdAt", "id", "imageUrl", "name", "selectedSize", "sizes", "sourceUrl", "typicalPrice", "updatedAt"];
+const CODE_KEYS = ["cashback", "code", "expiresAt", "firstOrderOnly", "id", "label", "lastCheckedAt", "minSpend", "status", "storeId", "storeName", "type", "value"];
 
 describe("contract fixtures", () => {
   it("has exact top-level keys", () => {
@@ -103,5 +113,41 @@ describe("contract fixtures", () => {
     expect(alertData.unreadCount).toBe(
       alertData.groups.reduce((n, g) => n + g.unread, 0),
     );
+  });
+
+  it("has exact nested keys", () => {
+    expect(keys(c.item)).toEqual(ITEM_KEYS);
+    for (const st of c.stores)
+      expect(keys(st)).toEqual(["cashback", "domain", "fictional", "id", "isHttps", "name", "photoReviewCount", "rating", "sellerName", "trust"]);
+    for (const st of c.stores) expect(keys(st.trust)).toEqual(["lowTrust", "reasons"]);
+    for (const l of c.listings)
+      expect(keys(l)).toEqual(["condition", "id", "itemId", "price", "source", "stockBySize", "storeId", "updatedAt", "url"]);
+    for (const d of c.bestDeals)
+      expect(keys(d)).toEqual(["cashback", "code", "listingId", "price", "total"]);
+    for (const k of codeList) expect(keys(k)).toEqual(CODE_KEYS);
+    for (const k of allCodes) expect(keys(k)).toEqual(CODE_KEYS);
+    for (const w of wishlist) expect(keys(w)).toEqual([...ITEM_KEYS, "cheapest"].sort());
+    for (const g of alertData.groups) {
+      expect(keys(g)).toEqual(["alerts", "itemId", "itemName", "unread"]);
+      for (const a of g.alerts)
+        expect(keys(a)).toEqual(["createdAt", "detail", "id", "itemId", "itemName", "kind", "read", "watchId"]);
+    }
+  });
+
+  it("codes.json is the default list: live, fresh, not expired", () => {
+    expect(codeList.length).toBeGreaterThan(0);
+    for (const k of codeList) {
+      expect(k.status).toBe("live");
+      expect(isStale(k)).toBe(false);
+      expect(isExpired(k)).toBe(false);
+    }
+  });
+
+  it("codes-all.json is a superset with dead, stale and expired codes", () => {
+    const all = allCodes.map((k) => k.id);
+    for (const k of codeList) expect(all).toContain(k.id);
+    expect(allCodes.some((k) => k.status === "dead")).toBe(true);
+    expect(allCodes.some(isStale)).toBe(true);
+    expect(allCodes.some(isExpired)).toBe(true);
   });
 });
