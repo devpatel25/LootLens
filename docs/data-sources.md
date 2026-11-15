@@ -61,15 +61,15 @@ Access date for every claim below: 2026-11-15. "Not verified" means we could not
 
 ## 5. Recommendation
 
-Weights: no approval wait 35%, PRD store coverage 25%, ToS fit for Postgres plus daily cron 15%, free tier and limits 15%, effort 10%. Scores are 0 to 5 judgement calls, not measurements.
+Weights: no approval wait 35%, PRD store coverage 25%, ToS fit for Postgres plus daily cron 15%, free tier and limits 15%, effort 10%. Scores are 0 to 5 judgement calls, not measurements. Weighted score is the sum of score times weight, rounded to one decimal.
 
 | Option | No wait (35) | Coverage (25) | ToS fit (15) | Free tier (15) | Effort (10) | Weighted, of 5 |
 |---|---|---|---|---|---|---|
-| eBay Browse API | 3 | 0 | 2 | 4 | 3 | 2.2 |
-| Affiliate networks | 1 | 4 | 1 | 2 | 0 | 1.8 |
+| eBay Browse API | 3 | 0 | 2 | 4 | 3 | 2.3 |
 | Best Buy Products API | 3 | 0 | 0 | 3 | 4 | 1.9 |
-| Walmart affiliate API | 1 | 1 | 1 | 2 | 2 | 1.2 |
-| Amazon Creators API | 0 | 1 | 1 | 2 | 2 | 0.6 |
+| Affiliate networks | 1 | 4 | 1 | 2 | 0 | 1.8 |
+| Walmart affiliate API | 1 | 1 | 1 | 2 | 2 | 1.3 |
+| Amazon Creators API | 0 | 1 | 1 | 2 | 2 | 0.9 |
 
 Honest answer: nothing covers the PRD stores and works tonight.
 
