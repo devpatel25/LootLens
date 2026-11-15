@@ -44,6 +44,43 @@ describe("assertNonProdDb rejects", () => {
     ).toThrow(/PROD_DB_HOST/);
   });
 
+  it.each([
+    ["host:port", `${PROD}:5432`],
+    ["full URL", `postgresql://user:pw@${PROD}/db`],
+    ["uppercase with trailing dot", `${PROD.toUpperCase()}.`],
+  ])("PROD_DB_HOST given as %s", (_name, prod) => {
+    expect(() =>
+      assertNonProdDb({ DB_TARGET: "local", DATABASE_URL: url(PROD), PROD_DB_HOST: prod }),
+    ).toThrow(/PROD_DB_HOST/);
+  });
+
+  it("DATABASE_URL with a trailing-dot host", () => {
+    expect(() =>
+      assertNonProdDb({ DB_TARGET: "local", DATABASE_URL: url(`${PROD}.`), PROD_DB_HOST: PROD }),
+    ).toThrow(/PROD_DB_HOST/);
+  });
+
+  it("DATABASE_URL_UNPOOLED pointing at production", () => {
+    expect(() =>
+      assertNonProdDb({
+        DB_TARGET: "local",
+        DATABASE_URL: url("dev.example.com"),
+        DATABASE_URL_UNPOOLED: url(PROD),
+        PROD_DB_HOST: PROD,
+      }),
+    ).toThrow(/PROD_DB_HOST/);
+  });
+
+  it("DATABASE_URL_UNPOOLED that does not parse", () => {
+    expect(() =>
+      assertNonProdDb({
+        DB_TARGET: "local",
+        DATABASE_URL: url("dev.example.com"),
+        DATABASE_URL_UNPOOLED: "not a url",
+      }),
+    ).toThrow(/DATABASE_URL_UNPOOLED/);
+  });
+
   it("preview target with VERCEL_ENV=production", () => {
     expect(() =>
       assertNonProdDb({
@@ -101,5 +138,18 @@ describe("assertNonProdDb passes", () => {
         PROD_DB_HOST: prod,
       }),
     ).not.toThrow();
+  });
+
+  it("local with a safe UNPOOLED url, or an empty one", () => {
+    for (const unpooled of [url("dev.example.com"), ""]) {
+      expect(() =>
+        assertNonProdDb({
+          DB_TARGET: "local",
+          DATABASE_URL: url("dev.example.com"),
+          DATABASE_URL_UNPOOLED: unpooled,
+          PROD_DB_HOST: PROD,
+        }),
+      ).not.toThrow();
+    }
   });
 });
