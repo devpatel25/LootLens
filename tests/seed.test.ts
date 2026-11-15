@@ -50,6 +50,28 @@ describe("seed", () => {
     expect(await prisma.code.findUnique({ where: { id: "ingested-1" } })).not.toBeNull();
   });
 
+  it("uses plain user-facing code labels, no scenario notes", async () => {
+    await seed(prisma);
+    const codes = await prisma.code.findMany();
+    for (const c of codes) {
+      expect(c.label).not.toMatch(/checked|expired|dead|end date|ago|marked/i);
+    }
+  });
+
+  it("links listings to store search pages, never invented product paths", async () => {
+    await seed(prisma);
+    const listings = await prisma.listing.findMany({ include: { store: true, item: true } });
+    expect(listings.length).toBeGreaterThan(0);
+    for (const l of listings) {
+      const url = new URL(l.url);
+      expect(url.protocol).toBe("https:");
+      expect(url.pathname).not.toContain("/demo");
+      expect(decodeURIComponent(url.search + url.pathname)).toContain(l.item.name);
+      if (l.store.fictional) expect(url.hostname.endsWith(".example")).toBe(true);
+      else expect(url.hostname.endsWith(".example")).toBe(false);
+    }
+  });
+
   it("refuses to run when DB_TARGET=production", async () => {
     await seed(prisma);
     const before = await counts();
