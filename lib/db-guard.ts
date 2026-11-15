@@ -9,20 +9,43 @@ export function assertNonProdDb(
     throw new Error("assertNonProdDb: VERCEL_ENV is production");
   }
 
-  let hostname = "";
-  try {
-    hostname = new URL(env.DATABASE_URL ?? "").hostname;
-  } catch {
-    // falls through to the empty-hostname check
-  }
+  const hostOf = (value: string | undefined): string => {
+    try {
+      return new URL(value ?? "").hostname;
+    } catch {
+      return "";
+    }
+  };
+  const hostname = hostOf(env.DATABASE_URL);
   if (!hostname) {
     throw new Error("assertNonProdDb: DATABASE_URL missing or unparsable");
   }
 
-  const prod = env.PROD_DB_HOST?.trim();
+  const unpooled = env.DATABASE_URL_UNPOOLED?.trim();
+  const unpooledHost = unpooled ? hostOf(unpooled) : "";
+  if (unpooled && !unpooledHost) {
+    throw new Error("assertNonProdDb: DATABASE_URL_UNPOOLED unparsable");
+  }
+
+  // PROD_DB_HOST may be a bare host, host:port, or a full URL.
+  const rawProd = env.PROD_DB_HOST?.trim();
+  const prod = rawProd
+    ? rawProd.includes("://")
+      ? hostOf(rawProd)
+      : rawProd.replace(/:\d+$/, "")
+    : "";
+  if (rawProd && !prod) {
+    throw new Error("assertNonProdDb: PROD_DB_HOST unparsable");
+  }
   // Neon pooled and direct hosts differ only by "-pooler" on the first label.
-  const norm = (h: string) => h.toLowerCase().replace(/^([^.]*)-pooler(?=\.|$)/, "$1");
-  if (prod && norm(hostname) === norm(prod)) {
-    throw new Error("assertNonProdDb: DATABASE_URL host matches PROD_DB_HOST");
+  const norm = (h: string) =>
+    h.toLowerCase().replace(/\.$/, "").replace(/^([^.]*)-pooler(?=\.|$)/, "$1");
+  if (prod) {
+    if (norm(hostname) === norm(prod)) {
+      throw new Error("assertNonProdDb: DATABASE_URL host matches PROD_DB_HOST");
+    }
+    if (unpooledHost && norm(unpooledHost) === norm(prod)) {
+      throw new Error("assertNonProdDb: DATABASE_URL_UNPOOLED host matches PROD_DB_HOST");
+    }
   }
 }
