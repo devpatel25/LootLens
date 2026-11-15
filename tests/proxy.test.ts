@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { routeDecision, signInUrl } from "@/lib/authConfig";
+import { pathToRegexp } from "next/dist/compiled/path-to-regexp";
 import { config } from "@/proxy";
 
 describe("routeDecision signed out", () => {
@@ -39,15 +40,19 @@ describe("signInUrl", () => {
 
 describe("proxy matcher", () => {
   const matchers = config.matcher as string[];
-  const rest = new RegExp(`^${matchers.find((m) => m.startsWith("/(("))!}$`);
-  const matched = (p: string) => rest.test(p) || /^\/api(\/.*)?$/.test(p);
+  // Next compiles each matcher with path-to-regexp and matches the whole path.
+  const regexes = matchers.map((m) => pathToRegexp(m));
+  const matched = (p: string) => regexes.some((r) => r.test(p));
 
   it("always matches /api through its own entry", () => {
     expect(matchers).toContain("/api/:path*");
   });
-  it.each(["/next.svg", "/a/b.png", "/x.JPG".toLowerCase(), "/robots.txt", "/sitemap.xml", "/manifest.webmanifest", "/favicon.ico"])(
+  it.each(["/next.svg", "/x.JPG", "/robots.txt", "/favicon.ico", "/sitemap.xml", "/manifest.webmanifest", "/_next/static/a.js"])(
     "excludes %s",
-    (p) => expect(rest.test(p)).toBe(false),
+    (p) => expect(matched(p)).toBe(false),
   );
-  it.each(["/wishlist", "/api/items", "/api/x.json", "/items/1"])("matches %s", (p) => expect(matched(p)).toBe(true));
+  it.each(["/items/abc.png", "/robots.txt/x", "/favicon.ico/x", "/sitemap.xml.bak", "/wishlist", "/api/x.json", "/api", "/"])(
+    "matches %s",
+    (p) => expect(matched(p)).toBe(true),
+  );
 });
