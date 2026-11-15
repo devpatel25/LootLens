@@ -22,6 +22,8 @@ app/                    routes (server components by default)
   codes/  alerts/  settings/
   api/                  route handlers = the public API (items, items/[id]/listings, codes,
                         watches, alerts, stores, settings, health, cron, demo)
+proxy.ts                signed-out redirect (pages) and 401 (API)
+types/                  TypeScript type augmentations (next-auth)
 components/             UI components (ComparisonTable, CodeCard, WatchPanel, ...)
 lib/
   pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
@@ -29,6 +31,8 @@ lib/
   types.ts              shared API response types (the API contract)
   db-guard.ts           assertNonProdDb()
   prisma.ts  auth.ts
+  authConfig.ts         edge-safe auth config and routeDecision (no Prisma)
+  http.ts               route helpers: ok, fail, requireUserId, parse
   generated/            Prisma client output (gitignored)
 prisma/                 schema.prisma, migrations/, seed.ts
 prisma.config.ts        Prisma CLI config (env loading, seed command)

@@ -37,6 +37,7 @@ jobs:
       AUTH_SECRET: ci-throwaway-not-secret
       AUTH_GOOGLE_ID: ci-throwaway-not-secret
       AUTH_GOOGLE_SECRET: ci-throwaway-not-secret
+      AUTH_TRUST_HOST: "true"
       CRON_SECRET: ci-throwaway-not-secret
     steps:
       - uses: actions/checkout@v4
