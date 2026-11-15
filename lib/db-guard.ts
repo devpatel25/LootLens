@@ -1,3 +1,12 @@
+// Stub for the red step; the fix commit replaces both.
+export function hostOf(_raw: string | undefined): string {
+  return "";
+}
+
+export function isDestructivePrismaCommand(_argv: string[]): boolean {
+  return false;
+}
+
 // Fail-closed: throws unless the env is clearly non-production. Messages never include URL or host values.
 export function assertNonProdDb(
   env: Record<string, string | undefined> = process.env,

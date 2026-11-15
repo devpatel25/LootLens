@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertNonProdDb } from "@/lib/db-guard";
+import { assertNonProdDb, hostOf, isDestructivePrismaCommand } from "@/lib/db-guard";
 
 const PROD = "ep-x.region.aws.neon.tech";
 const url = (host: string) => `postgresql://u:secret@${host}/db`;
@@ -48,6 +48,9 @@ describe("assertNonProdDb rejects", () => {
     ["host:port", `${PROD}:5432`],
     ["full URL", `postgresql://user:pw@${PROD}/db`],
     ["uppercase with trailing dot", `${PROD.toUpperCase()}.`],
+    ["host with a path and query", `${PROD}/db?sslmode=require`],
+    ["host with userinfo", `user@${PROD}`],
+    ["host with userinfo, port and path", `user:pw@${PROD}:5432/db`],
   ])("PROD_DB_HOST given as %s", (_name, prod) => {
     expect(() =>
       assertNonProdDb({ DB_TARGET: "local", DATABASE_URL: url(PROD), PROD_DB_HOST: prod }),
@@ -151,5 +154,42 @@ describe("assertNonProdDb passes", () => {
         }),
       ).not.toThrow();
     }
+  });
+});
+
+describe("hostOf", () => {
+  it.each([
+    ["full URL", "postgresql://u:pw@db.example.com:5432/x", "db.example.com"],
+    ["bare host", "db.example.com", "db.example.com"],
+    ["host:port", "db.example.com:5432", "db.example.com"],
+    ["path and query", "db.example.com/x?sslmode=require", "db.example.com"],
+    ["userinfo", "u@db.example.com", "db.example.com"],
+    ["ipv6", "postgresql://[::1]:5433/x", "[::1]"],
+    ["empty", "", ""],
+    ["undefined", undefined, ""],
+  ])("%s", (_name, raw, host) => {
+    expect(hostOf(raw)).toBe(host);
+  });
+});
+
+describe("isDestructivePrismaCommand", () => {
+  const argv = (...rest: string[]) => ["node", "node_modules/prisma/build/index.js", ...rest];
+  it.each([
+    ["migrate dev", ["migrate", "dev"]],
+    ["migrate dev with flags", ["migrate", "dev", "--name", "x"]],
+    ["migrate reset", ["migrate", "reset", "--force"]],
+    ["db push", ["db", "push"]],
+  ])("true for %s", (_name, rest) => {
+    expect(isDestructivePrismaCommand(argv(...rest))).toBe(true);
+  });
+  it.each([
+    ["migrate deploy", ["migrate", "deploy"]],
+    ["migrate status", ["migrate", "status"]],
+    ["migrate diff", ["migrate", "diff"]],
+    ["generate", ["generate"]],
+    ["db seed", ["db", "seed"]],
+    ["no command", []],
+  ])("false for %s", (_name, rest) => {
+    expect(isDestructivePrismaCommand(argv(...rest))).toBe(false);
   });
 });
