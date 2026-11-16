@@ -210,8 +210,9 @@ describe("SettingsForm", () => {
     vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>(() => {}));
     render(<SettingsForm settings={{ freshnessHours: 24, firstOrderEligible: false }} />);
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
-    expect(screen.getByRole<HTMLInputElement>("radio", { name: "72 hours" }).disabled).toBe(true);
-    expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "I can use first-order codes" }).disabled).toBe(true);
+    // Disabled through <fieldset disabled>, which sets :disabled but not each input's own disabled property.
+    expect(screen.getByRole("radio", { name: "72 hours" }).matches(":disabled")).toBe(true);
+    expect(screen.getByRole("checkbox", { name: "I can use first-order codes" }).matches(":disabled")).toBe(true);
   });
 
   it("clears the error once the user changes something", async () => {
