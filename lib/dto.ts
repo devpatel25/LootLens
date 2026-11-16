@@ -1,4 +1,4 @@
-import type { Alert as DbAlert, Code as DbCode, Item as DbItem, Listing as DbListing, Store as DbStore, UserSettings, Watch as DbWatch } from "@/lib/generated/prisma/client";
+import type { Alert as DbAlert, Prisma, Code as DbCode, Item as DbItem, Listing as DbListing, Store as DbStore, UserSettings, Watch as DbWatch } from "@/lib/generated/prisma/client";
 import { bestCashback, trustFlags } from "@/lib/pricing";
 import type { Alert, AlertKind, CashbackOffer, Code, FreshnessHours, Item, Listing, Settings, Store, Watch } from "@/lib/types";
 
@@ -105,3 +105,8 @@ export function toAlert(a: DbAlert & { item: DbItem }): Alert {
     createdAt: iso(a.createdAt),
   };
 }
+
+/** Include for an item's listings in price order, with their stores. Pair with toListingsAndStores. */
+export const listingsInclude = {
+  listings: { orderBy: [{ price: "asc" }, { id: "asc" }], include: { store: true } },
+} satisfies Prisma.ItemInclude;

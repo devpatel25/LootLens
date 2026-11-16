@@ -44,3 +44,23 @@ export function generateDemoListings(
   }
   return out;
 }
+
+/**
+ * New stockBySize for each listing (same order) after the item's sizes change: removed sizes
+ * are dropped, new sizes get a seeded stock of 0 to 6, and some listing is kept in stock for the
+ * selected size. Pure: the input is not changed.
+ */
+export function resizeStock(
+  listings: { id: string; stockBySize: Record<string, number> }[],
+  item: { name: string; sizes: string[]; selectedSize: string },
+): Record<string, number>[] {
+  const out = listings.map((l) =>
+    Object.fromEntries(
+      item.sizes.map((size) => [size, l.stockBySize[size] ?? Math.floor(mulberry32(hash(`${item.name}|${size}|${l.id}`))() * 7)]),
+    ),
+  );
+  if (out.length > 0 && !out.some((s) => s[item.selectedSize] > 0)) {
+    out[0][item.selectedSize] = 1 + Math.floor(mulberry32(hash(`${item.name}|${item.selectedSize}|${listings[0].id}|fill`))() * 6);
+  }
+  return out;
+}

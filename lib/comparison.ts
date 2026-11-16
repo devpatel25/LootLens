@@ -1,4 +1,4 @@
-import { toCode, toItem, toListingsAndStores } from "@/lib/dto";
+import { listingsInclude, toCode, toItem, toListingsAndStores } from "@/lib/dto";
 import { bestDeal, bestTotal, cheapestListing, cheapestTrustedListing } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -6,19 +6,21 @@ import type { ItemComparison } from "@/lib/types";
 
 /** The user's item with its listings, stores and best deals, or null when not found or not owned. */
 export async function loadComparison(itemId: string, userId: string): Promise<ItemComparison | null> {
-  const row = await prisma.item.findFirst({
-    where: { id: itemId, userId },
-    include: { listings: { orderBy: [{ price: "asc" }, { id: "asc" }], include: { store: true } } },
-  });
+  const [row, settings] = await Promise.all([
+    prisma.item.findFirst({ where: { id: itemId, userId }, include: listingsInclude }),
+    getSettings(userId),
+  ]);
   if (!row) return null;
 
   const item = toItem(row);
   const { listings, stores } = toListingsAndStores(row.listings);
-  const [codeRows, settings] = await Promise.all([
-    prisma.code.findMany({ where: { storeId: { in: stores.map((s) => s.id) } }, include: { store: true }, orderBy: { id: "asc" } }),
-    getSettings(userId),
-  ]);
-  const codes = codeRows.map(toCode);
+  const codes = (
+    await prisma.code.findMany({
+      where: { storeId: { in: stores.map((s) => s.id) }, status: "LIVE" },
+      include: { store: true },
+      orderBy: { id: "asc" },
+    })
+  ).map(toCode);
 
   const bestDeals = listings.map((l) => bestTotal(l, stores.find((s) => s.id === l.storeId)!, codes, settings));
   return {

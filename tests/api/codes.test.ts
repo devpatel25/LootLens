@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as codeRoute from "@/app/api/codes/[id]/route";
 import * as listRoute from "@/app/api/codes/route";
 import { PATCH as patchSettings } from "@/app/api/settings/route";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { ctx, req } from "../helpers/api";
@@ -134,15 +135,13 @@ describe("PATCH /api/codes/[id]", () => {
     expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-amazon-dead" } })).lastCheckedById).toBe(b);
   });
 
-  it("404 when the row is deleted between the read and the write", async () => {
-    const orig = prisma.code.findUnique.bind(prisma.code);
-    vi.spyOn(prisma.code, "findUnique").mockImplementationOnce(((...args: Parameters<typeof orig>) =>
-      orig(...args).then(async (r) => {
-        await prisma.code.delete({ where: { id: "code-adidas-20" } });
-        return r;
-      })) as never);
+  it("404 when the write finds no row (P2025)", async () => {
+    vi.spyOn(prisma.code, "update").mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("gone", { code: "P2025", clientVersion: "x" }),
+    );
     const res = await mark("code-adidas-20", "dead");
     expect(res.status).toBe(404);
+    expect((await res.json()).error.code).toBe("not_found");
     vi.restoreAllMocks();
   });
 

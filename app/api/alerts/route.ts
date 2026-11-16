@@ -1,9 +1,9 @@
 import { toAlert } from "@/lib/dto";
-import { ok, requireUserId } from "@/lib/http";
+import { ok, requireUserId, route } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import type { Alert, AlertsResponse } from "@/lib/types";
 
-export async function GET() {
+export const GET = route(async () => {
   const userId = await requireUserId();
   if (userId instanceof Response) return userId;
 
@@ -22,4 +22,4 @@ export async function GET() {
   }
   const data: AlertsResponse = { groups: [...groups.values()], unreadCount: rows.filter((r) => !r.read).length };
   return ok(data);
-}
+});

@@ -1,12 +1,12 @@
 import { loadComparison } from "@/lib/comparison";
 import { demoSource } from "@/lib/demoSource";
 import { toListing } from "@/lib/dto";
-import { fail, ok, parse, requireUserId } from "@/lib/http";
+import { fail, itemNotFound, ok, parse, requireUserId, route } from "@/lib/http";
 import { idParams } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
 import { applyListingUpdates, REFRESH_COOLDOWN_MS } from "@/lib/refresh";
 
-export async function POST(_req: Request, ctx: RouteContext<"/api/items/[id]/refresh">) {
+export const POST = route(async (_req: Request, ctx: RouteContext<"/api/items/[id]/refresh">) => {
   const userId = await requireUserId();
   if (userId instanceof Response) return userId;
   const params = parse(idParams, await ctx.params);
@@ -14,7 +14,7 @@ export async function POST(_req: Request, ctx: RouteContext<"/api/items/[id]/ref
 
   // Ownership first: another user's item is a 404, never a 429.
   const item = await prisma.item.findFirst({ where: { id: params.id, userId }, include: { listings: true } });
-  if (!item) return fail(404, "not_found", "Item not found");
+  if (!item) return itemNotFound();
 
   // Atomic claim of the refresh slot: of two concurrent calls only one matches.
   const now = Date.now();
@@ -34,5 +34,5 @@ export async function POST(_req: Request, ctx: RouteContext<"/api/items/[id]/ref
 
   const { alertsCreated } = await applyListingUpdates(item.id, demoSource(item.listings.map(toListing)));
   const comparison = await loadComparison(item.id, userId);
-  return comparison ? ok({ comparison, alertsCreated }) : fail(404, "not_found", "Item not found");
-}
+  return comparison ? ok({ comparison, alertsCreated }) : itemNotFound();
+});

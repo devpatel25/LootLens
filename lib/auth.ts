@@ -10,7 +10,7 @@ export async function ensureUserSettings(userId: string): Promise<void> {
 export async function handleCreateUser({ user }: { user: { id?: string } }): Promise<void> {
   if (!user.id) return;
   // Never abort sign-in: Auth.js runs createUser before linkAccount, so a throw orphans the user.
-  // The settings route also upserts defaults on read (a later PR).
+  // The settings route falls back to defaults on read and upserts only on PATCH.
   try {
     await ensureUserSettings(user.id);
   } catch (e) {
