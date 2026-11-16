@@ -76,7 +76,7 @@ describe("UserMenu", () => {
     expect(document.activeElement).toBe(toggle);
   });
 
-  it("puts Sign out inside a form so it works without client JS", () => {
+  it("puts Sign out in a form that submits to the sign-out server action", () => {
     render(<UserMenu name="Demo Shopper" email="demo@lootlens.test" signOutAction={signOutAction} />);
     fireEvent.click(screen.getByRole("button", { name: /Account menu/ }));
     const button = screen.getByRole("button", { name: "Sign out" });

@@ -27,6 +27,12 @@ describe("safeCallbackUrl", () => {
     expect(safeCallbackUrl(raw)).toBe("/wishlist");
   });
 
+  it("never sends a page visit to a raw API route", () => {
+    expect(safeCallbackUrl("/api/items")).toBe("/wishlist");
+    expect(safeCallbackUrl("/api")).toBe("/wishlist");
+    expect(safeCallbackUrl("/api-docs")).toBe("/api-docs");
+  });
+
   it("never sends the user back to the sign-in page", () => {
     expect(safeCallbackUrl("/signin")).toBe("/wishlist");
     expect(safeCallbackUrl("/signin?callbackUrl=%2Fcodes")).toBe("/wishlist");
@@ -45,6 +51,10 @@ describe("signInErrorMessage", () => {
 
   it("explains a server setup problem without leaking details", () => {
     expect(signInErrorMessage("Configuration")).toBe("Sign-in is not set up correctly on the server. Try again later.");
+  });
+
+  it.each(["__proto__", "constructor", "toString", "hasOwnProperty"])("treats the object key %s as an unknown code", (code) => {
+    expect(signInErrorMessage(code)).toBe("Sign-in did not finish. Try again.");
   });
 
   it("gives a generic message for any other code", () => {
