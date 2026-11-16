@@ -64,7 +64,12 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
           Copy
         </button>
       </div>
-      <p className="font-semibold">{code.label}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-semibold">{code.label}</p>
+        <span className="rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100">
+          {code.cashback ? `Cashback: ${code.cashback.provider} ${code.cashback.ratePct}%` : "No cashback"}
+        </span>
+      </div>
       <ul aria-label="Terms" className="flex flex-wrap gap-2 text-xs text-zinc-700 dark:text-zinc-300">
         {(terms.length ? terms : ["No extra terms"]).map((t) => (
           <li key={t} className="rounded-md bg-zinc-100 px-2 py-1 dark:bg-zinc-800">

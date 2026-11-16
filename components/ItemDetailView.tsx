@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BestDealCard from "@/components/BestDealCard";
 import ComparisonTable from "@/components/ComparisonTable";
 import DemoDataBadge from "@/components/DemoDataBadge";
 import { formatUsd } from "@/lib/format";
@@ -63,6 +64,7 @@ export default function ItemDetailView({ comparison }: { comparison: ItemCompari
           </div>
         )}
       </div>
+      <BestDealCard comparison={comparison} />
       <section aria-labelledby="compare-heading" className="flex min-w-0 flex-col gap-3">
         <h2 id="compare-heading" className="text-lg font-semibold">
           Compare stores
