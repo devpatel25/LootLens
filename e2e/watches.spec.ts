@@ -17,6 +17,7 @@ let name = "";
 
 test.beforeEach(async ({ request }, testInfo) => {
   name = NAMES[testInfo.title];
+  if (!name) throw new Error(`Add a fixed item name for "${testInfo.title}" to NAMES (see the note above).`);
   const res = await request.post("/api/items", {
     data: { name, category: "tech", sizes: ["One size"], selectedSize: "One size", typicalPrice: 50 },
   });
