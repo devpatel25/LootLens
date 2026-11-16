@@ -10,7 +10,7 @@ test("Best Deal subtracts the best code from the price and shows the total", asy
   const card = page.getByRole("region", { name: "Best deal" });
   await expect(card.getByText("Best total of the stores shown: $44.99 at Target")).toBeVisible();
   await expect(card.getByRole("row", { name: /^Price/ })).toContainText("$94.99");
-  await expect(card.getByRole("row", { name: /^Code TGT50/ })).toContainText("−$50.00");
+  await expect(card.getByRole("row", { name: /^Code TGT50/ })).toContainText("minus $50.00");
   await expect(card.getByRole("row", { name: /^Cashback/ })).toContainText("No cashback");
   await expect(card.getByRole("row", { name: /^Total/ })).toContainText("$44.99");
 });
