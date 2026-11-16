@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import AppNav, { NAV_ITEMS } from "@/components/AppNav";
+import AppNav from "@/components/AppNav";
 import AppShell from "@/components/AppShell";
-import NavBar from "@/components/NavBar";
+import NavBar, { NAV_ITEMS } from "@/components/NavBar";
 import UserMenu from "@/components/UserMenu";
 
 const nav = vi.hoisted(() => ({ pathname: "/wishlist" }));
