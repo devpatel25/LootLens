@@ -798,7 +798,7 @@
             "sessionCookie": []
           }
         ],
-        "description": "The watch starts from the current price and stock, so an alert fires only on a later crossing. Limits: 10 watches per user, one per item and size. A 400 with code `no_listing` means no store has the size in stock.",
+        "description": "The watch starts from the current price and stock, so an alert fires only on a later crossing. Limits: 10 watches per user, one per item and size. A duplicate is checked first, so re-submitting an existing watch gives `watch_exists`, not `watch_limit`. A 400 with code `no_listing` means no store has the size in stock.",
         "tags": [
           "Watches"
         ],
@@ -1173,7 +1173,7 @@
     },
     "/api/demo/simulate": {
       "post": {
-        "summary": "Demo only. Simulate price and stock moves on the user's items, then evaluate watches. Returns 404 unless DEMO_MODE=true, and 500 demo_disabled on a non-dev database.",
+        "summary": "Demo only. Simulate price and stock moves on the user's items, then evaluate watches. If any item fails to refresh the response is 500 internal. Returns 404 unless DEMO_MODE=true, and 500 demo_disabled on a non-dev database.",
         "security": [
           {
             "sessionCookie": []
@@ -1202,7 +1202,7 @@
         },
         "responses": {
           "200": {
-            "description": "Totals",
+            "description": "Totals, when every item refreshed",
             "content": {
               "application/json": {
                 "schema": {
@@ -1526,6 +1526,7 @@
         }
       },
       "ItemInput": {
+        "type": "object",
         "allOf": [
           {
             "$ref": "#/components/schemas/ItemFields"
@@ -1594,6 +1595,7 @@
         ]
       },
       "ItemPatch": {
+        "type": "object",
         "allOf": [
           {
             "$ref": "#/components/schemas/ItemFields"
@@ -1656,6 +1658,7 @@
         "description": "Any subset of ItemInput"
       },
       "Item": {
+        "type": "object",
         "allOf": [
           {
             "$ref": "#/components/schemas/ItemFields"
@@ -1691,6 +1694,7 @@
         ]
       },
       "WishlistItem": {
+        "type": "object",
         "allOf": [
           {
             "$ref": "#/components/schemas/Item"
