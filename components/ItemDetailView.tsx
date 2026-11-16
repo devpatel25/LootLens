@@ -15,7 +15,6 @@ export default function ItemDetailView({ comparison }: { comparison: ItemCompari
   const showDemoBadge = listings.length === 0 || listings.some((l) => l.source === "demo");
   const trusted = listings.find((l) => l.id === comparison.cheapestTrustedListingId);
   const trustedStore = trusted && storeById.get(trusted.storeId);
-  const warn = cheapestStore?.trust.lowTrust === true;
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -36,7 +35,7 @@ export default function ItemDetailView({ comparison }: { comparison: ItemCompari
             Cheapest of the stores shown: {formatUsd(cheapest.price)} at {storeLabel(cheapestStore)}
           </p>
         )}
-        {warn && cheapestStore && (
+        {cheapestStore?.trust.lowTrust && (
           <div
             role="note"
             aria-label="Trust warning"
@@ -47,7 +46,7 @@ export default function ItemDetailView({ comparison }: { comparison: ItemCompari
             </p>
             <p className="font-semibold">
               {trusted && trustedStore
-                ? `Cheapest trusted alternative: ${formatUsd(trusted.price)} at ${storeLabel(trustedStore)}.`
+                ? `Cheapest trusted store shown: ${formatUsd(trusted.price)} at ${storeLabel(trustedStore)}.`
                 : `No trusted store shown has size ${item.selectedSize} in stock.`}
             </p>
           </div>

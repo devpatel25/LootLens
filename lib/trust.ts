@@ -13,13 +13,12 @@ export function trustReasonText(reason: TrustReason): string {
   }
 }
 
-/** "no HTTPS, under 20 photo reviews, and rating under 3.5" */
+const list = new Intl.ListFormat("en", { style: "long", type: "conjunction" });
+
+/** "no HTTPS, under 20 photo reviews, and rating under 3.5"; with capitalize, "No HTTPS, ..." for a sentence. */
 export function trustReasonsSentence(reasons: TrustReason[], opts: { capitalize?: boolean } = {}): string {
-  void opts;
-  const parts = reasons.map(trustReasonText);
-  if (parts.length <= 1) return parts.join("");
-  if (parts.length === 2) return parts.join(" and ");
-  return `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}`;
+  const text = list.format(reasons.map(trustReasonText));
+  return opts.capitalize && text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
 }
 
 /** Kept here too for trust wording callers; the rule lives in lib/storeLabel.ts. */

@@ -102,7 +102,9 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {store && (
+                    {!store ? (
+                      <span className="font-medium text-amber-900 dark:text-amber-200">Trust unknown</span>
+                    ) : (
                       <div className="flex flex-col gap-1">
                         <span className={store.isHttps ? "text-zinc-700 dark:text-zinc-300" : "font-medium text-red-800 dark:text-red-300"}>
                           {store.isHttps ? "HTTPS" : "No HTTPS"}
@@ -112,10 +114,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                         </span>
                         {store.trust.lowTrust && (
                           <span className="text-xs text-red-900 dark:text-red-200">
-                            {(() => {
-                              const t = trustReasonsSentence(store.trust.reasons);
-                              return t.charAt(0).toUpperCase() + t.slice(1);
-                            })()}
+                            {trustReasonsSentence(store.trust.reasons, { capitalize: true })}
                           </span>
                         )}
                       </div>
