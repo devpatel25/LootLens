@@ -36,6 +36,8 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
 
   return (
     <form onSubmit={save} className="flex max-w-xl flex-col gap-6">
+      {/* Locked while saving, so the saved values always match what is shown. */}
+      <fieldset disabled={busy} className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <p id={`${uid}-fresh`} className="font-semibold">
           Freshness window
@@ -57,6 +59,7 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
                 onChange={() => {
                   setHours(h);
                   setMessage("");
+                  setError(null);
                 }}
                 className="accent-emerald-700"
               />
@@ -74,6 +77,7 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
             onChange={(e) => {
               setFirstOrder(e.target.checked);
               setMessage("");
+              setError(null);
             }}
             aria-describedby={`${uid}-first-hint`}
             className="size-4 accent-emerald-700"
@@ -86,6 +90,7 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
         </p>
       </div>
 
+      </fieldset>
       {error && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
           {error}

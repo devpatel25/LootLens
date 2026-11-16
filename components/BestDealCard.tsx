@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { chip } from "@/components/styles";
 import { formatUsd } from "@/lib/format";
+import { bestDealAddsUp } from "@/lib/pricing";
+import { trustReasonsSentence } from "@/lib/trust";
 import { storeLabel } from "@/lib/storeLabel";
 import type { ItemComparison } from "@/lib/types";
 
@@ -16,9 +19,11 @@ function Minus({ amount }: { amount: number }) {
 
 /** Every number comes from comparison.bestDeal (lib/pricing bestDeal); nothing is computed here. */
 export default function BestDealCard({ comparison }: { comparison: ItemComparison }) {
-  const { bestDeal, listings, stores, item } = comparison;
+  const { bestDeal, bestTrustedDeal, listings, stores, item } = comparison;
   const listing = bestDeal && listings.find((l) => l.id === bestDeal.listingId);
   const store = listing && stores.find((s) => s.id === listing.storeId);
+  const trustedListing = bestTrustedDeal && listings.find((l) => l.id === bestTrustedDeal.listingId);
+  const trustedStore = trustedListing && stores.find((s) => s.id === trustedListing.storeId);
   const row = "border-t border-zinc-200 dark:border-zinc-700";
 
   return (
@@ -47,12 +52,30 @@ export default function BestDealCard({ comparison }: { comparison: ItemCompariso
             <span>
               Best total of the stores shown: {formatUsd(bestDeal.total)} at {storeLabel(store)}
             </span>
+            {listing.condition !== "new" && (
+              <span className={`${chip} border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100`}>
+                {listing.condition === "used" ? "Used" : "Resale"}
+              </span>
+            )}
+            {listing.source === "demo" && (
+              <span className={`${chip} border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300`}>Demo</span>
+            )}
             {store.trust.lowTrust && (
-              <span className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
+              <span className={`${chip} border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100`}>
                 Low-trust
               </span>
             )}
           </p>
+          {store.trust.lowTrust && (
+            <div className="flex flex-col gap-1 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
+              <p>This store looks low-trust: {trustReasonsSentence(store.trust.reasons)}.</p>
+              <p className="font-semibold">
+                {bestTrustedDeal && trustedStore
+                  ? `Best trusted total of the stores shown: ${formatUsd(bestTrustedDeal.total)} at ${storeLabel(trustedStore)}`
+                  : `No trusted store shown has size ${item.selectedSize} in stock.`}
+              </p>
+            </div>
+          )}
           <table className="w-full max-w-sm text-sm">
             <caption className="sr-only">How the best total adds up</caption>
             <tbody>
@@ -87,7 +110,9 @@ export default function BestDealCard({ comparison }: { comparison: ItemCompariso
               </tr>
             </tbody>
           </table>
-          <p className="text-xs text-zinc-600 dark:text-zinc-300">Amounts are rounded to the cent, so the lines may not add up exactly.</p>
+          {!bestDealAddsUp(bestDeal) && (
+            <p className="text-xs text-zinc-600 dark:text-zinc-300">Amounts are rounded to the cent, so the lines may not add up exactly.</p>
+          )}
           {bestDeal.cashback && (
             <p className="text-xs text-zinc-600 dark:text-zinc-300">
               Cashback is paid back later by {bestDeal.cashback.provider}, not taken off at checkout.

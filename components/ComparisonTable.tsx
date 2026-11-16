@@ -1,4 +1,5 @@
 import EmptyState from "@/components/EmptyState";
+import { chip as tag } from "@/components/styles";
 import { formatUsd } from "@/lib/format";
 import { sortForComparison, stockInSize } from "@/lib/pricing";
 import { needsFictionalLabel, storeLabel } from "@/lib/storeLabel";
@@ -14,7 +15,6 @@ const CONDITION: Record<ListingCondition, { label: string; className: string }> 
   },
 };
 
-const tag = "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold";
 
 export default function ComparisonTable({ comparison }: { comparison: ItemComparison }) {
   const { item, stores, listings, cheapestListingId } = comparison;

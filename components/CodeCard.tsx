@@ -66,7 +66,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <p className="font-semibold">{code.label}</p>
-        <span className="rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100">
+        <span className={`${chip} border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100`}>
           {code.cashback ? `Cashback: ${code.cashback.provider} ${code.cashback.ratePct}%` : "No cashback"}
         </span>
       </div>

@@ -123,7 +123,7 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 - **Sheets and menus.** Escape closes them and focus goes back to the button that opened them. A menu toggle has `aria-expanded` and `aria-controls`. A sheet is a native `<dialog>` opened with `useModalDialog`, labelled by its heading; mark the field that should get focus with `data-autofocus` (React's `autoFocus` does not reach `showModal`).
 - **Styling.** Tailwind only, mobile first, then `md:` for the sidebar layout. Pair every colour with a `dark:` value. Use `emerald-700` and darker for brand and focus rings; check AA contrast for any new colour pair.
 - **Tests.** Query by role and accessible name. Next.js renders an empty `role="alert"` route announcer on every page, so in E2E scope alerts by text. Component tests that use `usePathname` or `useRouter` mock `next/navigation` with `vi.mock`.
-- **E2E files.** `e2e/<feature>.spec.ts` runs signed in as `demo@lootlens.test`; `e2e/<feature>-anon.spec.ts` runs signed out. The test DB is reseeded at the start of every run, and all signed-in specs share one user, so a spec that changes data creates its own records and finds them by name.
+- **E2E files.** `e2e/<feature>.spec.ts` runs signed in as `demo@lootlens.test`; `e2e/<feature>-anon.spec.ts` runs signed out. The test DB is reseeded at the start of every run, and all signed-in specs share one user, so a spec that changes data creates its own records and finds them by name. Settings are per user: a spec that changes them signs in as `settings@lootlens.test` with `test.use({ storageState: "e2e/.auth/settings-user.json" })` (created in `e2e/auth-setup.ts`).
 
 ## 3. Data honesty
 

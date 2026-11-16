@@ -149,8 +149,12 @@ export function sortForComparison(listings: Listing[], stores: Store[]): Listing
   return [...listings].sort((a, b) => cents(a.price) - cents(b.price) || tieBreak(a, b, nameOf));
 }
 
-/** True when the rounded price minus rounded code and cashback equals the rounded total. Stub. */
+/**
+ * True when the price, code, and cashback lines, each rounded to the cent for display, add up to the
+ * rounded total. When false, the card explains the one-cent gap. Display-only; the totals stay unrounded.
+ */
 export function bestDealAddsUp(deal: BestDeal): boolean {
-  void deal;
-  return false;
+  // toPrecision(15) undoes binary noise first (1.665 * 100 is 166.4999...), so this rounds like formatUsd.
+  const cents = (x: number) => Math.round(Number((x * 100).toPrecision(15)));
+  return cents(deal.price) - cents(deal.code?.discount ?? 0) - cents(deal.cashback?.amount ?? 0) === cents(deal.total);
 }
