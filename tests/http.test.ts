@@ -68,9 +68,22 @@ describe("parse", () => {
 });
 
 describe("isStaleUser", () => {
-  it("true for a foreign key violation", () => {
-    const e = new Prisma.PrismaClientKnownRequestError("fk", { code: "P2003", clientVersion: "x" });
-    expect(isStaleUser(e)).toBe(true);
+  const fk = (index: string) =>
+    new Prisma.PrismaClientKnownRequestError("fk", {
+      code: "P2003",
+      clientVersion: "x",
+      meta: { driverAdapterError: { cause: { kind: "ForeignKeyConstraintViolation", constraint: { index } } } },
+    });
+  it("true for a foreign key violation on a user column", () => {
+    expect(isStaleUser(fk("Item_userId_fkey"))).toBe(true);
+    expect(isStaleUser(fk("Code_lastCheckedById_fkey"))).toBe(true);
+    expect(isStaleUser(fk("UserSettings_userId_fkey"))).toBe(true);
+  });
+  it("false for a foreign key violation on another column", () => {
+    expect(isStaleUser(fk("Code_storeId_fkey"))).toBe(false);
+  });
+  it("false for a P2003 with no constraint detail", () => {
+    expect(isStaleUser(new Prisma.PrismaClientKnownRequestError("fk", { code: "P2003", clientVersion: "x" }))).toBe(false);
   });
   it("false for other Prisma errors and non-errors", () => {
     expect(isStaleUser(new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "x" }))).toBe(false);

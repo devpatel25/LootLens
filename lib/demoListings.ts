@@ -44,3 +44,11 @@ export function generateDemoListings(
   }
   return out;
 }
+
+/** New stockBySize for each listing (same order) after the item's sizes change. */
+export function resizeStock(
+  listings: { id: string; stockBySize: Record<string, number> }[],
+  _item: { name: string; sizes: string[]; selectedSize: string },
+): Record<string, number>[] {
+  return listings.map((l) => l.stockBySize);
+}
