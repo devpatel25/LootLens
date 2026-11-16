@@ -249,5 +249,20 @@
     "code": null,
     "cashback": null,
     "total": 49
+  },
+  "bestTrustedDeal": {
+    "listingId": "lst-adidas",
+    "price": 100,
+    "code": {
+      "id": "code-adidas-40",
+      "code": "SAMBA40",
+      "discount": 40
+    },
+    "cashback": {
+      "provider": "DemoCash",
+      "ratePct": 5,
+      "amount": 3.0
+    },
+    "total": 57.0
   }
 }

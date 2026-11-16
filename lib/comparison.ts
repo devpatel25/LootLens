@@ -32,5 +32,6 @@ export async function loadComparison(itemId: string, userId: string): Promise<It
     cheapestTrustedListingId: cheapestTrustedListing(listings, stores, item.selectedSize)?.id ?? null,
     bestDeals,
     bestDeal: bestDeal(listings, stores, codes, item.selectedSize, settings, now),
+    bestTrustedDeal: null, // stub for the red step
   };
 }

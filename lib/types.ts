@@ -116,6 +116,8 @@ export type ItemComparison = {
    * alternative in bestDeals through cheapestTrustedListingId.
    */
   bestDeal: BestDeal | null;
+  /** Lowest total among listings in stock for item.selectedSize at stores that pass trustFlags, or null. */
+  bestTrustedDeal: BestDeal | null;
 };
 
 /** GET /api/items */

@@ -148,3 +148,9 @@ export function sortForComparison(listings: Listing[], stores: Store[]): Listing
   // Cents, the same comparison as cheapestListing, so the first in-stock row is the one marked Cheapest.
   return [...listings].sort((a, b) => cents(a.price) - cents(b.price) || tieBreak(a, b, nameOf));
 }
+
+/** True when the rounded price minus rounded code and cashback equals the rounded total. Stub. */
+export function bestDealAddsUp(deal: BestDeal): boolean {
+  void deal;
+  return false;
+}

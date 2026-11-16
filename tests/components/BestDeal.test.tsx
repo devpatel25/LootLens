@@ -107,6 +107,39 @@ describe("BestDealCard", () => {
     expect(within(card()).getByRole("link", { name: "Code settings" }).getAttribute("href")).toBe("/settings");
   });
 
+  it("labels the best-deal listing's condition and demo source, like the table", () => {
+    const c = demo();
+    c.bestDeal = { listingId: "lst-fbm", price: 60, code: null, cashback: null, total: 60 };
+    render(<BestDealCard comparison={c} />);
+    expect(within(card()).getByText("Used")).toBeTruthy();
+    expect(within(card()).getByText("Demo")).toBeTruthy();
+  });
+
+  it("when the best total is at a low-trust store, says why and names the best trusted total", () => {
+    const c = demo();
+    c.bestDeal = { listingId: "lst-kickswap", price: 118, code: null, cashback: null, total: 118 };
+    c.bestTrustedDeal = { listingId: "lst-fbm", price: 60, code: null, cashback: null, total: 60 };
+    render(<BestDealCard comparison={c} />);
+    expect(within(card()).getByText("Low-trust")).toBeTruthy();
+    expect(within(card()).getByText(/no HTTPS, under 20 photo reviews, and rating under 3\.5/)).toBeTruthy();
+    expect(within(card()).getByText("Best trusted total of the stores shown: $60.00 at Facebook Marketplace")).toBeTruthy();
+  });
+
+  it("says so when no trusted store has the size", () => {
+    const c = demo();
+    c.bestDeal = { listingId: "lst-kickswap", price: 118, code: null, cashback: null, total: 118 };
+    c.bestTrustedDeal = null;
+    render(<BestDealCard comparison={c} />);
+    expect(within(card()).getByText("No trusted store shown has size 9 in stock.")).toBeTruthy();
+  });
+
+  it("shows the rounding note only when the rounded lines do not add up", () => {
+    const c = demo();
+    c.bestDeal = { listingId: "lst-fbm", price: 60, code: null, cashback: null, total: 60 };
+    render(<BestDealCard comparison={c} />);
+    expect(within(card()).queryByText(/rounded to the cent/)).toBeNull();
+  });
+
   it("is part of Item Detail", () => {
     render(<ItemDetailView comparison={demo()} />);
     expect(card()).toBeTruthy();
@@ -171,6 +204,23 @@ describe("SettingsForm", () => {
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Settings saved."));
     fireEvent.click(screen.getByRole("radio", { name: "6 hours" }));
     expect(screen.getByRole("status").textContent).toBe("");
+  });
+
+  it("locks the choices while saving, so the saved values match what is shown", () => {
+    vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>(() => {}));
+    render(<SettingsForm settings={{ freshnessHours: 24, firstOrderEligible: false }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    expect(screen.getByRole<HTMLInputElement>("radio", { name: "72 hours" }).disabled).toBe(true);
+    expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "I can use first-order codes" }).disabled).toBe(true);
+  });
+
+  it("clears the error once the user changes something", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(500, { error: { code: "internal", message: "x" } }));
+    render(<SettingsForm settings={{ freshnessHours: 24, firstOrderEligible: false }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("radio", { name: "6 hours" }));
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("blocks a second save while one is in flight", () => {

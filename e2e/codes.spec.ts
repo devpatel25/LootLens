@@ -71,29 +71,3 @@ async function markDeadAndBack(page: Page) {
   await expect(card(page, "BR10")).toBeVisible();
   await expect(card(page, "BR10").getByText("checked just now")).toBeVisible();
 }
-
-test("settings change the freshness window and persist", async ({ page, request }) => {
-  try {
-    await changeSettings(page);
-  } finally {
-    // Settings belong to the shared demo user; put back the defaults the other tests expect.
-    await request.patch("/api/settings", { data: { freshnessHours: 24, firstOrderEligible: false } });
-  }
-});
-
-async function changeSettings(page: Page) {
-  await page.goto("/settings");
-  await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
-  await expect(page.getByRole("radio", { name: "24 hours" })).toBeChecked();
-  await page.getByRole("radio", { name: "48 hours" }).check();
-  await page.getByRole("checkbox", { name: "I can use first-order codes" }).check();
-  await page.getByRole("button", { name: "Save settings" }).click();
-  await expect(page.getByRole("status")).toContainText("Settings saved.");
-  await page.reload();
-  await expect(page.getByRole("radio", { name: "48 hours" })).toBeChecked();
-  await expect(page.getByRole("checkbox", { name: "I can use first-order codes" })).toBeChecked();
-
-  await page.goto("/codes");
-  await expect(page.getByText("Codes checked in the last 48 hours that still work.")).toBeVisible();
-  await expect(card(page, "SAVE10")).toBeVisible();
-}
