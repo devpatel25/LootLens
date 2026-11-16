@@ -13,7 +13,7 @@ let a: string;
 let b: string;
 let kb: string;
 const simulate = (body: unknown = {}) => SIMULATE(req("/api/demo/simulate", "POST", body));
-const reset = () => RESET(req("/api/demo/reset", "POST"));
+const reset = () => RESET();
 const alerts = () => prisma.alert.count({ where: { userId: a } });
 // Cheapest keyboard is 79.99, so a target of 79 is crossed by the 10% demo cut.
 const watchKb = () =>
