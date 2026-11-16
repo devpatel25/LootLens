@@ -7,7 +7,9 @@ import { ALERTS_CHANGED } from "@/lib/alertText";
 import type { AlertsResponse } from "@/lib/types";
 
 /**
- * Unread alert count for the Alerts tab. Polls every 60s and refetches when ALERTS_CHANGED fires.
+ * Unread alert count for the Alerts tab. Polls every 60s (not while the tab is hidden) and refetches
+ * when ALERTS_CHANGED fires. It reads GET /api/alerts; a count-only endpoint would be cheaper if
+ * alert volume grows.
  * The number is hidden from screen readers; the link is described by "3 unread alerts" instead,
  * so its name stays "Alerts".
  */
@@ -20,13 +22,22 @@ export default function AlertsBadge({ describedById }: { describedById: string }
       apiFetch<AlertsResponse>("/api/alerts")
         .then((d) => alive && setCount(d.unreadCount))
         .catch(() => {});
+    // Skip polls while the tab is hidden, and catch up as soon as it is shown again.
+    const tick = () => {
+      if (document.visibilityState !== "hidden") load();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
     load();
-    const t = setInterval(load, POLL_MS);
+    const t = setInterval(tick, POLL_MS);
     window.addEventListener(ALERTS_CHANGED, load);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
       clearInterval(t);
       window.removeEventListener(ALERTS_CHANGED, load);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -39,7 +50,8 @@ export default function AlertsBadge({ describedById }: { describedById: string }
       >
         {count > 99 ? "99+" : count}
       </span>
-      <span id={describedById} className="sr-only">
+      {/* aria-hidden keeps this out of the link's name; aria-describedby still reads it as the description. */}
+      <span id={describedById} aria-hidden="true" className="sr-only">
         {count === 1 ? "1 unread alert" : `${count} unread alerts`}
       </span>
     </>

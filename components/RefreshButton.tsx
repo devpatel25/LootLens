@@ -12,8 +12,11 @@ function waitText(seconds?: number): string {
 }
 
 /** POST /api/items/[id]/refresh, then router.refresh() so the server re-renders the comparison. */
+/** What the shopper would notice: each listing's price and stock. */
+const snapshot = (ls: Listing[] | undefined) =>
+  JSON.stringify((ls ?? []).map((l) => [l.id, l.price, l.stockBySize]).sort());
+
 export default function RefreshButton({ itemId, listings }: { itemId: string; listings: Listing[] }) {
-  void listings;
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -24,10 +27,14 @@ export default function RefreshButton({ itemId, listings }: { itemId: string; li
     setMessage("");
     setError(null);
     try {
-      const { alertsCreated } = await apiFetch<{ alertsCreated: number }>(`/api/items/${itemId}/refresh`, { method: "POST" });
-      setMessage(
-        alertsCreated === 0 ? "Prices updated." : `Prices updated. ${alertsCreated} new ${alertsCreated === 1 ? "alert" : "alerts"}.`,
+      const { alertsCreated, comparison } = await apiFetch<{ alertsCreated: number; comparison?: { listings?: Listing[] } }>(
+        `/api/items/${itemId}/refresh`,
+        { method: "POST" },
       );
+      // Without a live price source the refresh can return the same prices; say so instead of "updated".
+      const changed = comparison?.listings !== undefined && snapshot(comparison.listings) !== snapshot(listings);
+      const alerts = alertsCreated > 0 ? ` ${alertsCreated} new ${alertsCreated === 1 ? "alert" : "alerts"}.` : "";
+      setMessage(changed ? `Prices updated.${alerts}` : alerts ? `Prices checked.${alerts}` : "Prices checked. Nothing changed.");
       router.refresh();
       announceAlertsChanged();
     } catch (e) {

@@ -56,7 +56,7 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight">Alerts</h1>
-          {anyDemo && data.groups.length > 0 && <DemoDataBadge />}
+          {anyDemo && (data.groups.length > 0 || watches.length > 0) && <DemoDataBadge />}
           {data.unreadCount > 0 && <span className="text-sm font-medium">{data.unreadCount} unread</span>}
         </div>
         {anyRead && (

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
+import { MAX_WATCHES_PER_USER } from "@/lib/alerts";
 import { announceAlertsChanged, watchSummary } from "@/lib/alertText";
 import { formatUsd } from "@/lib/format";
 import { moneySchema } from "@/lib/itemSchema";
@@ -32,7 +33,7 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
   const noStock = `No store has size ${size} in stock right now, so there is no price to watch.`;
   const apiErrors: Record<string, string> = {
     watch_exists: `You already watch this item in size ${size}.`,
-    watch_limit: "You can watch up to 10 items. Delete one on the Alerts page first.",
+    watch_limit: `You can watch up to ${MAX_WATCHES_PER_USER} items. Delete one on the Alerts page first.`,
     no_listing: noStock,
   };
 
@@ -62,6 +63,8 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
       router.refresh();
     } catch (err) {
       setFormError(err instanceof ApiClientError && apiErrors[err.code] ? apiErrors[err.code] : friendlyMessage(err));
+      // Made in another tab: reload so the panel shows that watch instead of a form that cannot succeed.
+      if (err instanceof ApiClientError && err.code === "watch_exists") router.refresh();
     } finally {
       setBusy(false);
     }
