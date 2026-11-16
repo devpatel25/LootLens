@@ -132,6 +132,27 @@ describe("POST /api/watches at the cap", () => {
     expect(res.map((r) => r.status).sort()).toEqual([201, 409]);
     expect(await prisma.watch.count({ where: { userId: a } })).toBe(MAX_WATCHES_PER_USER);
   });
+
+  it("does not deadlock with a refresh that holds the item and inserts an alert", async () => {
+    // The refresh shape: lock the item, then insert an alert (its user FK takes a key-share lock on the user).
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    let locked!: () => void;
+    const lockedItem = new Promise<void>((r) => (locked = r));
+    const refresh = prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Item" WHERE id = ${samba} FOR UPDATE`;
+      locked();
+      await held;
+      await tx.alert.create({ data: { userId: a, itemId: samba, kind: "PRICE_DROP", detail: {} } });
+    });
+    await lockedItem;
+    const creating = post({ itemId: samba, size: "9" }); // takes the user lock, then waits for the item lock
+    await new Promise((r) => setTimeout(r, 300));
+    release();
+    const [res] = await Promise.all([creating, refresh]);
+    expect(res.status).toBe(201);
+    expect(await prisma.alert.count({ where: { userId: a } })).toBe(1);
+  });
 });
 
 describe("GET /api/watches", () => {
