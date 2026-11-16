@@ -2,6 +2,7 @@ import EmptyState from "@/components/EmptyState";
 import { formatUsd } from "@/lib/format";
 import { sortForComparison, stockInSize } from "@/lib/pricing";
 import { needsFictionalLabel, storeLabel } from "@/lib/storeLabel";
+import { trustReasonsSentence } from "@/lib/trust";
 import type { ItemComparison, ListingCondition } from "@/lib/types";
 
 const CONDITION: Record<ListingCondition, { label: string; className: string }> = {
@@ -40,16 +41,18 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
         tabIndex={0}
         className="relative overflow-x-auto rounded-xl border border-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:border-zinc-800"
       >
-        <table className="w-full min-w-[40rem] text-left text-sm">
+        <table className="w-full min-w-[56rem] text-left text-sm">
           <caption id={captionId} className="sr-only">
             {caption}
           </caption>
           <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
             <tr>
               <th scope="col" className="px-4 py-3 font-semibold">Store</th>
+              <th scope="col" className="px-4 py-3 font-semibold">Seller</th>
               <th scope="col" className="px-4 py-3 font-semibold">Condition</th>
               <th scope="col" className="px-4 py-3 text-right font-semibold">Price</th>
               <th scope="col" className="px-4 py-3 font-semibold">Size {size} stock</th>
+              <th scope="col" className="px-4 py-3 font-semibold">Trust</th>
               <th scope="col" className="px-4 py-3 font-semibold">Source</th>
               <th scope="col" className="px-4 py-3 font-semibold">Link</th>
             </tr>
@@ -78,6 +81,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                       )}
                     </span>
                   </th>
+                  <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{store?.sellerName ?? ""}</td>
                   <td className="px-4 py-3">
                     <span className={`${tag} ${condition.className}`}>{condition.label}</span>
                   </td>
@@ -87,6 +91,32 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                       <span>{stock} in stock</span>
                     ) : (
                       <span className="font-medium text-red-800 dark:text-red-300">Out of stock</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {store && (
+                      <div className="flex flex-col gap-1">
+                        <span className={store.isHttps ? "text-zinc-700 dark:text-zinc-300" : "font-medium text-red-800 dark:text-red-300"}>
+                          {store.isHttps ? "HTTPS" : "No HTTPS"}
+                        </span>
+                        <span className="text-zinc-700 dark:text-zinc-300">{store.photoReviewCount} photo reviews</span>
+                        {store.trust.lowTrust && (
+                          <>
+                            <span className={`${tag} w-fit border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100`}>
+                              <svg aria-hidden="true" viewBox="0 0 16 16" className="mr-1 size-3 fill-current">
+                                <path d="M8 1 15 14H1L8 1Zm-.75 5v4h1.5V6h-1.5Zm0 5v1.5h1.5V11h-1.5Z" />
+                              </svg>
+                              Low-trust
+                            </span>
+                            <span className="text-xs text-red-900 dark:text-red-200">
+                              {(() => {
+                                const t = trustReasonsSentence(store.trust.reasons);
+                                return t.charAt(0).toUpperCase() + t.slice(1);
+                              })()}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">{listing.source === "demo" ? "Demo" : "Live"}</td>
