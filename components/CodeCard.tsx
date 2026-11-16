@@ -2,6 +2,7 @@
 
 import type { CodeState } from "@/lib/codeStatus";
 import { checkedAgo, endsIn, formatUsd } from "@/lib/format";
+import { isExpired } from "@/lib/pricing";
 import type { Code } from "@/lib/types";
 
 export type CodeCardProps = {
@@ -31,7 +32,8 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
   const terms = [
     code.minSpend !== null ? `Min spend ${formatUsd(code.minSpend)}` : null,
     code.firstOrderOnly ? "First order only" : null,
-    code.expiresAt && state !== "expired" ? endsIn(code.expiresAt, new Date(now)) : null,
+    // The Expired tag already says it for expired codes; a dead code can also be past its end date.
+    code.expiresAt && state !== "expired" ? (isExpired(code, new Date(now)) ? "Ended" : endsIn(code.expiresAt, new Date(now))) : null,
   ].filter((t): t is string => t !== null);
   const tag = state === "live" ? null : TAGS[state];
 
