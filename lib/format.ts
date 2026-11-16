@@ -22,3 +22,9 @@ export function endsIn(iso: string, now: Date): string {
   if (hours < 48) return `Ends in ${hours}h`;
   return `Ends in ${Math.floor(hours / 24)}d`;
 }
+
+/** "3h ago", "just now". Stub. */
+export function ago(iso: string, now: Date): string {
+  void iso; void now;
+  return "";
+}
