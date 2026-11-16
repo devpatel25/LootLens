@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AppNav, { NAV_ITEMS } from "@/components/AppNav";
 import AppShell from "@/components/AppShell";
+import NavBar from "@/components/NavBar";
 import UserMenu from "@/components/UserMenu";
 
 const nav = vi.hoisted(() => ({ pathname: "/wishlist" }));
@@ -40,6 +41,15 @@ describe("AppNav", () => {
     nav.pathname = "/codes-archive";
     render(<AppNav />);
     expect(screen.getByRole("link", { name: "Codes" }).getAttribute("aria-current")).toBeNull();
+  });
+});
+
+describe("NavBar fallback", () => {
+  it("renders every link with nothing marked current before the URL is known", () => {
+    render(<NavBar pathname={null} />);
+    for (const { label } of NAV_ITEMS) {
+      expect(screen.getByRole("link", { name: label }).getAttribute("aria-current")).toBeNull();
+    }
   });
 });
 
