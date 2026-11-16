@@ -3,7 +3,8 @@ import { ok, route, unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { refreshItems, refreshSource } from "@/lib/refresh";
 
-export const maxDuration = 10; // placeholder
+// Vercel Hobby caps a function at 60s (Fluid compute off). A longer run stops there; items not reached wait for the next run.
+export const maxDuration = 60;
 const PAGE = 50;
 
 function authorized(req: Request): boolean {
