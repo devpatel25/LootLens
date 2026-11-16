@@ -95,7 +95,8 @@ describe("WishlistView", () => {
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/items/item-samba");
     expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("DELETE");
     expect(screen.getByRole("status").textContent).toContain("Deleted Adidas Samba OG.");
-    expect(document.activeElement).toBe(screen.getByRole("heading", { level: 1, name: "Wishlist" }));
+    // Focus moves in an effect after the dialog unmounts, so wait for it rather than racing it.
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", { level: 1, name: "Wishlist" })));
   });
 
   it("Delete of an item already removed elsewhere closes, refreshes, and says so", async () => {
