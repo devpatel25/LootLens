@@ -3,7 +3,7 @@
   "info": {
     "title": "LootLens API",
     "version": "0.1.0",
-    "description": "Route handlers for LootLens. Every success body is `{ data }`, except `/api/health`, which returns `{ status: ok }`. Every error body is `{ error: { code, message } }`. All prices are USD numbers. Listings are labelled `source: demo` or `live`. No store site is scraped."
+    "description": "Route handlers for LootLens. Every success body is `{ data }`, except `/api/health`, which returns `{ status: ok }`. Every error body is `{ error: { code, message } }`. All prices are USD numbers. Listings are labelled `source: demo` or `live`. No store site is scraped. Sign in at /signin in this browser first; Try it out then sends your session cookie automatically."
   },
   "servers": [
     {
@@ -527,6 +527,7 @@
             "name": "showDead",
             "in": "query",
             "schema": {
+              "type": "string",
               "enum": [
                 "true",
                 "false"
@@ -603,6 +604,7 @@
                 ],
                 "properties": {
                   "status": {
+                    "type": "string",
                     "enum": [
                       "live",
                       "dead"
@@ -703,6 +705,7 @@
                 "type": "object",
                 "properties": {
                   "freshnessHours": {
+                    "type": "integer",
                     "enum": [
                       6,
                       12,
@@ -1114,7 +1117,7 @@
           "Cron"
         ],
         "summary": "Expire old codes, then refresh every item one by one. Called by Vercel Cron daily at 09:00 UTC.",
-        "description": "No session. Needs `Authorization: Bearer ${CRON_SECRET}`. The 401 comes from a missing or wrong token, or an unset CRON_SECRET.",
+        "description": "No session. Needs `Authorization: Bearer ${CRON_SECRET}`. The 401 comes from a missing or wrong token, or an unset CRON_SECRET. Outside demo mode prices and stock stay as they are until a real data source lands, so the run only expires codes and re-checks watches.",
         "security": [
           {
             "cronBearer": []
@@ -1333,7 +1336,7 @@
         }
       },
       "404": {
-        "description": "Not found, or owned by another user. Code `not_found`.",
+        "description": "Not found, or not visible to this user. Demo routes return 404 when DEMO_MODE is off. Code `not_found`.",
         "content": {
           "application/json": {
             "schema": {
@@ -1430,6 +1433,7 @@
           "reasons": {
             "type": "array",
             "items": {
+              "type": "string",
               "enum": [
                 "no_https",
                 "few_photo_reviews",
@@ -1763,6 +1767,7 @@
             "type": "number"
           },
           "condition": {
+            "type": "string",
             "enum": [
               "new",
               "used",
@@ -1783,6 +1788,7 @@
             "format": "date-time"
           },
           "source": {
+            "type": "string",
             "enum": [
               "live",
               "demo"
@@ -1824,6 +1830,7 @@
             "type": "string"
           },
           "type": {
+            "type": "string",
             "enum": [
               "pct",
               "flat"
@@ -1850,6 +1857,7 @@
             "format": "date-time"
           },
           "status": {
+            "type": "string",
             "enum": [
               "live",
               "dead"
@@ -2013,6 +2021,7 @@
         ],
         "properties": {
           "freshnessHours": {
+            "type": "integer",
             "enum": [
               6,
               12,
@@ -2098,6 +2107,7 @@
             "type": "string"
           },
           "kind": {
+            "type": "string",
             "enum": [
               "price_drop",
               "low_size",
