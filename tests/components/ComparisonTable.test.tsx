@@ -103,6 +103,30 @@ describe("ComparisonTable (populated)", () => {
 });
 
 describe("ComparisonTable (edge cases)", () => {
+  it("on a price tie lists the new listing above the used one", () => {
+    const c = demo();
+    c.listings = c.listings.map((l) => (l.id === "lst-walmart" ? { ...l, price: 60 } : l));
+    c.cheapestListingId = "lst-walmart";
+    render(<ComparisonTable comparison={c} />);
+    const first = bodyRows()[0];
+    expect(within(first).getByRole("rowheader").textContent).toContain("Walmart");
+    expect(within(first).getByText("Cheapest")).toBeTruthy();
+  });
+
+  it("labels a fictional store even when its name does not say so", () => {
+    const c = demo();
+    c.stores = c.stores.map((s) => (s.fictional ? { ...s, name: "KickSwap" } : s));
+    render(<ComparisonTable comparison={c} />);
+    expect(within(row(/KickSwap/)).getByText("Fictional")).toBeTruthy();
+    expect(within(row(/Walmart/)).queryByText("Fictional")).toBeNull();
+  });
+
+  it("does not repeat the label when the name already says fictional", () => {
+    render(<ComparisonTable comparison={demo()} />);
+    expect(within(row(/KickSwap/)).queryByText("Fictional")).toBeNull();
+    expect(within(row(/KickSwap/)).getByRole("rowheader").textContent).toContain("(fictional demo store)");
+  });
+
   it("says so when nothing is in stock in the saved size", () => {
     const c = demo();
     c.cheapestListingId = null;
@@ -166,7 +190,7 @@ describe("Item Detail route states", () => {
 
   it("not-found.tsx explains and links back to the wishlist", () => {
     render(<ItemNotFound />);
-    expect(screen.getByRole("heading", { name: "Item not found" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Item not found" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Back to wishlist" }).getAttribute("href")).toBe("/wishlist");
   });
 });

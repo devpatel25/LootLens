@@ -131,3 +131,9 @@ export function cheapestTrustedListing(
   const trusted = listings.filter((l) => stores.some((s) => s.id === l.storeId && !s.trust.lowTrust));
   return cheapestListing(trusted, stores, size);
 }
+
+/** Display order for the comparison table: price, then the Story 3 tie rule. Stub. */
+export function sortForComparison(listings: Listing[], stores: Store[]): Listing[] {
+  void stores;
+  return [...listings];
+}
