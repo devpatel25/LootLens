@@ -1,21 +1,46 @@
-import type { AlertsResponse, Watch } from "@/lib/types";
+import { toAlert, toWatch } from "@/lib/dto";
+import { prisma } from "@/lib/prisma";
+import type { Alert, AlertsResponse, Watch } from "@/lib/types";
 
 export type WatchWithItem = Watch & { itemName: string };
 
-/** The user's alerts grouped by item, newest first, with unread counts. Stub. */
+const MAX_ALERTS = 200;
+
+/** The user's alerts grouped by item, newest first, with unread counts (GET /api/alerts uses this). */
 export async function loadAlerts(userId: string): Promise<AlertsResponse> {
-  void userId;
-  return { groups: [], unreadCount: 0 };
+  // Unread counts come from the database, so they stay right beyond the limit.
+  const [rows, unreadRows] = await Promise.all([
+    prisma.alert.findMany({
+      where: { userId },
+      include: { item: true },
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      take: MAX_ALERTS,
+    }),
+    prisma.alert.groupBy({ by: ["itemId"], where: { userId, read: false }, _count: { _all: true } }),
+  ]);
+  const unreadByItem = new Map(unreadRows.map((r) => [r.itemId, r._count._all]));
+  // Rows are newest first, so groups come out ordered by their newest alert.
+  const groups = new Map<string, { itemId: string; itemName: string; unread: number; alerts: Alert[] }>();
+  for (const row of rows) {
+    const g = groups.get(row.itemId) ?? { itemId: row.itemId, itemName: row.item.name, unread: unreadByItem.get(row.itemId) ?? 0, alerts: [] };
+    g.alerts.push(toAlert(row));
+    groups.set(row.itemId, g);
+  }
+  return { groups: [...groups.values()], unreadCount: [...unreadByItem.values()].reduce((n, c) => n + c, 0) };
 }
 
-/** The user's watches with item names, newest first. Stub. */
+/** The user's watches with item names, newest first (GET /api/watches returns the same rows without names). */
 export async function loadWatches(userId: string): Promise<WatchWithItem[]> {
-  void userId;
-  return [];
+  const rows = await prisma.watch.findMany({
+    where: { userId },
+    include: { item: { select: { name: true } } },
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+  });
+  return rows.map((r) => ({ ...toWatch(r), itemName: r.item.name }));
 }
 
-/** The user's watch on one item and size, or null. Stub. */
+/** The user's watch on one item and size, or null. */
 export async function loadWatchFor(userId: string, itemId: string, size: string): Promise<Watch | null> {
-  void userId; void itemId; void size;
-  return null;
+  const row = await prisma.watch.findFirst({ where: { userId, itemId, size } });
+  return row ? toWatch(row) : null;
 }

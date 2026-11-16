@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ItemDetailView from "@/components/ItemDetailView";
+import RefreshButton from "@/components/RefreshButton";
+import WatchPanel from "@/components/WatchPanel";
+import { loadWatchFor } from "@/lib/alertsData";
 import { loadComparison } from "@/lib/comparison";
 import { requirePageUserId } from "@/lib/currentUser";
 import { idParams } from "@/lib/itemSchema";
@@ -16,5 +19,14 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
   if (!parsed.success) notFound();
   const comparison = await loadComparison(parsed.data.id, userId);
   if (!comparison) notFound();
-  return <ItemDetailView comparison={comparison} />;
+  const { item, listings, cheapestListingId } = comparison;
+  const watch = await loadWatchFor(userId, item.id, item.selectedSize);
+  const cheapestPrice = listings.find((l) => l.id === cheapestListingId)?.price ?? null;
+  return (
+    <ItemDetailView
+      comparison={comparison}
+      refresh={<RefreshButton itemId={item.id} />}
+      watchPanel={<WatchPanel item={item} watch={watch} cheapestPrice={cheapestPrice} />}
+    />
+  );
 }

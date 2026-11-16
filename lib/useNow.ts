@@ -51,3 +51,8 @@ export function useServerClock(serverNow: string): { now: Date; current: () => D
   const current = useCallback(() => new Date(Date.now() + offset.current), []);
   return { now: anchor.now, current };
 }
+
+/** The server-anchored "now" alone, for screens that only display times (the Alerts list). */
+export function useNow(serverNow: string): Date {
+  return useServerClock(serverNow).now;
+}
