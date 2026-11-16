@@ -8,15 +8,13 @@ import DemoDataBadge from "@/components/DemoDataBadge";
 import EmptyState from "@/components/EmptyState";
 import type { WatchWithItem } from "@/lib/alertsData";
 import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
-import { alertText, announceAlertsChanged, watchSummary } from "@/lib/alertText";
+import { alertText, announceAlertsChanged, POLL_MS, watchSummary } from "@/lib/alertText";
 import { ago } from "@/lib/format";
 import type { AlertsResponse } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
 
 export type AlertsViewProps = { data: AlertsResponse; watches: WatchWithItem[]; now: string; anyDemo: boolean };
 
-/** How often the page re-reads alerts from the server. */
-export const POLL_MS = 60_000;
 
 const small =
   "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:opacity-60 dark:border-zinc-600 dark:hover:bg-zinc-800";
@@ -32,11 +30,23 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
   const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
   const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
   const [error, setError] = useState<string | null>(null);
-  const anyRead = data.groups.some((g) => g.alerts.some((a) => a.read));
+  // From the database count, so the button shows even when the read alerts are older than the 200 loaded.
+  const anyRead = data.readCount > 0;
 
   useEffect(() => {
-    const t = setInterval(() => router.refresh(), POLL_MS);
-    return () => clearInterval(t);
+    // Skip while the tab is hidden, and catch up as soon as it is shown again.
+    const tick = () => {
+      if (document.visibilityState !== "hidden") router.refresh();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    const t = setInterval(tick, POLL_MS);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [router]);
 
   async function run(key: string, action: () => Promise<string | void>) {

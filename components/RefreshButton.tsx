@@ -4,19 +4,17 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
 import { announceAlertsChanged } from "@/lib/alertText";
-import type { Listing } from "@/lib/types";
+import type { RefreshResult } from "@/lib/types";
 
 function waitText(seconds?: number): string {
   if (!seconds) return "a few minutes";
-  return seconds < 60 ? `${seconds} seconds` : `${Math.ceil(seconds / 60)} minutes`;
+  if (seconds < 60) return seconds === 1 ? "1 second" : `${seconds} seconds`;
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? "1 minute" : `${minutes} minutes`;
 }
 
-/** What the shopper would notice: each listing's price and stock. */
-const snapshot = (ls: Listing[] | undefined) =>
-  JSON.stringify((ls ?? []).map((l) => [l.id, l.price, l.stockBySize]).sort());
-
 /** POST /api/items/[id]/refresh, then router.refresh() so the server re-renders the comparison. */
-export default function RefreshButton({ itemId, listings = [] }: { itemId: string; listings?: Listing[] }) {
+export default function RefreshButton({ itemId }: { itemId: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   // seq gives each announcement a fresh node, so a repeated message is announced again.
@@ -29,14 +27,10 @@ export default function RefreshButton({ itemId, listings = [] }: { itemId: strin
     setMessage("");
     setError(null);
     try {
-      const { alertsCreated, comparison } = await apiFetch<{ alertsCreated: number; comparison?: { listings?: Listing[] } }>(
-        `/api/items/${itemId}/refresh`,
-        { method: "POST" },
-      );
-      // Without a live price source the refresh can return the same prices; say so instead of "updated".
-      const changed = comparison?.listings !== undefined && snapshot(comparison.listings) !== snapshot(listings);
+      // The server counts what this refresh changed, so the message never compares against stale props.
+      const { alertsCreated, listingsChanged } = await apiFetch<RefreshResult>(`/api/items/${itemId}/refresh`, { method: "POST" });
       const alerts = alertsCreated > 0 ? ` ${alertsCreated} new ${alertsCreated === 1 ? "alert" : "alerts"}.` : "";
-      setMessage(changed ? `Prices updated.${alerts}` : alerts ? `Prices checked.${alerts}` : "Prices checked. Nothing changed.");
+      setMessage(listingsChanged > 0 ? `Prices updated.${alerts}` : alerts ? `Prices checked.${alerts}` : "Prices checked. Nothing changed.");
       router.refresh();
       announceAlertsChanged();
     } catch (e) {

@@ -57,7 +57,7 @@ lib/
   useNow.ts             useServerClock: ticks on server time, re-anchors on refresh; a gap over 5 min is checked with one refresh
   trust.ts              plain wording for trustFlags reasons (storeLabel is in storeLabel.ts)
   alertsData.ts         loadAlerts, loadWatches, loadWatchFor (GET /api/alerts and the Alerts page share loadAlerts)
-  alertText.ts          plain wording for alerts and watches; ALERTS_CHANGED event for the nav badge
+  alertText.ts          plain wording for alerts and watches; ALERTS_CHANGED event and POLL_MS for the nav badge and Alerts
   useNow.ts             client clock that starts at server time and ticks every minute
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)

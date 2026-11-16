@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { POLL_MS } from "@/components/AlertsView";
 import { apiFetch } from "@/lib/apiClient";
-import { ALERTS_CHANGED } from "@/lib/alertText";
+import { ALERTS_CHANGED, POLL_MS } from "@/lib/alertText";
 import type { AlertsResponse } from "@/lib/types";
 
 /**
@@ -18,10 +17,14 @@ export default function AlertsBadge({ describedById }: { describedById: string }
 
   useEffect(() => {
     let alive = true;
-    const load = () =>
+    // Only the newest request may set the count: a slow poll that returns after a newer fetch is ignored.
+    let latest = 0;
+    const load = () => {
+      const id = ++latest;
       apiFetch<AlertsResponse>("/api/alerts")
-        .then((d) => alive && setCount(d.unreadCount))
+        .then((d) => alive && id === latest && setCount(d.unreadCount))
         .catch(() => {});
+    };
     // Skip polls while the tab is hidden, and catch up as soon as it is shown again.
     const tick = () => {
       if (document.visibilityState !== "hidden") load();

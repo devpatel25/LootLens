@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
-import { MAX_WATCHES_PER_USER } from "@/lib/alerts";
+import { DEFAULT_LOW_STOCK, MAX_LOW_STOCK, MAX_WATCHES_PER_USER } from "@/lib/alerts";
 import { announceAlertsChanged, watchSummary } from "@/lib/alertText";
 import { formatUsd } from "@/lib/format";
 import { moneySchema } from "@/lib/itemSchema";
@@ -23,7 +23,7 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
   const size = item.selectedSize;
   const [mode, setMode] = useState<"any" | "target">("any");
   const [target, setTarget] = useState("");
-  const [lowStock, setLowStock] = useState("3");
+  const [lowStock, setLowStock] = useState(String(DEFAULT_LOW_STOCK));
   const [errors, setErrors] = useState<{ target?: string; lowStock?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
   // seq gives each announcement a fresh node, so a repeated message is announced again.
@@ -38,6 +38,7 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
     watch_exists: `You already watch this item in size ${size}.`,
     watch_limit: `You can watch up to ${MAX_WATCHES_PER_USER} items. Delete one on the Alerts page first.`,
     no_listing: noStock,
+    target_not_below: "Pick a target below today's cheapest price.",
   };
 
   async function create(e: FormEvent) {
@@ -53,7 +54,7 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
       else targetPrice = n;
     }
     const low = /^\d+$/.test(lowStock.trim()) ? Number(lowStock) : Number.NaN;
-    if (!(low >= 0 && low <= 50)) next.lowStock = "Enter a whole number from 0 to 50.";
+    if (!(low >= 0 && low <= MAX_LOW_STOCK)) next.lowStock = `Enter a whole number from 0 to ${MAX_LOW_STOCK}.`;
     setErrors(next);
     if (next.target || next.lowStock) {
       document.getElementById(next.target ? `${uid}-target` : `${uid}-low`)?.focus();
@@ -66,8 +67,9 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
       router.refresh();
     } catch (err) {
       setFormError(err instanceof ApiClientError && apiErrors[err.code] ? apiErrors[err.code] : friendlyMessage(err));
-      // Made in another tab: reload so the panel shows that watch instead of a form that cannot succeed.
-      if (err instanceof ApiClientError && err.code === "watch_exists") router.refresh();
+      // Made in another tab, or the size sold out since the page loaded: reload so the panel shows the watch
+      // or the no-stock state instead of a form that cannot succeed.
+      if (err instanceof ApiClientError && (err.code === "watch_exists" || err.code === "no_listing")) router.refresh();
     } finally {
       setBusy(false);
     }

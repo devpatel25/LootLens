@@ -9,7 +9,7 @@ const MAX_ALERTS = 200;
 /** The user's alerts grouped by item, newest first, with unread counts (GET /api/alerts uses this). */
 export async function loadAlerts(userId: string): Promise<AlertsResponse> {
   // Unread counts come from the database, so they stay right beyond the limit.
-  const [rows, unreadRows] = await Promise.all([
+  const [rows, unreadRows, readCount] = await Promise.all([
     prisma.alert.findMany({
       where: { userId },
       include: { item: true },
@@ -17,6 +17,8 @@ export async function loadAlerts(userId: string): Promise<AlertsResponse> {
       take: MAX_ALERTS,
     }),
     prisma.alert.groupBy({ by: ["itemId"], where: { userId, read: false }, _count: { _all: true } }),
+    // All read alerts, not only the ones loaded, so Clear read alerts shows whenever it would do something.
+    prisma.alert.count({ where: { userId, read: true } }),
   ]);
   const unreadByItem = new Map(unreadRows.map((r) => [r.itemId, r._count._all]));
   // Rows are newest first, so groups come out ordered by their newest alert.
@@ -26,7 +28,7 @@ export async function loadAlerts(userId: string): Promise<AlertsResponse> {
     g.alerts.push(toAlert(row));
     groups.set(row.itemId, g);
   }
-  return { groups: [...groups.values()], unreadCount: [...unreadByItem.values()].reduce((n, c) => n + c, 0), readCount: 0 };
+  return { groups: [...groups.values()], unreadCount: [...unreadByItem.values()].reduce((n, c) => n + c, 0), readCount };
 }
 
 /** The user's watches with item names, newest first (GET /api/watches returns the same rows without names). */

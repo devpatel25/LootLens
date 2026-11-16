@@ -25,7 +25,7 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
   return (
     <ItemDetailView
       comparison={comparison}
-      refresh={<RefreshButton itemId={item.id} listings={listings} />}
+      refresh={<RefreshButton itemId={item.id} />}
       watchPanel={<WatchPanel item={item} watch={watch} cheapestPrice={cheapestPrice} />}
     />
   );
