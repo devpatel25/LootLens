@@ -66,7 +66,7 @@ Take `userId` from `auth()` only. Request bodies, query strings, and route param
 
 Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-guard.ts`) first. It is fail-closed:
 
-- It passes only when `DB_TARGET` is exactly `local`, `ci`, or `preview`, AND the `DATABASE_URL` host differs from `PROD_DB_HOST` when that is set. Unset or any other value throws.
+- It passes only when `DB_TARGET` is exactly `local`, `ci`, or `preview`, AND the `DATABASE_URL` host differs from `PROD_DB_HOST`. `PROD_DB_HOST` must be set unless the `DATABASE_URL` host is loopback (`localhost`, `127.0.0.1`, `[::1]`); the guard throws if it is missing. Unset or any other value throws.
 - Production sets `DB_TARGET=production`. `PROD_DB_HOST` is set in Vercel and in each maintainer's `.env.local`.
 - `VERCEL_ENV` is an extra check only, never the sole signal.
 - Unit tests keep these cases rejected: `DB_TARGET` missing, `DB_TARGET=production`, and a production host with `VERCEL_ENV` unset.
