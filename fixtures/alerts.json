@@ -10,6 +10,7 @@
           "watchId": "watch-samba",
           "itemId": "item-samba",
           "itemName": "Adidas Samba OG",
+          "size": "9",
           "kind": "price_drop",
           "detail": {
             "from": 84.99,
@@ -23,6 +24,7 @@
           "watchId": "watch-samba",
           "itemId": "item-samba",
           "itemName": "Adidas Samba OG",
+          "size": "9",
           "kind": "low_size",
           "detail": {
             "qty": 1
@@ -42,6 +44,7 @@
           "watchId": null,
           "itemId": "item-pegasus",
           "itemName": "Nike Pegasus 41",
+          "size": "10",
           "kind": "out_of_stock",
           "detail": {
             "qty": 0
