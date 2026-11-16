@@ -6,7 +6,7 @@ const CDN = `https://unpkg.com/swagger-ui-dist@${V}`;
 const JS_SRI = "sha384-gjRm0bEPMeTmMh5jT2cHccIwCUZSTd8YC+j0d0sXw0MdGEfScduGpSyF3ZSSLkX9";
 const CSS_SRI = "sha384-WlYgdmXYOOBWL5apwjDEZwN+U3HmXSSu5R6V5aGxEcf7z+KuRNwBhoxKVN1i3D5I";
 
-const init = `SwaggerUIBundle({ url: "/openapi.json", dom_id: "#swagger-ui" });`;
+const init = `SwaggerUIBundle({ url: "/openapi.json", dom_id: "#swagger-ui", validatorUrl: null });`;
 const initHash = createHash("sha256").update(init).digest("base64");
 
 const html = `<!doctype html>

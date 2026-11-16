@@ -3,7 +3,7 @@
   "info": {
     "title": "LootLens API",
     "version": "0.1.0",
-    "description": "Route handlers for LootLens. Every success body is `{ data }`. Every error body is `{ error: { code, message } }`. All prices are USD numbers. Listings are labelled `source: demo` or `live`. No store site is scraped."
+    "description": "Route handlers for LootLens. Every success body is `{ data }`, except `/api/health`, which returns `{ status: ok }`. Every error body is `{ error: { code, message } }`. All prices are USD numbers. Listings are labelled `source: demo` or `live`. No store site is scraped."
   },
   "servers": [
     {
@@ -831,7 +831,7 @@
                     ],
                     "exclusiveMinimum": 0,
                     "maximum": 99999.99,
-                    "description": "Null or omitted means any drop"
+                    "description": "USD, positive, at most 2 decimal places. Null or omitted means any drop"
                   },
                   "lowStockAt": {
                     "type": "integer",
