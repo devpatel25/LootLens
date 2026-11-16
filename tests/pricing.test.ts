@@ -4,6 +4,7 @@ import codesJson from "@/fixtures/codes.json";
 import codesAllJson from "@/fixtures/codes-all.json";
 import settingsJson from "@/fixtures/settings.json";
 import {
+  bestCashback,
   bestDeal,
   bestTotal,
   cheapestListing,
@@ -250,5 +251,15 @@ describe("fixture consistency", () => {
       const { trust, ...rest } = s;
       expect(trustFlags(rest)).toEqual(trust);
     }
+  });
+});
+
+describe("bestCashback", () => {
+  it("null for no offers", () => expect(bestCashback([])).toBeNull());
+  it("picks the highest rate", () => {
+    expect(bestCashback([{ provider: "A", ratePct: 2 }, { provider: "B", ratePct: 5 }])).toEqual({ provider: "B", ratePct: 5 });
+  });
+  it("first wins on a tie", () => {
+    expect(bestCashback([{ provider: "A", ratePct: 3 }, { provider: "B", ratePct: 3 }])?.provider).toBe("A");
   });
 });

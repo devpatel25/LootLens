@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { fail, ok, parse, requireUserId } from "@/lib/http";
+import { Prisma } from "@/lib/generated/prisma/client";
+import { fail, isStaleUser, ok, parse, requireUserId } from "@/lib/http";
 import { signInAs } from "./helpers/auth";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
@@ -63,5 +64,17 @@ describe("parse", () => {
     const body = await res.json();
     expect(body.error.code).toBe("bad_request");
     expect(body.error.message).toBe(`n: ${schema.safeParse({ n: "x" }).error!.issues[0].message}`);
+  });
+});
+
+describe("isStaleUser", () => {
+  it("true for a foreign key violation", () => {
+    const e = new Prisma.PrismaClientKnownRequestError("fk", { code: "P2003", clientVersion: "x" });
+    expect(isStaleUser(e)).toBe(true);
+  });
+  it("false for other Prisma errors and non-errors", () => {
+    expect(isStaleUser(new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "x" }))).toBe(false);
+    expect(isStaleUser(new Error("boom"))).toBe(false);
+    expect(isStaleUser(undefined)).toBe(false);
   });
 });

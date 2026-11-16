@@ -1,4 +1,4 @@
-import type { BestDeal, Code, Listing, Settings, Store, TrustFlags, TrustReason } from "./types";
+import type { BestDeal, CashbackOffer, Code, Listing, Settings, Store, TrustFlags, TrustReason } from "./types";
 
 // Starting values for the low-trust rule.
 export const TRUST_MIN_PHOTO_REVIEWS = 20;
@@ -120,4 +120,9 @@ export function cheapestTrustedListing(
 ): Listing | null {
   const trusted = listings.filter((l) => stores.some((s) => s.id === l.storeId && !s.trust.lowTrust));
   return cheapestListing(trusted, stores, size);
+}
+
+/** The offer with the highest ratePct; on a tie the first wins. Null when there are none. */
+export function bestCashback(_offers: CashbackOffer[]): CashbackOffer | null {
+  return null;
 }

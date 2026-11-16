@@ -20,3 +20,7 @@ export function parse<T>(schema: z.ZodType<T>, input: unknown): T | Response {
   const { path, message } = r.error.issues[0];
   return fail(400, "bad_request", path.length ? `${path.join(".")}: ${message}` : message);
 }
+
+export function isStaleUser(_e: unknown): boolean {
+  return false;
+}
