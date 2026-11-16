@@ -21,19 +21,21 @@ export function safeCallbackUrl(raw: string | string[] | undefined): string {
 
   const url = new URL(value, BASE);
   if (url.origin !== BASE) return DEFAULT_AFTER_SIGNIN;
-  if (url.pathname === "/signin" || url.pathname.startsWith("/signin/")) return DEFAULT_AFTER_SIGNIN;
+  const under = (base: string) => url.pathname === base || url.pathname.startsWith(base + "/");
+  if (under("/signin") || under("/api")) return DEFAULT_AFTER_SIGNIN;
 
   return url.pathname + url.search;
 }
 
-const MESSAGES: Record<string, string> = {
-  AccessDenied: "Google sign-in was cancelled or denied. Try again.",
-  Configuration: "Sign-in is not set up correctly on the server. Try again later.",
-};
+// A Map, not an object literal: ?error=__proto__ must not read Object.prototype.
+const MESSAGES = new Map<string, string>([
+  ["AccessDenied", "Google sign-in was cancelled or denied. Try again."],
+  ["Configuration", "Sign-in is not set up correctly on the server. Try again later."],
+]);
 
 /** Plain message for an Auth.js `?error=` code, or null when there is no error. */
 export function signInErrorMessage(code: string | string[] | undefined): string | null {
   const value = first(code);
   if (!value) return null;
-  return MESSAGES[value] ?? "Sign-in did not finish. Try again.";
+  return MESSAGES.get(value) ?? "Sign-in did not finish. Try again.";
 }
