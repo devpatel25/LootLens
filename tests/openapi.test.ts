@@ -73,15 +73,37 @@ type Schema = {
 const schemas = (spec.components.schemas as unknown) as Record<string, Schema>;
 const read = (file: string) => JSON.parse(readFileSync(join(process.cwd(), "fixtures", file), "utf8"));
 
-/** Problems found when value does not fit schema. Top level only for now. */
+const resolve = (s: Schema): Schema => (s.$ref ? resolve(schemas[s.$ref.split("/").pop()!]) : s);
+
+/** Properties (each with every schema that declares it) and required names, following $ref and allOf. */
+function collect(schema: Schema, out = { props: {} as Record<string, Schema[]>, required: new Set<string>() }) {
+  const s = resolve(schema);
+  s.allOf?.forEach((p) => collect(p, out));
+  for (const [k, v] of Object.entries(s.properties ?? {})) (out.props[k] ??= []).push(v);
+  s.required?.forEach((k) => out.required.add(k));
+  return out;
+}
+
+/** Problems found when value does not fit schema. Walks arrays and nested objects. oneOf matches any branch. */
 function check(schema: Schema, value: unknown, at = "$"): string[] {
-  const s = schema.$ref ? schemas[schema.$ref.split("/").pop()!] : schema;
-  const data = (Array.isArray(value) ? value[0] : value) as Record<string, unknown>;
-  const props = new Set(Object.keys(s.properties ?? {}));
-  const required = s.required ?? [];
+  const s = resolve(schema);
+  if (s.oneOf) {
+    const tries = s.oneOf.map((b) => check(b, value, at));
+    return tries.some((t) => t.length === 0) ? [] : tries[0];
+  }
+  const types = ([] as string[]).concat(s.type ?? []);
+  if (value === null) return types.length === 0 || types.includes("null") ? [] : [`${at} is null`];
+  if (Array.isArray(value)) {
+    return s.items ? value.flatMap((v, i) => check(s.items!, v, `${at}[${i}]`)) : [];
+  }
+  if (typeof value !== "object") return [];
+  const { props, required } = collect(s);
+  if (Object.keys(props).length === 0 && required.size === 0) return []; // free-form map, such as stockBySize
+  const data = value as Record<string, unknown>;
   return [
-    ...Object.keys(data).filter((k) => !props.has(k)).map((k) => `${at}.${k} not in schema`),
-    ...required.filter((k) => !(k in data)).map((k) => `${at}.${k} missing`),
+    ...Object.keys(data).filter((k) => !(k in props)).map((k) => `${at}.${k} not in schema`),
+    ...[...required].filter((k) => !(k in data)).map((k) => `${at}.${k} missing`),
+    ...Object.keys(data).filter((k) => k in props).flatMap((k) => props[k].flatMap((p) => check(p, data[k], `${at}.${k}`))),
   ];
 }
 
