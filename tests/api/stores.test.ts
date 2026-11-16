@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/stores/route";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
-import { req } from "../helpers/api";
 import { signInAs } from "../helpers/auth";
 import { resetDb } from "../helpers/db";
 
@@ -18,11 +17,11 @@ beforeEach(async () => {
 describe("GET /api/stores", () => {
   it("401 without a session", async () => {
     signInAs(null);
-    expect((await GET(req("/api/stores"))).status).toBe(401);
+    expect((await GET()).status).toBe(401);
   });
 
   it("returns 8 stores sorted A to Z with contract types", async () => {
-    const res = await GET(req("/api/stores"));
+    const res = await GET();
     expect(res.status).toBe(200);
     const { data } = await res.json();
     expect(data).toHaveLength(8);
@@ -35,7 +34,7 @@ describe("GET /api/stores", () => {
   it("any signed-in user can read, and KickSwap is low trust", async () => {
     const other = await prisma.user.findFirstOrThrow({ where: { email: "b@lootlens.test" } });
     signInAs(other.id);
-    const { data } = await (await GET(req("/api/stores"))).json();
+    const { data } = await (await GET()).json();
     const kick = data.find((s: { id: string }) => s.id === "store-kickswap");
     expect(kick.fictional).toBe(true);
     expect(kick.trust.lowTrust).toBe(true);

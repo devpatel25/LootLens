@@ -23,13 +23,13 @@ beforeEach(async () => {
 describe("/api/settings", () => {
   it("401 without a session", async () => {
     signInAs(null);
-    expect((await GET(req("/api/settings"))).status).toBe(401);
+    expect((await GET()).status).toBe(401);
     expect((await patch({})).status).toBe(401);
   });
 
   it("a stale session reads the defaults, but a write is a 401", async () => {
     signInAs("ghost");
-    const res = await GET(req("/api/settings"));
+    const res = await GET();
     expect(res.status).toBe(200);
     expect((await res.json()).data).toEqual({ freshnessHours: 24, firstOrderEligible: false });
     expect((await patch({ freshnessHours: 12 })).status).toBe(401);
@@ -38,7 +38,7 @@ describe("/api/settings", () => {
   it("GET returns defaults without writing when there is no settings row", async () => {
     signInAs(b);
     expect(await prisma.userSettings.count({ where: { userId: b } })).toBe(0);
-    const res = await GET(req("/api/settings"));
+    const res = await GET();
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ data: { freshnessHours: 24, firstOrderEligible: false } });
     expect(await prisma.userSettings.count({ where: { userId: b } })).toBe(0);
@@ -47,7 +47,7 @@ describe("/api/settings", () => {
   it("PATCH updates one field and keeps the other", async () => {
     expect((await (await patch({ freshnessHours: 72 })).json()).data).toEqual({ freshnessHours: 72, firstOrderEligible: false });
     expect((await (await patch({ firstOrderEligible: true })).json()).data).toEqual({ freshnessHours: 72, firstOrderEligible: true });
-    expect((await (await GET(req("/api/settings"))).json()).data).toEqual({ freshnessHours: 72, firstOrderEligible: true });
+    expect((await (await GET()).json()).data).toEqual({ freshnessHours: 72, firstOrderEligible: true });
   });
 
   it("PATCH creates the row when missing", async () => {

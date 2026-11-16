@@ -1,12 +1,12 @@
-import { toItem, toListing, toStore } from "@/lib/dto";
+import { toItem, toListingsAndStores } from "@/lib/dto";
 import { generateDemoListings } from "@/lib/demoListings";
-import { fail, isStaleUser, ok, parse, requireUserId } from "@/lib/http";
+import { isStaleUser, ok, parse, requireUserId, unauthorized } from "@/lib/http";
 import { itemSchema } from "@/lib/itemSchema";
 import { cheapestListing } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import type { WishlistItem } from "@/lib/types";
 
-export async function GET(_req: Request) {
+export async function GET() {
   const userId = await requireUserId();
   if (userId instanceof Response) return userId;
 
@@ -16,8 +16,7 @@ export async function GET(_req: Request) {
     include: { listings: { include: { store: true } } },
   });
   const data: WishlistItem[] = rows.map((row) => {
-    const listings = row.listings.map(toListing);
-    const stores = row.listings.map((l) => toStore(l.store));
+    const { listings, stores } = toListingsAndStores(row.listings);
     const best = cheapestListing(listings, stores, row.selectedSize);
     return {
       ...toItem(row),
@@ -42,7 +41,7 @@ export async function POST(req: Request) {
     });
     return ok(toItem(row), 201);
   } catch (e) {
-    if (isStaleUser(e)) return fail(401, "unauthorized", "Sign in required");
+    if (isStaleUser(e)) return unauthorized();
     throw e;
   }
 }

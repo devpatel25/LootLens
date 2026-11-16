@@ -10,9 +10,13 @@ export function fail(status: number, code: string, message: string, extra?: { re
   return Response.json({ error: { code, message, ...extra } }, { status });
 }
 
+export function unauthorized(): Response {
+  return fail(401, "unauthorized", "Sign in required");
+}
+
 export async function requireUserId(): Promise<string | Response> {
   const session = await auth();
-  return session?.user?.id ?? fail(401, "unauthorized", "Sign in required");
+  return session?.user?.id ?? unauthorized();
 }
 
 export function parse<T>(schema: z.ZodType<T>, input: unknown): T | Response {

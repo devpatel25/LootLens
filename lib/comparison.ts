@@ -1,4 +1,4 @@
-import { toCode, toItem, toListing, toStore } from "@/lib/dto";
+import { toCode, toItem, toListingsAndStores } from "@/lib/dto";
 import { bestDeal, bestTotal, cheapestListing, cheapestTrustedListing } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -13,13 +13,12 @@ export async function loadComparison(itemId: string, userId: string): Promise<It
   if (!row) return null;
 
   const item = toItem(row);
-  const listings = row.listings.map(toListing);
-  const storeRows = [...new Map(row.listings.map((l) => [l.store.id, l.store])).values()];
-  const stores = storeRows.map(toStore).sort((a, b) => a.name.localeCompare(b.name));
-  const codes = (
-    await prisma.code.findMany({ where: { storeId: { in: stores.map((s) => s.id) } }, include: { store: true }, orderBy: { id: "asc" } })
-  ).map(toCode);
-  const settings = await getSettings(userId);
+  const { listings, stores } = toListingsAndStores(row.listings);
+  const [codeRows, settings] = await Promise.all([
+    prisma.code.findMany({ where: { storeId: { in: stores.map((s) => s.id) } }, include: { store: true }, orderBy: { id: "asc" } }),
+    getSettings(userId),
+  ]);
+  const codes = codeRows.map(toCode);
 
   const bestDeals = listings.map((l) => bestTotal(l, stores.find((s) => s.id === l.storeId)!, codes, settings));
   return {

@@ -24,11 +24,11 @@ beforeEach(async () => {
 describe("GET /api/items", () => {
   it("401 without a session", async () => {
     signInAs(null);
-    expect((await GET(req("/api/items"))).status).toBe(401);
+    expect((await GET()).status).toBe(401);
   });
 
   it("lists the user's items newest first with the contract shape", async () => {
-    const res = await GET(req("/api/items"));
+    const res = await GET();
     expect(res.status).toBe(200);
     const { data } = await res.json();
     expect(data).toHaveLength(3);
@@ -44,13 +44,13 @@ describe("GET /api/items", () => {
 
   it("does not list another user's items", async () => {
     signInAs(b);
-    expect((await (await GET(req("/api/items"))).json()).data).toEqual([]);
+    expect((await (await GET()).json()).data).toEqual([]);
   });
 
   it("null cheapest when nothing is in stock for the size", async () => {
     const id = await itemId("Denim jacket");
     await prisma.listing.updateMany({ where: { itemId: id }, data: { stockBySize: { S: 1, M: 0, L: 1 } } });
-    const { data } = await (await GET(req("/api/items"))).json();
+    const { data } = await (await GET()).json();
     expect(data.find((i: { id: string }) => i.id === id).cheapest).toBeNull();
   });
 });
@@ -115,7 +115,7 @@ describe("POST /api/items", () => {
 
   it("the new item shows a non-null cheapest in the list", async () => {
     const { data } = await (await post(good)).json();
-    const list = (await (await GET(req("/api/items"))).json()).data;
+    const list = (await (await GET()).json()).data;
     expect(list.find((i: { id: string }) => i.id === data.id).cheapest).not.toBeNull();
   });
 });
@@ -185,7 +185,7 @@ describe("/api/items/[id]", () => {
 
   it("PATCH with new sizes regenerates listings so cheapest is set for the new size", async () => {
     expect((await patch({ sizes: ["M", "XL"], selectedSize: "XL" })).status).toBe(200);
-    const list = (await (await GET(req("/api/items"))).json()).data;
+    const list = (await (await GET()).json()).data;
     expect(list.find((i: { id: string }) => i.id === id).cheapest).not.toBeNull();
     const listings = await prisma.listing.findMany({ where: { itemId: id } });
     expect(listings.every((l) => l.source === "DEMO" && Object.keys(l.stockBySize as object).sort().join() === "M,XL")).toBe(true);

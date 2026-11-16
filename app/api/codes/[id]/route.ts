@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { toCode } from "@/lib/dto";
-import { fail, isMissingRow, isStaleUser, ok, parse, requireUserId } from "@/lib/http";
+import { fail, isMissingRow, isStaleUser, ok, parse, requireUserId, unauthorized } from "@/lib/http";
 import { idParams } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
 
@@ -26,7 +26,7 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/codes/[id]">) 
     return row ? ok(toCode(row)) : fail(404, "not_found", "Code not found");
   } catch (e) {
     if (isMissingRow(e)) return fail(404, "not_found", "Code not found");
-    if (isStaleUser(e)) return fail(401, "unauthorized", "Sign in required");
+    if (isStaleUser(e)) return unauthorized();
     throw e;
   }
 }

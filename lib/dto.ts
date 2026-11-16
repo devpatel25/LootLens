@@ -70,3 +70,11 @@ export function toCode(c: DbCode & { store: DbStore }): Code {
 export function toSettings(s: UserSettings): Settings {
   return { freshnessHours: s.freshnessHours as FreshnessHours, firstOrderEligible: s.firstOrderEligible };
 }
+
+/** Listings and the stores they reference (each once, A to Z), from rows loaded with include: { store: true }. */
+export function toListingsAndStores(rows: (DbListing & { store: DbStore })[]): { listings: Listing[]; stores: Store[] } {
+  const stores = [...new Map(rows.map((l) => [l.store.id, l.store])).values()]
+    .map(toStore)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return { listings: rows.map(toListing), stores };
+}
