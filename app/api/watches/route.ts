@@ -29,7 +29,9 @@ export const POST = route(async (req: Request) => {
   try {
     return await prisma.$transaction(async (tx) => {
       // Locks serialise concurrent creates: the user row for the cap, the item row for its listings.
-      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+      // NO KEY UPDATE still excludes other creates but not the key-share lock an Alert insert takes on the user,
+      // so a refresh holding the item cannot deadlock with this transaction.
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR NO KEY UPDATE`;
       const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Item" WHERE id = ${body.itemId} AND "userId" = ${userId} FOR UPDATE`;
       if (locked.length === 0) return itemNotFound();
       const item = await tx.item.findFirst({ where: { id: body.itemId, userId }, include: listingsInclude });
