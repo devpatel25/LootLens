@@ -1,12 +1,17 @@
 import Link from "next/link";
+import type { MouseEvent } from "react";
 import { formatUsd } from "@/lib/format";
 import { CATEGORIES } from "@/lib/itemForm";
+import { storeLabel } from "@/lib/storeLabel";
 import type { WishlistItem } from "@/lib/types";
 
+const tag = "rounded-full border px-2 py-0.5 text-xs font-semibold";
 const button =
   "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:border-zinc-600 dark:hover:bg-zinc-800";
 
-export default function WishlistCard({ item, onEdit, onDelete }: { item: WishlistItem; onEdit: () => void; onDelete: () => void }) {
+type Handler = (e: MouseEvent<HTMLButtonElement>) => void;
+
+export default function WishlistCard({ item, onEdit, onDelete }: { item: WishlistItem; onEdit: Handler; onDelete: Handler }) {
   const category = CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category;
   return (
     <li className="flex min-w-0 flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -26,9 +31,24 @@ export default function WishlistCard({ item, onEdit, onDelete }: { item: Wishlis
         </p>
       </div>
       {item.cheapest ? (
-        <p className="text-sm font-medium">
-          Cheapest: {formatUsd(item.cheapest.price)} at {item.cheapest.storeName}
-        </p>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-sm font-medium">
+            Cheapest: {formatUsd(item.cheapest.price)} at {storeLabel({ name: item.cheapest.storeName, fictional: item.cheapest.fictional })}
+          </p>
+          <p className="flex flex-wrap gap-1.5">
+            {item.cheapest.condition !== "new" && (
+              <span className={`${tag} border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100`}>
+                {item.cheapest.condition === "used" ? "Used" : "Resale"}
+              </span>
+            )}
+            {item.cheapest.lowTrust && (
+              <span className={`${tag} border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100`}>Low-trust</span>
+            )}
+            {item.cheapest.source === "demo" && (
+              <span className={`${tag} border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300`}>Demo</span>
+            )}
+          </p>
+        </div>
       ) : (
         <p className="text-sm font-medium text-amber-900 dark:text-amber-200">No store shown has size {item.selectedSize} in stock</p>
       )}

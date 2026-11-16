@@ -18,7 +18,11 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
   const router = useRouter();
   const [sheet, setSheet] = useState<{ item: Item | null } | null>(null);
   const [deleting, setDeleting] = useState<WishlistItem | null>(null);
-  const [message, setMessage] = useState("");
+  // seq gives each announcement a fresh node, so screen readers repeat a message that did not change.
+  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
+  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
+  // The button that opened the current dialog (kept from the click, since Safari does not focus it).
+  const [opener, setOpener] = useState<HTMLElement | null>(null);
   // Bumped after an add or delete: the button that opened the dialog may disappear, so focus the heading.
   const [focusHeading, setFocusHeading] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -36,7 +40,14 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
   }
 
   const addButton = (
-    <button type="button" onClick={() => setSheet({ item: null })} className={primary}>
+    <button
+      type="button"
+      onClick={(e) => {
+        setOpener(e.currentTarget);
+        setSheet({ item: null });
+      }}
+      className={primary}
+    >
       Add item
     </button>
   );
@@ -53,7 +64,7 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
         {items.length > 0 && addButton}
       </div>
       <p role="status" aria-live="polite" className="min-h-5 text-sm text-emerald-800 dark:text-emerald-300">
-        {message}
+        <span key={seq}>{message}</span>
       </p>
 
       {items.length === 0 ? (
@@ -65,7 +76,18 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
       ) : (
         <ul aria-label="Wishlist items" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
-            <WishlistCard key={item.id} item={item} onEdit={() => setSheet({ item })} onDelete={() => setDeleting(item)} />
+            <WishlistCard
+              key={item.id}
+              item={item}
+              onEdit={(e) => {
+                setOpener(e.currentTarget);
+                setSheet({ item });
+              }}
+              onDelete={(e) => {
+                setOpener(e.currentTarget);
+                setDeleting(item);
+              }}
+            />
           ))}
         </ul>
       )}
@@ -74,6 +96,7 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
         open={sheet !== null}
         item={sheet?.item ?? null}
         onClose={() => setSheet(null)}
+        opener={opener}
         onMissing={gone}
         onSaved={(name) => {
           const added = !sheet?.item;
@@ -89,6 +112,7 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
         message="It leaves your wishlist with its watches and alerts. This cannot be undone."
         confirmLabel="Delete"
         onClose={() => setDeleting(null)}
+        opener={opener}
         onConfirm={async () => {
           if (!deleting) return;
           try {

@@ -11,17 +11,20 @@ export type ConfirmDialogProps = {
   confirmLabel: string;
   onConfirm: () => Promise<void>;
   onClose: () => void;
+  /** The button that opened the dialog; focus returns to it. */
+  opener?: HTMLElement | null;
 };
 
 export default function ConfirmDialog(props: ConfirmDialogProps) {
   return props.open ? <OpenConfirmDialog {...props} /> : null;
 }
 
-function OpenConfirmDialog({ title, message, confirmLabel, onConfirm, onClose }: ConfirmDialogProps) {
+function OpenConfirmDialog({ title, message, confirmLabel, onConfirm, onClose, opener }: ConfirmDialogProps) {
   const [busy, setBusy] = useState(false);
   const ref = useModalDialog(() => {
-    if (!busy) onClose();
-  });
+    if (busy) return false;
+    onClose();
+  }, opener);
   const titleId = useId();
   const messageId = useId();
   const [error, setError] = useState<string | null>(null);

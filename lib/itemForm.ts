@@ -36,7 +36,7 @@ const MESSAGES: Record<keyof ItemFormValues, string> = {
   sizes: "Enter at least one size.",
   selectedSize: "Pick your size from the sizes.",
   typicalPrice: "Enter a price like 49.99.",
-  sourceUrl: "Enter a full link that starts with https://",
+  sourceUrl: "Enter a full link that starts with https:// or http://",
 };
 
 /** "8, 9 ,10" -> ["8", "9", "10"]: trimmed, no blanks, no repeats, order kept. */
@@ -63,7 +63,8 @@ export function toItemBody(values: ItemFormValues): { ok: true; body: ItemBody }
     category: values.category.trim(),
     sizes: parseSizes(values.sizes),
     selectedSize: values.selectedSize.trim(),
-    typicalPrice: price === "" ? Number.NaN : Number(price),
+    // Digits with up to two decimals only: Number() alone would accept "0x20" ($32) or "1e3" ($1,000).
+    typicalPrice: /^\d+(\.\d{1,2})?$/.test(values.typicalPrice) ? Number(price) : Number.NaN,
     sourceUrl: values.sourceUrl.trim() || null,
   };
   const r = itemSchema.safeParse(body);
@@ -81,6 +82,5 @@ export function toItemBody(values: ItemFormValues): { ok: true; body: ItemBody }
   if (body.selectedSize && body.sizes.length > 0 && !body.sizes.includes(body.selectedSize)) {
     errors.selectedSize = MESSAGES.selectedSize;
   }
-  if (!body.selectedSize) errors.selectedSize = MESSAGES.selectedSize;
   return { ok: false, errors };
 }

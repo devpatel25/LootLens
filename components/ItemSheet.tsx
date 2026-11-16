@@ -21,6 +21,8 @@ export type ItemSheetProps = {
   onSaved: (name: string) => void;
   /** The item was deleted elsewhere (404). */
   onMissing: () => void;
+  /** The button that opened the sheet; focus returns to it. */
+  opener?: HTMLElement | null;
 };
 
 export default function ItemSheet(props: ItemSheetProps) {
@@ -65,12 +67,13 @@ function Field({
 
 const FIELD_ORDER: (keyof ItemFormValues)[] = ["name", "category", "sizes", "selectedSize", "typicalPrice", "sourceUrl"];
 
-function OpenItemSheet({ item, onClose, onSaved, onMissing }: ItemSheetProps) {
+function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetProps) {
   const [busy, setBusy] = useState(false);
   // While a save is in flight, Escape and Cancel do nothing, so a late reply cannot act on a closed sheet.
   const ref = useModalDialog(() => {
-    if (!busy) onClose();
-  });
+    if (busy) return false;
+    onClose();
+  }, opener);
   const uid = useId();
   const id = (f: keyof ItemFormValues) => `${uid}-${f}`;
   const [values, setValues] = useState<ItemFormValues>(item ? formValuesFromItem(item) : EMPTY_FORM);
