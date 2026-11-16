@@ -64,7 +64,7 @@ export function toItemBody(values: ItemFormValues): { ok: true; body: ItemBody }
     sizes: parseSizes(values.sizes),
     selectedSize: values.selectedSize.trim(),
     // Digits with up to two decimals only: Number() alone would accept "0x20" ($32) or "1e3" ($1,000).
-    typicalPrice: /^\d+(\.\d{1,2})?$/.test(values.typicalPrice) ? Number(price) : Number.NaN,
+    typicalPrice: /^\d+(\.\d{1,2})?$/.test(price) ? Number(price) : Number.NaN,
     sourceUrl: values.sourceUrl.trim() || null,
   };
   const r = itemSchema.safeParse(body);

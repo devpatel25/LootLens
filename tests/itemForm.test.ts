@@ -66,7 +66,12 @@ describe("toItemBody", () => {
     expect(!r2.ok && r2.errors.sizes).toBe("Each size can be at most 20 characters.");
   });
 
-  it.each(["0", "-5", "abc", "12.345", "100000", "0x20", "1e3", " 12", "12."])("rejects price %s", (typicalPrice) => {
+  it("accepts a price with spaces around it", () => {
+    const r = toItemBody({ ...good, typicalPrice: " 12.50 " });
+    expect(r.ok && r.body.typicalPrice).toBe(12.5);
+  });
+
+  it.each(["0", "-5", "abc", "12.345", "100000", "0x20", "1e3", "12."])("rejects price %s", (typicalPrice) => {
     const r = toItemBody({ ...good, typicalPrice });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors.typicalPrice).toBe("Enter a price like 49.99.");

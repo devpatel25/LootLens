@@ -45,7 +45,7 @@ lib/
   format.ts             formatUsd (display only)
   storeLabel.ts         needsFictionalLabel, storeLabel: fictional stores are labelled from store.fictional
   currentUser.ts        requirePageUserId(returnTo): session user id for server pages (else sign-in, keeping returnTo)
-  wishlist.ts           loadWishlist, hasDemoListings (GET /api/items and the Wishlist page share these)
+  wishlist.ts           loadWishlist (GET /api/items), loadWishlistPage (items plus anyDemo, one query), hasDemoListings
   apiClient.ts          apiFetch for client components, ApiClientError, friendlyMessage
   itemForm.ts           item form values <-> API body, validated with itemSchema
   useModalDialog.ts     <dialog> as a modal: Escape, data-autofocus, focus back to the opener
