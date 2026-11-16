@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import type { z } from "zod";
 import { auth } from "@/lib/auth";
 import { Prisma } from "@/lib/generated/prisma/client";
@@ -50,6 +51,7 @@ export function route<A extends unknown[]>(handler: (...args: A) => Promise<Resp
     try {
       return await handler(...args);
     } catch (e) {
+      unstable_rethrow(e); // Next control-flow errors (prerender bailouts) must pass through
       console.error(e);
       return fail(500, "internal", "Something went wrong");
     }
