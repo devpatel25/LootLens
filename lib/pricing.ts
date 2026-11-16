@@ -55,6 +55,13 @@ export function trustFlags(store: Omit<Store, "trust">): TrustFlags {
   return { lowTrust: reasons.length > 0, reasons };
 }
 
+/** The offer with the highest ratePct; on a tie the first wins. Null when there are none. */
+export function bestCashback(offers: CashbackOffer[]): CashbackOffer | null {
+  let best: CashbackOffer | null = null;
+  for (const o of offers) if (best === null || o.ratePct > best.ratePct) best = o;
+  return best;
+}
+
 /** Price minus best applicable code minus cashback on the post-code price. Unrounded. */
 export function bestTotal(
   listing: Listing,
@@ -80,8 +87,7 @@ export function bestTotal(
   }
   const afterCode = price - (code?.discount ?? 0);
 
-  let offer = store.cashback[0];
-  for (const o of store.cashback) if (o.ratePct > offer.ratePct) offer = o;
+  const offer = bestCashback(store.cashback);
   const cashback = offer ? { ...offer, amount: (afterCode * offer.ratePct) / 100 } : null;
 
   return { listingId: listing.id, price, code, cashback, total: afterCode - (cashback?.amount ?? 0) };
@@ -120,9 +126,4 @@ export function cheapestTrustedListing(
 ): Listing | null {
   const trusted = listings.filter((l) => stores.some((s) => s.id === l.storeId && !s.trust.lowTrust));
   return cheapestListing(trusted, stores, size);
-}
-
-/** The offer with the highest ratePct; on a tie the first wins. Null when there are none. */
-export function bestCashback(_offers: CashbackOffer[]): CashbackOffer | null {
-  return null;
 }

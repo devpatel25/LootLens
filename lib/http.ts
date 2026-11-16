@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { auth } from "@/lib/auth";
+import { Prisma } from "@/lib/generated/prisma/client";
 
 export function ok<T>(data: T, status = 200): Response {
   return Response.json({ data }, { status });
@@ -21,6 +22,7 @@ export function parse<T>(schema: z.ZodType<T>, input: unknown): T | Response {
   return fail(400, "bad_request", path.length ? `${path.join(".")}: ${message}` : message);
 }
 
-export function isStaleUser(_e: unknown): boolean {
-  return false;
+/** A foreign key violation: the session names a user that no longer exists. */
+export function isStaleUser(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003";
 }

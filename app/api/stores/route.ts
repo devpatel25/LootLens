@@ -1,3 +1,9 @@
-import { fail } from "@/lib/http";
+import { toStore } from "@/lib/dto";
+import { ok, requireUserId } from "@/lib/http";
+import { prisma } from "@/lib/prisma";
 
-export const GET = async (_req: Request, _ctx?: unknown) => fail(501, "not_implemented", "Not implemented");
+export async function GET(_req: Request) {
+  const userId = await requireUserId();
+  if (userId instanceof Response) return userId;
+  return ok((await prisma.store.findMany({ orderBy: { name: "asc" } })).map(toStore));
+}
