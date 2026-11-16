@@ -59,6 +59,7 @@ const FIXTURES: Record<string, Schema> = {
   "codes-all.json": list("Code"),
   "codes.json": list("Code"),
   "comparison.json": ref("ItemComparison"),
+  "comparison-lowtrust.json": ref("ItemComparison"),
   "settings.json": ref("Settings"),
   "wishlist.json": list("WishlistItem"),
 };
@@ -87,12 +88,14 @@ function collect(schema: Schema, out = { props: {} as Record<string, Schema[]>, 
   return out;
 }
 
-/** Problems found when value does not fit schema. Walks arrays and nested objects. oneOf matches any branch. */
+/** Problems found when value does not fit schema. Walks arrays and nested objects. oneOf needs exactly one matching branch. */
 function check(schema: Schema, value: unknown, at = "$"): string[] {
   const s = resolve(schema);
   if (s.oneOf) {
     const tries = s.oneOf.map((b) => check(b, value, at));
-    return tries.some((t) => t.length === 0) ? [] : tries[0];
+    const matches = tries.filter((t) => t.length === 0).length;
+    if (matches === 1) return [];
+    return matches > 1 ? [`${at} matches ${matches} oneOf branches, want exactly 1`] : tries[0];
   }
   const types = ([] as string[]).concat(s.type ?? []);
   if (value === null) return types.includes("null") ? [] : [`${at} is null`];
@@ -106,6 +109,7 @@ function check(schema: Schema, value: unknown, at = "$"): string[] {
     if (s.enum && !s.enum.includes(value)) return [`${at} is ${JSON.stringify(value)}, not in enum`];
     return [];
   }
+  if (types.length && !types.includes("object")) return [`${at} is an object, schema wants ${types.join("|")}`];
   const { props, required } = collect(s);
   if (Object.keys(props).length === 0 && required.size === 0) return []; // free-form map, such as stockBySize
   const data = value as Record<string, unknown>;
@@ -164,5 +168,37 @@ describe("fixtures match the spec", () => {
     const data = structuredClone(read("comparison.json"));
     data.listings[0].extra = 1;
     expect(check({ $ref: "#/components/schemas/ItemComparison" }, data)).toContain("$.listings[0].extra not in schema");
+  });
+
+  it("oneOf needs exactly one matching branch", () => {
+    const both: Schema = { oneOf: [{ type: "string" }, { type: "string" }] };
+    expect(check(both, "x")).toEqual(["$ matches 2 oneOf branches, want exactly 1"]);
+    expect(check({ oneOf: [{ type: "string" }, { type: "integer" }] }, 3)).toEqual([]);
+    expect(check({ oneOf: [{ type: "string" }, { type: "integer" }] }, true)).not.toEqual([]);
+  });
+
+  it("Alert is a oneOf per kind and catches a wrong detail, a missing size and an unknown kind", () => {
+    const alert = structuredClone(read("alerts.json").groups[0].alerts[0]);
+    expect(check(ref("Alert"), alert)).toEqual([]);
+    expect(check(ref("Alert"), { ...alert, detail: { qty: 1 } })).not.toEqual([]);
+    expect(check(ref("Alert"), { ...alert, kind: "low_size" })).not.toEqual([]);
+    const noSize: Record<string, unknown> = { ...alert };
+    delete noSize.size;
+    expect(check(ref("Alert"), noSize)).not.toEqual([]);
+    expect(check(ref("Alert"), { ...alert, kind: "other" })).not.toEqual([]);
+  });
+
+  it("CreatedWatch requires alreadyMet and POST /api/watches returns it", () => {
+    const watch = { id: "w", itemId: "i", size: "9", targetPrice: null, lowStockAt: 3, baselinePrice: 60, active: true, createdAt: "2026-10-01T00:00:00.000Z" };
+    expect(check(ref("CreatedWatch"), { ...watch, alreadyMet: false })).toEqual([]);
+    expect(check(ref("CreatedWatch"), watch)).toContain("$.alreadyMet missing");
+    const post = (spec.paths as unknown as Record<string, Record<string, { responses: Record<string, unknown> }>>)["/api/watches"].post;
+    const created = post.responses["201"];
+    expect(JSON.stringify(created)).toContain("CreatedWatch");
+  });
+
+  it("the refresh 429 documents a Retry-After header", () => {
+    const r = (spec.components as unknown as { responses: Record<string, { headers?: Record<string, unknown> }> }).responses["429"];
+    expect(r.headers?.["Retry-After"]).toBeDefined();
   });
 });
