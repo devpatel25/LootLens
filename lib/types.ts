@@ -64,7 +64,7 @@ export type Code = {
   value: number;
   minSpend: number | null;
   firstOrderOnly: boolean;
-  /** A code with expiresAt before now is excluded from the default Codes list and from best totals, even when status is live. */
+  /** A code with expiresAt at or before now is excluded from the default Codes list and from best totals, even when status is live. */
   expiresAt: string | null;
   status: "live" | "dead";
   /** Fresh means strictly less than freshnessHours ago; exactly freshnessHours ago is stale. */
@@ -80,7 +80,7 @@ export type Code = {
  * highest ratePct offer applied to price minus discount.
  * Amounts are unrounded. total = price - code.discount - cashback.amount.
  * Code choice: the applicable code with the largest discount, one code per listing,
- * no stacking. Discounts compare as unrounded amounts. On a tie the code that comes first
+ * no stacking. Discounts compare to the cent. On a tie the code that comes first
  * in the codes list the backend reads wins.
  */
 export type BestDeal = {
@@ -111,7 +111,7 @@ export type ItemComparison = {
   /**
    * Lowest total among listings in stock for item.selectedSize, or null. Total is
    * price minus best applicable code minus cashback on the post-code price. Totals
-   * compare as unrounded amounts. Tie: new condition first, then store name A to Z. It may pick
+   * compare to the cent. Tie: new condition first, then store name A to Z. It may pick
    * a low-trust listing: the UI warns instead of hiding it, and finds the trusted
    * alternative in bestDeals through cheapestTrustedListingId.
    */

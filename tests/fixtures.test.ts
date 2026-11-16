@@ -40,7 +40,7 @@ const alertData = alerts as unknown as AlertsResponse;
 const NOW = Date.parse("2026-10-29T16:00:00.000Z");
 const LIMIT = settings.freshnessHours * 3_600_000;
 const isStale = (k: Code) => NOW - Date.parse(k.lastCheckedAt) >= LIMIT;
-const isExpired = (k: Code) => k.expiresAt !== null && Date.parse(k.expiresAt) < NOW;
+const isExpired = (k: Code) => k.expiresAt !== null && Date.parse(k.expiresAt) <= NOW;
 
 const ITEM_KEYS = ["category", "createdAt", "id", "imageUrl", "name", "selectedSize", "sizes", "sourceUrl", "typicalPrice", "updatedAt"];
 const CODE_KEYS = ["cashback", "code", "expiresAt", "firstOrderOnly", "id", "label", "lastCheckedAt", "minSpend", "status", "storeId", "storeName", "type", "value"];
