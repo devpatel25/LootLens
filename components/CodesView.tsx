@@ -40,7 +40,9 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
   const [store, setStore] = useState("");
   const [marks, setMarks] = useState<Record<string, Mark>>({});
   const [pending, setPending] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useState("");
+  // seq gives each announcement a fresh node, so screen readers repeat a message that did not change.
+  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
+  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
   const [error, setError] = useState<string | null>(null);
   const [focusList, setFocusList] = useState(0);
   // The box shows where we are going while the server loads the other list.
@@ -156,7 +158,7 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
       </div>
 
       <p role="status" aria-live="polite" className="min-h-5 text-sm text-emerald-800 dark:text-emerald-300">
-        {message}
+        <span key={seq}>{message}</span>
       </p>
       {error && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
