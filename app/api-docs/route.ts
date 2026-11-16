@@ -25,6 +25,7 @@ const html = `<!doctype html>
 </html>
 `;
 
+// No form-action: not verified that the Authorize dialog never submits a real form.
 // Swagger UI sets inline style attributes at runtime, so style-src keeps 'unsafe-inline'.
 const csp = [
   "default-src 'none'",
@@ -37,5 +38,7 @@ const csp = [
 ].join("; ");
 
 export function GET() {
-  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "content-security-policy": csp } });
+  return new Response(html, {
+    headers: { "content-type": "text/html; charset=utf-8", "content-security-policy": csp, "x-content-type-options": "nosniff" },
+  });
 }
