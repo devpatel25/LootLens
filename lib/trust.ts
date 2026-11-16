@@ -21,7 +21,5 @@ export function trustReasonsSentence(reasons: TrustReason[]): string {
   return `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}`;
 }
 
-/** Store name for prose, marked fictional when the name does not already say so. */
-export function storeLabel(store: { name: string; fictional: boolean }): string {
-  return store.fictional && !/fictional/i.test(store.name) ? `${store.name} (fictional)` : store.name;
-}
+/** Kept here too for trust wording callers; the rule lives in lib/storeLabel.ts. */
+export { storeLabel } from "@/lib/storeLabel";

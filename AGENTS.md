@@ -55,7 +55,7 @@ lib/
   codes.ts              loadCodes({ showDead, freshnessHours (number or promise) }): uses codeState, so API and browser agree
   codeStatus.ts         codeState (live, dead, stale, expired) for client components; CODES_ARE_DEMO
   useNow.ts             useServerClock: ticks on server time, re-anchors on refresh; a gap over 5 min is checked with one refresh
-  trust.ts              plain wording for trustFlags reasons; storeLabel marks fictional stores in prose
+  trust.ts              plain wording for trustFlags reasons (storeLabel is in storeLabel.ts)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
   settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)
