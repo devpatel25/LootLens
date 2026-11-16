@@ -185,6 +185,17 @@ describe("bestTotal", () => {
     ]);
     expect(r.code?.id).toBe("b");
   });
+  it("treats discounts equal to the cent as a tie, first wins", () => {
+    // 90% of 0.70 is 0.6299999999999999 in floats, the flat code is 0.63.
+    const r = bestTotal(
+      listing("l", "s1", 0.7),
+      store("s1"),
+      [code({ id: "pct", value: 90 }), code({ id: "flat", type: "flat", value: 0.63 })],
+      settings,
+      NOW,
+    );
+    expect(r.code?.id).toBe("pct");
+  });
   it("uses the highest cashback offer, first on tie", () => {
     const st = store("s1", {
       cashback: [
@@ -215,6 +226,29 @@ describe("bestDeal", () => {
     expect(bestDeal(l, stores, [], "9", settings, NOW)?.listingId).toBe("n");
     const l2 = [listing("b", "s1", 100), listing("a", "s2", 100)];
     expect(bestDeal(l2, stores, [], "9", settings, NOW)?.listingId).toBe("a");
+  });
+  it("ties totals that are equal to the cent: new wins with a flat code", () => {
+    const st = [store("s1", { name: "Alpha" }), store("s2", { name: "Beta" })];
+    // 10.05 - 5 is 5.050000000000001 in floats.
+    const l = [listing("u", "s2", 5.05, { condition: "used" }), listing("n", "s1", 10.05)];
+    const codes = [code({ type: "flat", value: 5 })];
+    expect(bestDeal(l, st, codes, "9", settings, NOW)?.listingId).toBe("n");
+  });
+  it("ties totals that are equal to the cent: new wins with a pct code", () => {
+    const st = [store("s1", { name: "Alpha" }), store("s2", { name: "Beta" })];
+    // 10.30 - 10% is 9.270000000000001 in floats.
+    const l = [listing("u", "s2", 9.27, { condition: "used" }), listing("n", "s1", 10.3)];
+    expect(bestDeal(l, st, [code({ value: 10 })], "9", settings, NOW)?.listingId).toBe("n");
+  });
+  it("ties totals that are equal to the cent: new wins with cashback", () => {
+    const st = [store("s1", { name: "Alpha", cashback: [{ provider: "A", ratePct: 10 }] }), store("s2", { name: "Beta" })];
+    const l = [listing("u", "s2", 9.27, { condition: "used" }), listing("n", "s1", 10.3)];
+    expect(bestDeal(l, st, [], "9", settings, NOW)?.listingId).toBe("n");
+  });
+  it("breaks name ties in a fixed locale, case-insensitively", () => {
+    const st = [store("s1", { name: "Zappos" }), store("s2", { name: "eBay" })];
+    const l = [listing("z", "s1", 100), listing("e", "s2", 100)];
+    expect(bestDeal(l, st, [], "9", settings, NOW)?.listingId).toBe("e");
   });
 });
 
