@@ -64,7 +64,7 @@ npm run test:e2e               # Playwright, builds and serves on port 3100
 | Local dev | Neon `dev` branch or local Docker PostgreSQL | `prisma migrate dev` | `.env.local`, `DEMO_MODE=true` |
 | CI | PostgreSQL service container | `prisma migrate deploy` before tests | GitHub Actions env, throwaway values, `DEMO_MODE=true` |
 | PR preview | Neon branch per preview | `prisma migrate deploy` in the Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
-| Production | Neon `main` | `prisma migrate deploy` in the Vercel build | Vercel Production scope, no demo |
+| Production | Neon `production` (default branch) | `prisma migrate deploy` in the Vercel build | Vercel Production scope, no demo |
 
 Seed, reset, simulate, and test truncation call `assertNonProdDb()` first. It passes only when `DB_TARGET` is `local`, `ci`, or `preview`, and the `DATABASE_URL` host differs from `PROD_DB_HOST`. Production sets `DB_TARGET=production`.
 
