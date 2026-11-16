@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
-const PUBLIC = ["/signin", "/api/auth", "/api/health", "/api/cron"];
+const PUBLIC = ["/signin", "/api/auth", "/api/health", "/api/cron", "/api-docs", "/openapi.json"];
 
 export function routeDecision(pathname: string, signedIn: boolean): "next" | "redirect" | "unauthorized" {
   if (signedIn || PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "next";
