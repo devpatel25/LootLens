@@ -4,6 +4,7 @@ import EmptyState from "@/components/EmptyState";
 export default function NotFound() {
   return (
     <EmptyState
+      headingLevel={1}
       title="Item not found"
       message="It may have been deleted, or it is not on your wishlist."
       action={

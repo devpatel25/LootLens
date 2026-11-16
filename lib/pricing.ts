@@ -132,8 +132,7 @@ export function cheapestTrustedListing(
   return cheapestListing(trusted, stores, size);
 }
 
-/** Display order for the comparison table: price, then the Story 3 tie rule. Stub. */
+/** Display order for the comparison table: price, then the Story 3 tie rule (new first, then store A to Z). */
 export function sortForComparison(listings: Listing[], stores: Store[]): Listing[] {
-  void stores;
-  return [...listings];
+  return [...listings].sort((a, b) => a.price - b.price || tieBreak(a, b, stores));
 }

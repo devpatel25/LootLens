@@ -1,6 +1,6 @@
 import EmptyState from "@/components/EmptyState";
 import { formatUsd } from "@/lib/format";
-import { sortByPrice, stockInSize } from "@/lib/pricing";
+import { sortForComparison, stockInSize } from "@/lib/pricing";
 import type { ItemComparison, ListingCondition } from "@/lib/types";
 
 const CONDITION: Record<ListingCondition, { label: string; className: string }> = {
@@ -53,7 +53,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {sortByPrice(listings).map((listing) => {
+            {sortForComparison(listings, stores).map((listing) => {
               const store = stores.find((s) => s.id === listing.storeId);
               const name = store?.name ?? "Unknown store";
               const stock = stockInSize(listing, size);
@@ -64,6 +64,11 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                   <th scope="row" className="px-4 py-3 font-medium">
                     <span className="flex flex-wrap items-center gap-2">
                       {name}
+                      {store?.fictional && !/fictional/i.test(name) && (
+                        <span className={`${tag} border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100`}>
+                          Fictional
+                        </span>
+                      )}
                       {cheapest && (
                         <span className={`${tag} border-emerald-700 bg-emerald-700 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950`}>
                           Cheapest
