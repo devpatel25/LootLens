@@ -96,3 +96,13 @@ export async function refreshItems(
   }
   return { items: items.length, alertsCreated };
 }
+
+/** Stub: reads the listings outside the transaction. */
+export async function applyRefresh(
+  itemId: string,
+  source: (listings: Listing[]) => ListingUpdate[],
+): Promise<{ alertsCreated: number }> {
+  const rows = await prisma.listing.findMany({ where: { itemId }, include: { store: true }, orderBy: { id: "asc" } });
+  const snapshot = toListingsAndStores(rows);
+  return applyListingUpdates(itemId, source(snapshot.listings), snapshot);
+}

@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/cron/refresh/route";
+import * as refresh from "@/lib/refresh";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { resetDb } from "../helpers/db";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/refresh", async (orig) => {
+  const actual = await orig<typeof import("@/lib/refresh")>();
+  return { ...actual, applyRefresh: vi.fn(actual.applyRefresh) };
+});
 
 let a: string;
 const call = (authorization?: string) =>
@@ -40,9 +45,28 @@ describe("GET /api/cron/refresh", () => {
     await prisma.watch.create({ data: { userId: a, itemId: kb.id, size: "One size", targetPrice: 79, lowStockAt: 0, baselinePrice: 79.99 } });
     const res = await call("Bearer s3cret-value");
     expect(res.status).toBe(200);
-    expect((await res.json()).data).toEqual({ items: 3, alertsCreated: 1, codesExpired: 1 });
+    expect((await res.json()).data).toEqual({ items: 3, alertsCreated: 1, codesExpired: 1, failed: 0 });
     expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-target-expired" } })).status).toBe("DEAD");
     expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-adidas-20" } })).status).toBe("LIVE");
+  });
+
+  it("one failing item does not stop the rest", async () => {
+    vi.stubEnv("DEMO_MODE", "true");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(refresh.applyRefresh).mockRejectedValueOnce(new Error("boom"));
+    const res = await call("Bearer s3cret-value");
+    expect(res.status).toBe(200);
+    expect((await res.json()).data).toMatchObject({ items: 2, failed: 1, codesExpired: 1 });
+    expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-target-expired" } })).status).toBe("DEAD");
+  });
+
+  it("leaves prices alone when DEMO_MODE is true on a production database target", async () => {
+    vi.stubEnv("DEMO_MODE", "true");
+    vi.stubEnv("DB_TARGET", "production");
+    const before = await prisma.listing.findMany({ orderBy: { id: "asc" } });
+    expect((await call("Bearer s3cret-value")).status).toBe(200);
+    const after = await prisma.listing.findMany({ orderBy: { id: "asc" } });
+    expect(after.map((l) => l.price.toString())).toEqual(before.map((l) => l.price.toString()));
   });
 
   it("leaves prices alone outside demo mode", async () => {
