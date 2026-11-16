@@ -21,7 +21,7 @@ const routes = routeFiles
   }))
   .filter((r) => !EXCLUDED.has(r.path));
 
-const paths = spec.paths as Record<string, Record<string, { responses: Record<string, unknown> }>>;
+const paths = spec.paths as unknown as Record<string, Record<string, { responses: Record<string, unknown> }>>;
 const documented = (path: string) => Object.keys(paths[path] ?? {}).map((m) => m.toUpperCase()).filter((m) => METHODS.includes(m));
 
 describe("openapi.json", () => {
