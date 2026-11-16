@@ -52,7 +52,10 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
                 name={`${uid}-hours`}
                 value={h}
                 checked={hours === h}
-                onChange={() => setHours(h)}
+                onChange={() => {
+                  setHours(h);
+                  setMessage("");
+                }}
                 className="accent-emerald-700"
               />
               {h} hours
@@ -66,7 +69,10 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
           <input
             type="checkbox"
             checked={firstOrder}
-            onChange={(e) => setFirstOrder(e.target.checked)}
+            onChange={(e) => {
+              setFirstOrder(e.target.checked);
+              setMessage("");
+            }}
             aria-describedby={`${uid}-first-hint`}
             className="size-4 accent-emerald-700"
           />
