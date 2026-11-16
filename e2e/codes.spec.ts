@@ -48,10 +48,10 @@ test("mark dead hides a code at once; show dead codes and mark alive bring it ba
 
   await page.getByRole("checkbox", { name: "Show dead codes" }).check();
   await expect(page).toHaveURL(/\/codes\?showDead=true$/);
-  await expect(card(page, "BR10").getByText("Dead")).toBeVisible();
-  await expect(card(page, "DEADDEAL").getByText("Dead")).toBeVisible();
+  await expect(card(page, "BR10").getByText("Dead", { exact: true })).toBeVisible();
+  await expect(card(page, "DEADDEAL").getByText("Dead", { exact: true })).toBeVisible();
   await expect(card(page, "SAVE10").getByText("Not checked recently")).toBeVisible();
-  await expect(card(page, "TGT20").getByText("Expired")).toBeVisible();
+  await expect(card(page, "TGT20").getByText("Expired", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Mark BR10 alive" }).click();
   await expect(page.getByRole("status")).toContainText("Marked BR10 alive.");
