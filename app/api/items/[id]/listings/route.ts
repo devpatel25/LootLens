@@ -1,5 +1,5 @@
 import { loadComparison } from "@/lib/comparison";
-import { fail, ok, parse, requireUserId, route } from "@/lib/http";
+import { itemNotFound, ok, parse, requireUserId, route } from "@/lib/http";
 import { idParams } from "@/lib/itemSchema";
 
 export const GET = route(async (_req: Request, ctx: RouteContext<"/api/items/[id]/listings">) => {
@@ -9,5 +9,5 @@ export const GET = route(async (_req: Request, ctx: RouteContext<"/api/items/[id
   if (params instanceof Response) return params;
 
   const data = await loadComparison(params.id, userId);
-  return data ? ok(data) : fail(404, "not_found", "Item not found");
+  return data ? ok(data) : itemNotFound();
 });

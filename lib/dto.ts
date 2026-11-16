@@ -1,4 +1,4 @@
-import type { Code as DbCode, Item as DbItem, Listing as DbListing, Store as DbStore, UserSettings } from "@/lib/generated/prisma/client";
+import type { Prisma, Code as DbCode, Item as DbItem, Listing as DbListing, Store as DbStore, UserSettings } from "@/lib/generated/prisma/client";
 import { bestCashback, trustFlags } from "@/lib/pricing";
 import type { CashbackOffer, Code, FreshnessHours, Item, Listing, Settings, Store } from "@/lib/types";
 
@@ -78,3 +78,8 @@ export function toListingsAndStores(rows: (DbListing & { store: DbStore })[]): {
     .sort((a, b) => a.name.localeCompare(b.name));
   return { listings: rows.map(toListing), stores };
 }
+
+/** Include for an item's listings in price order, with their stores. Pair with toListingsAndStores. */
+export const listingsInclude = {
+  listings: { orderBy: [{ price: "asc" }, { id: "asc" }], include: { store: true } },
+} satisfies Prisma.ItemInclude;

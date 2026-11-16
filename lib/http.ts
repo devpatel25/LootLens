@@ -15,6 +15,10 @@ export function unauthorized(): Response {
   return fail(401, "unauthorized", "Sign in required");
 }
 
+export function itemNotFound(): Response {
+  return fail(404, "not_found", "Item not found");
+}
+
 export async function requireUserId(): Promise<string | Response> {
   const session = await auth();
   return session?.user?.id ?? unauthorized();
@@ -52,6 +56,7 @@ export function route<A extends unknown[]>(handler: (...args: A) => Promise<Resp
       return await handler(...args);
     } catch (e) {
       unstable_rethrow(e); // Next control-flow errors (prerender bailouts) must pass through
+      if (isStaleUser(e)) return unauthorized();
       console.error(e);
       return fail(500, "internal", "Something went wrong");
     }

@@ -1,6 +1,6 @@
-import { toItem, toListingsAndStores } from "@/lib/dto";
+import { listingsInclude, toItem, toListingsAndStores } from "@/lib/dto";
 import { generateDemoListings } from "@/lib/demoListings";
-import { isStaleUser, ok, parse, requireUserId, route, unauthorized } from "@/lib/http";
+import { ok, parse, requireUserId, route } from "@/lib/http";
 import { itemSchema } from "@/lib/itemSchema";
 import { cheapestListing, storeName } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +13,7 @@ export const GET = route(async () => {
   const rows = await prisma.item.findMany({
     where: { userId },
     orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-    include: { listings: { orderBy: [{ price: "asc" }, { id: "asc" }], include: { store: true } } },
+    include: listingsInclude,
   });
   const data: WishlistItem[] = rows.map((row) => {
     const { listings, stores } = toListingsAndStores(row.listings);
@@ -35,13 +35,8 @@ export const POST = route(async (req: Request) => {
   if (body instanceof Response) return body;
 
   const stores = await prisma.store.findMany({ select: { id: true }, orderBy: { id: "asc" } });
-  try {
-    const row = await prisma.item.create({
-      data: { ...body, userId, listings: { create: generateDemoListings(body, stores.map((s) => s.id)) } },
-    });
-    return ok(toItem(row), 201);
-  } catch (e) {
-    if (isStaleUser(e)) return unauthorized();
-    throw e;
-  }
+  const row = await prisma.item.create({
+    data: { ...body, userId, listings: { create: generateDemoListings(body, stores.map((s) => s.id)) } },
+  });
+  return ok(toItem(row), 201);
 });

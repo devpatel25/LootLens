@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { toSettings } from "@/lib/dto";
-import { isStaleUser, ok, parse, requireUserId, route, unauthorized } from "@/lib/http";
+import { ok, parse, requireUserId, route } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 
@@ -19,10 +19,5 @@ export const PATCH = route(async (req: Request) => {
   if (userId instanceof Response) return userId;
   const data = parse(patchBody, await req.json().catch(() => undefined));
   if (data instanceof Response) return data;
-  try {
-    return ok(toSettings(await prisma.userSettings.upsert({ where: { userId }, update: data, create: { userId, ...data } })));
-  } catch (e) {
-    if (isStaleUser(e)) return unauthorized();
-    throw e;
-  }
+  return ok(toSettings(await prisma.userSettings.upsert({ where: { userId }, update: data, create: { userId, ...data } })));
 });
