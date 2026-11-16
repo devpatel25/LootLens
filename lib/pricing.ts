@@ -16,10 +16,13 @@ export function sortByPrice(listings: Listing[]): Listing[] {
 
 export const storeName = (stores: Store[], l: Listing) => stores.find((s) => s.id === l.storeId)?.name ?? "";
 
+/** Whole cents, so amounts equal to the cent compare equal despite float error. */
+const cents = (x: number) => Math.round(x * 100);
+
 /** Tie rule: new condition first, then store name A to Z. Negative when a wins. */
 function tieBreak(a: Listing, b: Listing, stores: Store[]): number {
   if ((a.condition === "new") !== (b.condition === "new")) return a.condition === "new" ? -1 : 1;
-  return storeName(stores, a).localeCompare(storeName(stores, b));
+  return storeName(stores, a).localeCompare(storeName(stores, b), "en");
 }
 
 /** The lowest-priced listing in stock for the size, or null. Used and resale count. */
@@ -83,7 +86,7 @@ export function bestTotal(
       continue;
     }
     const discount = Math.min(price, c.type === "pct" ? (price * c.value) / 100 : c.value);
-    if (code === null || discount > code.discount) code = { id: c.id, code: c.code, discount };
+    if (code === null || cents(discount) > cents(code.discount)) code = { id: c.id, code: c.code, discount };
   }
   const afterCode = price - (code?.discount ?? 0);
 
@@ -109,8 +112,8 @@ export function bestDeal(
     const deal = bestTotal(listing, store, codes, settings, now);
     if (
       best === null ||
-      deal.total < best.deal.total ||
-      (deal.total === best.deal.total && tieBreak(listing, best.listing, stores) < 0)
+      cents(deal.total) < cents(best.deal.total) ||
+      (cents(deal.total) === cents(best.deal.total) && tieBreak(listing, best.listing, stores) < 0)
     ) {
       best = { deal, listing };
     }
