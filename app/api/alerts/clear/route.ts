@@ -1,3 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- typed stub */
-const nope = (..._args: unknown[]) => Response.json({ error: { code: "not_implemented", message: "stub" } }, { status: 501 });
-export const POST = nope;
+import { ok, requireUserId } from "@/lib/http";
+import { prisma } from "@/lib/prisma";
+
+export async function POST() {
+  const userId = await requireUserId();
+  if (userId instanceof Response) return userId;
+  const { count } = await prisma.alert.deleteMany({ where: { userId, read: true } });
+  return ok({ deleted: count });
+}

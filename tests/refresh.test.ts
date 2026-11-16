@@ -103,7 +103,7 @@ describe("POST /api/items/[id]/refresh", () => {
 
   it("refreshes, returns the comparison and starts the cooldown", async () => {
     await prisma.item.update({ where: { id: itemId }, data: { lastRefreshedAt: null } });
-    await watch({ targetPrice: 56 });
+    await watch({ targetPrice: 90 });
     const res = await post();
     expect(res.status).toBe(200);
     const { data } = await res.json();

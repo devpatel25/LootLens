@@ -1,6 +1,6 @@
-import type { Code as DbCode, Item as DbItem, Listing as DbListing, Store as DbStore, UserSettings } from "@/lib/generated/prisma/client";
+import type { Alert as DbAlert, Code as DbCode, Item as DbItem, Listing as DbListing, Store as DbStore, UserSettings, Watch as DbWatch } from "@/lib/generated/prisma/client";
 import { bestCashback, trustFlags } from "@/lib/pricing";
-import type { CashbackOffer, Code, FreshnessHours, Item, Listing, Settings, Store } from "@/lib/types";
+import type { Alert, AlertKind, CashbackOffer, Code, FreshnessHours, Item, Listing, Settings, Store, Watch } from "@/lib/types";
 
 const iso = (d: Date) => d.toISOString();
 
@@ -77,4 +77,31 @@ export function toListingsAndStores(rows: (DbListing & { store: DbStore })[]): {
     .map(toStore)
     .sort((a, b) => a.name.localeCompare(b.name));
   return { listings: rows.map(toListing), stores };
+}
+
+export function toWatch(w: DbWatch): Watch {
+  return {
+    id: w.id,
+    itemId: w.itemId,
+    size: w.size,
+    targetPrice: w.targetPrice?.toNumber() ?? null,
+    lowStockAt: w.lowStockAt,
+    baselinePrice: w.baselinePrice.toNumber(),
+    active: w.active,
+    createdAt: iso(w.createdAt),
+  };
+}
+
+/** The row must be loaded with include: { item: true }. */
+export function toAlert(a: DbAlert & { item: DbItem }): Alert {
+  return {
+    id: a.id,
+    watchId: a.watchId,
+    itemId: a.itemId,
+    itemName: a.item.name,
+    kind: a.kind.toLowerCase() as AlertKind,
+    detail: a.detail as Alert["detail"],
+    read: a.read,
+    createdAt: iso(a.createdAt),
+  };
 }

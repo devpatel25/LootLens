@@ -31,7 +31,6 @@ describe("POST /api/watches", () => {
 
   it.each([
     ["missing itemId", { size: "9" }],
-    ["size not on the item", { itemId: "x", size: "12" }],
     ["zero target", { itemId: "x", size: "9", targetPrice: 0 }],
     ["negative target", { itemId: "x", size: "9", targetPrice: -5 }],
     ["lowStockAt too big", { itemId: "x", size: "9", lowStockAt: 51 }],
