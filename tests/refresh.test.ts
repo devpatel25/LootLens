@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as REFRESH } from "@/app/api/items/[id]/refresh/route";
+import * as refresh from "@/lib/refresh";
 import { applyListingUpdates, REFRESH_COOLDOWN_MS } from "@/lib/refresh";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
@@ -8,6 +9,10 @@ import { signInAs } from "./helpers/auth";
 import { resetDb } from "./helpers/db";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+vi.mock("@/lib/refresh", async (orig) => {
+  const actual = await orig<typeof import("@/lib/refresh")>();
+  return { ...actual, applyListingUpdates: vi.fn(actual.applyListingUpdates) };
+});
 
 let a: string;
 let b: string;
@@ -87,7 +92,39 @@ describe("applyListingUpdates", () => {
   });
 });
 
+describe("applyListingUpdates stock alerts", () => {
+  // All size-9 stock sits on one listing so the total is easy to steer.
+  const setStock = (n: number) => [{ listingId: fbm, price: 60, stockBySize: { "8": 0, "9": n, "10": 0 } }];
+  beforeEach(async () => {
+    await prisma.listing.updateMany({ where: { itemId, id: { not: fbm } }, data: { stockBySize: { "8": 0, "9": 0, "10": 0 } } });
+  });
+
+  it("5 -> 2 -> 0 gives low_size, then out_of_stock, then nothing on a repeat", async () => {
+    await watch({ targetPrice: 1, lowStockAt: 3 });
+    expect((await applyListingUpdates(itemId, setStock(5))).alertsCreated).toBe(0);
+    expect((await applyListingUpdates(itemId, setStock(2))).alertsCreated).toBe(1);
+    expect((await applyListingUpdates(itemId, setStock(0))).alertsCreated).toBe(1);
+    expect((await applyListingUpdates(itemId, setStock(0))).alertsCreated).toBe(0);
+    const kinds = (await prisma.alert.findMany({ where: { userId: a }, orderBy: { createdAt: "asc" } })).map((x) => x.kind);
+    expect(kinds).toEqual(["LOW_SIZE", "OUT_OF_STOCK"]);
+  });
+
+  it("a watch created with the condition already true gives no alert on an unchanged refresh", async () => {
+    signInAs(a);
+    const { POST } = await import("@/app/api/watches/route");
+    const res = await POST(req("/api/watches", "POST", { itemId, size: "9", targetPrice: 70, lowStockAt: 10 }));
+    expect(res.status).toBe(201);
+    const w = await prisma.watch.findFirstOrThrow({ where: { userId: a } });
+    expect(w).toMatchObject({ priceCondMet: true, stockCondMet: true });
+    expect((await applyListingUpdates(itemId, setStock(1))).alertsCreated).toBe(0);
+    expect(await alertCount()).toBe(0);
+  });
+});
+
 describe("POST /api/items/[id]/refresh", () => {
+  beforeEach(() => {
+    vi.stubEnv("DEMO_MODE", "true");
+  });
   const post = (id = itemId) => REFRESH(req(`/api/items/${id}/refresh`, "POST"), ctx(id));
 
   it("401 without a session", async () => {
@@ -103,7 +140,7 @@ describe("POST /api/items/[id]/refresh", () => {
 
   it("refreshes, returns the comparison and starts the cooldown", async () => {
     await prisma.item.update({ where: { id: itemId }, data: { lastRefreshedAt: null } });
-    await watch({ targetPrice: 90 });
+    await watch({ targetPrice: 59, lowStockAt: 6 }); // stock 10 -> 6 is a real crossing; price never reaches 59
     const res = await post();
     expect(res.status).toBe(200);
     const { data } = await res.json();
@@ -115,6 +152,29 @@ describe("POST /api/items/[id]/refresh", () => {
     const again = await post();
     expect(again.status).toBe(429);
     expect((await again.json()).error.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("outside demo mode nothing changes and no alert is created", async () => {
+    vi.stubEnv("DEMO_MODE", undefined);
+    await prisma.item.update({ where: { id: itemId }, data: { lastRefreshedAt: null } });
+    await watch({ targetPrice: 59, lowStockAt: 6 });
+    const before = await prisma.listing.findMany({ where: { itemId }, orderBy: { id: "asc" } });
+    const res = await post();
+    expect(res.status).toBe(200);
+    expect((await res.json()).data.alertsCreated).toBe(0);
+    const after = await prisma.listing.findMany({ where: { itemId }, orderBy: { id: "asc" } });
+    expect(after.map((l) => [l.price.toString(), l.stockBySize])).toEqual(before.map((l) => [l.price.toString(), l.stockBySize]));
+    expect(await alertCount()).toBe(0);
+  });
+
+  it("a failed apply gives the cooldown slot back and answers 500", async () => {
+    const prev = new Date(Date.now() - 2 * REFRESH_COOLDOWN_MS);
+    await prisma.item.update({ where: { id: itemId }, data: { lastRefreshedAt: prev } });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(refresh.applyListingUpdates).mockRejectedValueOnce(new Error("boom"));
+    expect((await post()).status).toBe(500);
+    expect((await prisma.item.findUniqueOrThrow({ where: { id: itemId } })).lastRefreshedAt).toEqual(prev);
+    expect((await post()).status).toBe(200);
   });
 
   it("two concurrent refreshes: one 200, one 429", async () => {

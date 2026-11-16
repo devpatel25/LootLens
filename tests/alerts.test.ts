@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { alertKindForStock, evaluateWatch } from "@/lib/alerts";
 import { demoSource } from "@/lib/demoSource";
+import { currentSource } from "@/lib/refresh";
 import type { Listing } from "@/lib/types";
 
 const listing: Listing = {
@@ -11,6 +12,18 @@ const listing: Listing = {
 describe("demoSource", () => {
   it("cuts price by 10% to the cent and takes one unit from each size, floor 0", () => {
     expect(demoSource([listing])).toEqual([{ listingId: "l1", price: 83.25, stockBySize: { "8": 0, "9": 1, "10": 0 } }]);
+  });
+});
+
+describe("demoSource sources", () => {
+  it("leaves live listings alone", () => {
+    expect(demoSource([{ ...listing, source: "live" }])).toEqual([]);
+  });
+});
+
+describe("currentSource", () => {
+  it("reports each listing's price and stock unchanged", () => {
+    expect(currentSource([listing])).toEqual([{ listingId: "l1", price: 92.5, stockBySize: { "8": 1, "9": 2, "10": 0 } }]);
   });
 });
 

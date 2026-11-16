@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DELETE } from "@/app/api/watches/[id]/route";
 import { GET, POST } from "@/app/api/watches/route";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { MAX_WATCHES_PER_USER } from "@/lib/refresh";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
@@ -59,6 +60,24 @@ describe("POST /api/watches", () => {
       createdAt: expect.any(String),
     });
     expect(data).not.toHaveProperty("userId");
+  });
+
+  it("starts the cond flags from the current state", async () => {
+    // Cheapest is 60, so a target of 70 is already met; stock 10 is above lowStockAt 3.
+    await post({ itemId: samba, size: "9", targetPrice: 70 });
+    expect(await prisma.watch.findFirstOrThrow()).toMatchObject({ priceCondMet: true, stockCondMet: false });
+  });
+
+  it("404 when the item vanishes before the insert", async () => {
+    const err = new Prisma.PrismaClientKnownRequestError("fk", {
+      code: "P2003",
+      clientVersion: "x",
+      meta: { driverAdapterError: { cause: { kind: "ForeignKeyConstraintViolation", constraint: { index: "Watch_itemId_fkey" } } } },
+    });
+    vi.spyOn(prisma.watch, "create").mockRejectedValueOnce(err);
+    const res = await post({ itemId: samba, size: "9" });
+    expect(res.status).toBe(404);
+    expect((await res.json()).error.code).toBe("not_found");
   });
 
   it("targetPrice null means any drop", async () => {

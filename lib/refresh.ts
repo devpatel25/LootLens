@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars -- typed stub */
 import { alertKindForStock, currentForSize, evaluateWatch } from "@/lib/alerts";
 import { toListingsAndStores } from "@/lib/dto";
+import type { Listing } from "@/lib/types";
 import { prisma } from "@/lib/prisma";
 
 export const MAX_WATCHES_PER_USER = 10;
@@ -11,6 +13,11 @@ export type ListingUpdate = { listingId: string; price: number; stockBySize: Rec
  * Applies new prices and stock, then raises alerts for the item's active watches.
  * Dedupe: an alert is created only by the call that flips a watch's cond flag from false to true.
  */
+/** A source that reports each listing as it is. */
+export function currentSource(_listings: Listing[]): ListingUpdate[] {
+  return [];
+}
+
 export async function applyListingUpdates(itemId: string, updates: ListingUpdate[]): Promise<{ alertsCreated: number }> {
   const sorted = [...updates].sort((a, b) => a.listingId.localeCompare(b.listingId)); // stable lock order
   return prisma.$transaction(async (tx) => {
