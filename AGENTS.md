@@ -50,7 +50,7 @@ lib/
   apiClient.ts          apiFetch for client components, ApiClientError, friendlyMessage
   itemForm.ts           item form values <-> API body, validated with itemSchema
   useModalDialog.ts     <dialog> as a modal: Escape, data-autofocus, focus back to the opener
-  format.ts             formatUsd, checkedAgo, formatShortDate (display only)
+  format.ts             formatUsd, checkedAgo, endsIn (display only)
   codes.ts              loadCodes (GET /api/codes and the Codes page share it)
   codeStatus.ts         codeState (live, dead, stale, expired) for client components; CODES_ARE_DEMO
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser

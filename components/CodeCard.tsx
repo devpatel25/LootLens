@@ -1,13 +1,13 @@
 "use client";
 
 import type { CodeState } from "@/lib/codeStatus";
-import { checkedAgo, formatShortDate, formatUsd } from "@/lib/format";
+import { checkedAgo, endsIn, formatUsd } from "@/lib/format";
 import type { Code } from "@/lib/types";
 
 export type CodeCardProps = {
   code: Code;
   state: CodeState;
-  /** Server time as ISO, so "checked Xh ago" matches between server and browser render. */
+  /** Current time as ISO. Starts as server time so the first browser render matches, then ticks. */
   now: string;
   busy: boolean;
   onMark: (status: "live" | "dead") => void;
@@ -31,7 +31,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
   const terms = [
     code.minSpend !== null ? `Min spend ${formatUsd(code.minSpend)}` : null,
     code.firstOrderOnly ? "First order only" : null,
-    code.expiresAt ? `Ends ${formatShortDate(code.expiresAt)}` : null,
+    code.expiresAt && state !== "expired" ? endsIn(code.expiresAt, new Date(now)) : null,
   ].filter((t): t is string => t !== null);
   const tag = state === "live" ? null : TAGS[state];
 
@@ -72,7 +72,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-zinc-600 dark:text-zinc-400">{checkedAgo(code.lastCheckedAt, new Date(now))}</span>
         {state === "dead" ? (
-          <button type="button" disabled={busy} onClick={() => onMark("live")} aria-label={`Mark ${code.code} alive`} className={small}>
+          <button type="button" disabled={busy} onClick={() => onMark("live")} aria-label={`Mark alive ${code.code}`} className={small}>
             Mark alive
           </button>
         ) : state !== "expired" ? (
@@ -80,7 +80,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
             type="button"
             disabled={busy}
             onClick={() => onMark("dead")}
-            aria-label={`Mark ${code.code} dead`}
+            aria-label={`Mark dead ${code.code}`}
             className={`${small} text-red-800 dark:text-red-300`}
           >
             Mark dead

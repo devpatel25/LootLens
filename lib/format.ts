@@ -15,15 +15,10 @@ export function checkedAgo(iso: string, now: Date): string {
   return `checked ${Math.floor(hours / 24)}d ago`;
 }
 
-const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-
-/** "Nov 30". UTC, so the server render and every reader agree on the date. */
-export function formatShortDate(iso: string): string {
-  return shortDate.format(new Date(iso));
-}
-
-/** "Ends in 31d". Stub. */
+/** "Ends in 31d": relative, so no reader's timezone can shift the end to a different day. */
 export function endsIn(iso: string, now: Date): string {
-  void iso; void now;
-  return "";
+  const hours = Math.floor((Date.parse(iso) - now.getTime()) / 3_600_000);
+  if (hours < 1) return "Ends in under an hour";
+  if (hours < 48) return `Ends in ${hours}h`;
+  return `Ends in ${Math.floor(hours / 24)}d`;
 }
