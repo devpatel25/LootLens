@@ -30,6 +30,7 @@ lib/
   alerts.ts             pure alert evaluation
   demoSource.ts         pure demo price feed (ListingUpdate[] from listings)
   refresh.ts            applyListingUpdates (one transaction, deduped alerts), refresh constants
+  demoGate.ts           demoGate(): 404 outside DEMO_MODE, 500 demo_disabled on a non-dev database
   types.ts              shared API response types (the API contract)
   db-guard.ts           assertNonProdDb()
   prisma.ts  auth.ts

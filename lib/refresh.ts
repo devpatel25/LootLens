@@ -1,5 +1,7 @@
 import { alertKindForStock, currentForSize, evaluateWatch } from "@/lib/alerts";
+import { demoSource } from "@/lib/demoSource";
 import { toListingsAndStores } from "@/lib/dto";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import type { Listing, Store } from "@/lib/types";
 import { prisma } from "@/lib/prisma";
 
@@ -73,4 +75,24 @@ export async function applyListingUpdates(
     }
     return { alertsCreated };
   }, { timeout: 15000 });
+}
+
+/** Demo prices are invented, so they run only in demo mode. */
+export const refreshSource = (): ((listings: Listing[]) => ListingUpdate[]) =>
+  process.env.DEMO_MODE === "true" ? demoSource : currentSource;
+
+type ItemWithListings = Prisma.ItemGetPayload<{ include: { listings: { include: { store: true } } } }>;
+
+/** Applies the source to each item in turn and totals the alerts. */
+// ponytail: sequential, one transaction per item; batch or fan out beyond a few hundred items
+export async function refreshItems(
+  items: ItemWithListings[],
+  source: (listings: Listing[]) => ListingUpdate[],
+): Promise<{ items: number; alertsCreated: number }> {
+  let alertsCreated = 0;
+  for (const item of items) {
+    const snapshot = toListingsAndStores(item.listings);
+    alertsCreated += (await applyListingUpdates(item.id, source(snapshot.listings), snapshot)).alertsCreated;
+  }
+  return { items: items.length, alertsCreated };
 }
