@@ -1,0 +1,40 @@
+[
+  {
+    "id": "item-samba",
+    "name": "Adidas Samba OG",
+    "category": "shoes",
+    "sizes": [
+      "8",
+      "9",
+      "10"
+    ],
+    "selectedSize": "9",
+    "typicalPrice": 100,
+    "imageUrl": null,
+    "sourceUrl": null,
+    "createdAt": "2026-10-20T12:00:00.000Z",
+    "updatedAt": "2026-10-29T15:30:00.000Z",
+    "cheapest": {
+      "listingId": "lst-fbm",
+      "storeName": "Facebook Marketplace",
+      "price": 60
+    }
+  },
+  {
+    "id": "item-pegasus",
+    "name": "Nike Pegasus 41",
+    "category": "shoes",
+    "sizes": [
+      "9",
+      "10",
+      "11"
+    ],
+    "selectedSize": "10",
+    "typicalPrice": 130,
+    "imageUrl": null,
+    "sourceUrl": null,
+    "createdAt": "2026-10-20T12:00:00.000Z",
+    "updatedAt": "2026-10-29T15:30:00.000Z",
+    "cheapest": null
+  }
+]

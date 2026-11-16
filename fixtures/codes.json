@@ -1,0 +1,56 @@
+[
+  {
+    "id": "code-adidas-40",
+    "storeId": "store-adidas",
+    "storeName": "Adidas",
+    "code": "SAMBA40",
+    "label": "40% off Samba",
+    "type": "pct",
+    "value": 40,
+    "minSpend": 80,
+    "firstOrderOnly": false,
+    "expiresAt": "2026-11-30T00:00:00.000Z",
+    "status": "live",
+    "lastCheckedAt": "2026-10-29T13:00:00.000Z",
+    "cashback": {
+      "provider": "DemoCash",
+      "ratePct": 5
+    }
+  },
+  {
+    "id": "code-adidas-first50",
+    "storeId": "store-adidas",
+    "storeName": "Adidas",
+    "code": "WELCOME50",
+    "label": "50% off, first order only",
+    "type": "pct",
+    "value": 50,
+    "minSpend": null,
+    "firstOrderOnly": true,
+    "expiresAt": "2026-11-30T00:00:00.000Z",
+    "status": "live",
+    "lastCheckedAt": "2026-10-29T13:00:00.000Z",
+    "cashback": {
+      "provider": "DemoCash",
+      "ratePct": 5
+    }
+  },
+  {
+    "id": "code-adidas-min150",
+    "storeId": "store-adidas",
+    "storeName": "Adidas",
+    "code": "SAVE30",
+    "label": "$30 off orders over $150",
+    "type": "flat",
+    "value": 30,
+    "minSpend": 150,
+    "firstOrderOnly": false,
+    "expiresAt": "2026-11-30T00:00:00.000Z",
+    "status": "live",
+    "lastCheckedAt": "2026-10-29T13:00:00.000Z",
+    "cashback": {
+      "provider": "DemoCash",
+      "ratePct": 5
+    }
+  }
+]
