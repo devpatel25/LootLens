@@ -125,6 +125,42 @@ describe("applyRefresh stock alerts", () => {
   });
 });
 
+describe("applyRefresh with a watch deleted mid-refresh", () => {
+  it("skips the deleted watch's alert and keeps the item's updates and the other watches' alerts", async () => {
+    await prisma.listing.updateMany({ where: { itemId, id: { not: fbm } }, data: { stockBySize: { "8": 0, "9": 0, "10": 0 } } });
+    await prisma.listing.update({ where: { id: fbm }, data: { stockBySize: { "8": 0, "9": 5, "10": 0 } } });
+    const gone = await watch({ targetPrice: 1, lowStockAt: 3, stockCondMet: true });
+    await prisma.watch.create({
+      data: { userId: b, itemId, size: "9", targetPrice: 1, lowStockAt: 3, baselinePrice: 60, stockCondMet: true },
+    });
+    // Delete the watch right after the refresh has read its watches, before it raises alerts.
+    const real = prisma.$transaction.bind(prisma);
+    const spy = vi.spyOn(prisma, "$transaction").mockImplementation(((fn: (tx: any) => unknown, opts: unknown) =>
+      (real as any)((tx: any) => {
+        const watchApi = new Proxy(tx.watch, {
+          get: (t, k) =>
+            k === "findMany"
+              ? async (...args: unknown[]) => {
+                  const rows = await t.findMany(...args);
+                  await prisma.watch.delete({ where: { id: gone.id } });
+                  return rows;
+                }
+              : t[k].bind(t),
+        });
+        return fn(new Proxy(tx, { get: (t, k) => (k === "watch" ? watchApi : typeof t[k] === "function" ? t[k].bind(t) : t[k]) }));
+      }, opts)) as any);
+    try {
+      const r = await apply(itemId, [{ listingId: fbm, price: 59, stockBySize: { "8": 0, "9": 0, "10": 0 } }]);
+      expect(r.alertsCreated).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(Number((await prisma.listing.findUniqueOrThrow({ where: { id: fbm } })).price)).toBe(59);
+    expect(await prisma.alert.count({ where: { userId: b, kind: "OUT_OF_STOCK" } })).toBe(1);
+    expect(await prisma.alert.count({ where: { userId: a } })).toBe(0);
+  });
+});
+
 describe("applyRefresh sources", () => {
   it("leaves updatedAt alone for listings that did not change", async () => {
     const before = await prisma.listing.findMany({ orderBy: { id: "asc" } });
