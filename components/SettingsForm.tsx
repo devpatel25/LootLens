@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { apiFetch, friendlyMessage } from "@/lib/apiClient";
 import type { FreshnessHours, Settings } from "@/lib/types";
 
@@ -13,6 +13,7 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
   const [hours, setHours] = useState<FreshnessHours>(settings.freshnessHours);
   const [firstOrder, setFirstOrder] = useState(settings.firstOrderEligible);
   const [busy, setBusy] = useState(false);
+  const saveRef = useRef<HTMLButtonElement>(null);
   // seq gives each announcement a fresh node, so saving twice is announced twice.
   const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
   const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
@@ -31,6 +32,8 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
       setError(friendlyMessage(err));
     } finally {
       setBusy(false);
+      // Saving disables the controls, which drops focus (for example after Enter on a radio); put it on Save.
+      requestAnimationFrame(() => saveRef.current?.focus());
     }
   }
 
@@ -98,6 +101,7 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
       )}
       <div className="flex items-center gap-4">
         <button
+          ref={saveRef}
           type="submit"
           disabled={busy}
           className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:opacity-60"

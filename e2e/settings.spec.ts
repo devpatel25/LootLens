@@ -4,6 +4,11 @@ import { expect, test } from "@playwright/test";
 // freshness window here can never change what the demo shopper's specs see while they run in parallel.
 test.use({ storageState: "e2e/.auth/settings-user.json" });
 
+// Start from the defaults even on a CI retry after a partial save.
+test.beforeEach(async ({ request }) => {
+  await request.patch("/api/settings", { data: { freshnessHours: 24, firstOrderEligible: false } });
+});
+
 const card = (page: import("@playwright/test").Page, code: string) => page.getByRole("listitem", { name: `Code ${code}` });
 
 test("settings change the freshness window and persist", async ({ page }) => {
