@@ -411,7 +411,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Updated comparison and the number of alerts it created",
+            "description": "Updated comparison, the number of alerts it created, and how many listings changed",
             "content": {
               "application/json": {
                 "schema": {
@@ -424,7 +424,8 @@
                       "type": "object",
                       "required": [
                         "comparison",
-                        "alertsCreated"
+                        "alertsCreated",
+                        "listingsChanged"
                       ],
                       "properties": {
                         "comparison": {
@@ -433,6 +434,11 @@
                         "alertsCreated": {
                           "type": "integer",
                           "minimum": 0
+                        },
+                        "listingsChanged": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Listings whose price or stock changed in this refresh"
                         }
                       }
                     }
@@ -2346,7 +2352,8 @@
         "type": "object",
         "required": [
           "groups",
-          "unreadCount"
+          "unreadCount",
+          "readCount"
         ],
         "properties": {
           "groups": {
@@ -2380,6 +2387,11 @@
           },
           "unreadCount": {
             "type": "integer"
+          },
+          "readCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Read alerts in the database, for Clear read alerts"
           }
         }
       }

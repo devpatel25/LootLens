@@ -64,11 +64,13 @@ test("Refresh now updates prices and shows the new alert, then rate-limits", asy
   await expect(page.getByRole("status").filter({ hasText: "Watching size One size." })).toBeVisible();
 
   const table = page.getByRole("table", { name: `Prices for ${name} at every store` });
-  const before = await table.locator("tbody tr").first().locator("td").nth(2).textContent();
+  // The first store row and its price cell, found by role: the price is the cell that starts with "$".
+  const priceCell = table.getByRole("row").nth(1).getByRole("cell").filter({ hasText: /^\$\d/ }).first();
+  const before = await priceCell.textContent();
 
   await page.getByRole("button", { name: "Refresh now" }).click();
   await expect(page.getByRole("status").filter({ hasText: /Prices updated\. \d+ new alerts?\./ })).toBeVisible();
-  await expect(table.locator("tbody tr").first().locator("td").nth(2)).not.toHaveText(before ?? "");
+  await expect(priceCell).not.toHaveText(before ?? "");
   await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Alerts" })).toHaveAccessibleDescription(
     /\d+ unread alerts?/,
   );

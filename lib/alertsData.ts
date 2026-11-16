@@ -26,7 +26,7 @@ export async function loadAlerts(userId: string): Promise<AlertsResponse> {
     g.alerts.push(toAlert(row));
     groups.set(row.itemId, g);
   }
-  return { groups: [...groups.values()], unreadCount: [...unreadByItem.values()].reduce((n, c) => n + c, 0) };
+  return { groups: [...groups.values()], unreadCount: [...unreadByItem.values()].reduce((n, c) => n + c, 0), readCount: 0 };
 }
 
 /** The user's watches with item names, newest first (GET /api/watches returns the same rows without names). */

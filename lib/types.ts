@@ -181,7 +181,12 @@ export type Alert = {
 export type AlertsResponse = {
   groups: { itemId: string; itemName: string; unread: number; alerts: Alert[] }[];
   unreadCount: number;
+  /** Read alerts in the database (all of them, not only the ones loaded), for Clear read alerts. */
+  readCount: number;
 };
+
+/** POST /api/items/[id]/refresh */
+export type RefreshResult = { comparison: ItemComparison; alertsCreated: number; listingsChanged: number };
 
 export type ApiOk<T> = { data: T };
 export type ApiError = {

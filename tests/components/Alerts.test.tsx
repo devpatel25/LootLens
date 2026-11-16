@@ -5,13 +5,14 @@ import AlertsError from "@/app/(app)/alerts/error";
 import AlertsLoading from "@/app/(app)/alerts/loading";
 import AlertsBadge from "@/components/AlertsBadge";
 import NavBar from "@/components/NavBar";
-import AlertsView, { POLL_MS } from "@/components/AlertsView";
+import AlertsView from "@/components/AlertsView";
 import RefreshButton from "@/components/RefreshButton";
 import WatchPanel from "@/components/WatchPanel";
 import alertsFixture from "@/fixtures/alerts.json";
 import comparisonFixture from "@/fixtures/comparison.json";
 import type { WatchWithItem } from "@/lib/alertsData";
-import { ALERTS_CHANGED } from "@/lib/alertText";
+import { ALERTS_CHANGED, POLL_MS } from "@/lib/alertText";
+import { DEFAULT_LOW_STOCK } from "@/lib/alerts";
 import type { AlertsResponse, ItemComparison, Watch } from "@/lib/types";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
@@ -27,12 +28,6 @@ const watch: Watch = {
   createdAt: "2026-10-28T12:00:00.000Z",
 };
 const watches = (): WatchWithItem[] => [{ ...watch, itemName: "Adidas Samba OG" }];
-const listingsNow = () => (structuredClone(comparisonFixture) as ItemComparison).listings;
-const changedComparison = () => {
-  const c = structuredClone(comparisonFixture) as ItemComparison;
-  c.listings[0] = { ...c.listings[0], price: c.listings[0].price - 1 };
-  return c;
-};
 
 beforeEach(() => {
   router.refresh.mockReset();
@@ -42,6 +37,8 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   vi.useRealTimers();
+  // Undo spies such as a mocked document.visibilityState, so no test leaks "hidden" into the next.
+  vi.restoreAllMocks();
 });
 
 describe("WatchPanel", () => {
@@ -53,7 +50,7 @@ describe("WatchPanel", () => {
     renderPanel();
     expect(within(panel()).getByRole<HTMLInputElement>("radio", { name: "Any price drop" }).checked).toBe(true);
     expect(within(panel()).getByLabelText<HTMLInputElement>("Target price (USD)").disabled).toBe(true);
-    expect(within(panel()).getByLabelText<HTMLInputElement>("Low-stock alert at").value).toBe("3");
+    expect(within(panel()).getByLabelText<HTMLInputElement>("Low-stock alert at").value).toBe(String(DEFAULT_LOW_STOCK));
   });
 
   it("creates a watch for the saved size with POST, then refreshes and confirms", async () => {
@@ -105,6 +102,7 @@ describe("WatchPanel", () => {
     [409, "watch_exists", "You already watch this item in size 9."],
     [409, "watch_limit", "You can watch up to 10 items. Delete one on the Alerts page first."],
     [400, "no_listing", "No store has size 9 in stock right now, so there is no price to watch."],
+    [400, "target_not_below", "Pick a target below today's cheapest price."],
     [500, "internal", "Something went wrong. Try again."],
   ])("explains a %s %s from the API", async (status, code, message) => {
     vi.mocked(fetch).mockResolvedValueOnce(json(status, { error: { code, message: "dev text" } }));
@@ -132,6 +130,13 @@ describe("WatchPanel", () => {
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     rerender(<WatchPanel item={item()} watch={null} cheapestPrice={60} />);
     expect(within(panel()).queryByRole("alert")).toBeNull();
+  });
+
+  it("refreshes when the size sold out before submit (no_listing), so the panel shows the no-stock state", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(400, { error: { code: "no_listing", message: "x" } }));
+    renderPanel();
+    fireEvent.click(within(panel()).getByRole("button", { name: "Watch this item" }));
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
   });
 
   it("shows Saving while the watch is created", () => {
@@ -173,12 +178,12 @@ describe("RefreshButton", () => {
     vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>((r) => (finish = r)));
     const changed = vi.fn();
     window.addEventListener(ALERTS_CHANGED, changed);
-    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
+    render(<RefreshButton itemId="item-samba" />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Refreshing…" }).disabled).toBe(true);
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/items/item-samba/refresh");
     expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("POST");
-    await act(async () => finish(json(200, { data: { comparison: changedComparison(), alertsCreated: 1 } })));
+    await act(async () => finish(json(200, { data: { comparison: {}, alertsCreated: 1, listingsChanged: 2 } })));
     expect(router.refresh).toHaveBeenCalledTimes(1);
     expect(changed).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("status").textContent).toContain("Prices updated. 1 new alert.");
@@ -189,26 +194,28 @@ describe("RefreshButton", () => {
     [0, "Prices updated."],
     [2, "Prices updated. 2 new alerts."],
   ])("counts %i new alerts", async (n, text) => {
-    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: changedComparison(), alertsCreated: n } }));
-    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: {}, alertsCreated: n, listingsChanged: 3 } }));
+    render(<RefreshButton itemId="item-samba" />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain(text));
   });
 
   it("says nothing changed when the store prices and stock are the same", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: structuredClone(comparisonFixture), alertsCreated: 0 } }));
-    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: {}, alertsCreated: 0, listingsChanged: 0 } }));
+    render(<RefreshButton itemId="item-samba" />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Prices checked. Nothing changed."));
   });
 
   it.each([
+    [1, "Prices were refreshed a moment ago. Try again in 1 second."],
     [45, "Prices were refreshed a moment ago. Try again in 45 seconds."],
+    [60, "Prices were refreshed a moment ago. Try again in 1 minute."],
     [120, "Prices were refreshed a moment ago. Try again in 2 minutes."],
     [61, "Prices were refreshed a moment ago. Try again in 2 minutes."],
   ])("explains the rate limit with the wait (%i s)", async (retryAfterSeconds, text) => {
     vi.mocked(fetch).mockResolvedValueOnce(json(429, { error: { code: "rate_limited", message: "x", retryAfterSeconds } }));
-    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
+    render(<RefreshButton itemId="item-samba" />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain(text));
     expect(router.refresh).not.toHaveBeenCalled();
@@ -216,7 +223,7 @@ describe("RefreshButton", () => {
 
   it("shows an error alert when the refresh fails", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(json(500, { error: { code: "internal", message: "x" } }));
-    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
+    render(<RefreshButton itemId="item-samba" />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     expect((await screen.findByRole("alert")).textContent).toContain("Something went wrong. Try again.");
   });
@@ -259,6 +266,7 @@ describe("AlertsView", () => {
     data.groups[0].alerts[0].read = true;
     data.groups[0].unread = 1;
     data.unreadCount = 2;
+    data.readCount = 1;
     vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { deleted: 1 } }));
     view(data);
     expect(screen.getByRole("button", { name: "Mark unread: Price dropped from $84.99 to $60.00" })).toBeTruthy();
@@ -268,18 +276,23 @@ describe("AlertsView", () => {
     expect(screen.getByRole("status").textContent).toContain("Cleared 1 read alert.");
   });
 
+  it("shows Clear read alerts from the database count, even when no read alert is among those loaded", () => {
+    view({ ...alerts(), readCount: 4 });
+    expect(screen.getByRole("button", { name: "Clear read alerts" })).toBeTruthy();
+  });
+
   it("hides Clear read alerts when nothing is read", () => {
-    view();
+    view({ ...alerts(), readCount: 0 });
     expect(screen.queryByRole("button", { name: "Clear read alerts" })).toBeNull();
   });
 
   it("labels demo data when there are watches but no alerts", () => {
-    view({ groups: [], unreadCount: 0 }, watches());
+    view({ groups: [], unreadCount: 0, readCount: 0 }, watches());
     expect(screen.getByText("Demo data")).toBeTruthy();
   });
 
   it("empty: explains how alerts appear", () => {
-    view({ groups: [], unreadCount: 0 }, []);
+    view({ groups: [], unreadCount: 0, readCount: 0 }, []);
     expect(screen.getByRole("heading", { name: "No alerts yet" })).toBeTruthy();
     expect(screen.getByText("No active watches.")).toBeTruthy();
   });
@@ -294,6 +307,19 @@ describe("AlertsView", () => {
     await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/watches/watch-samba");
     expect(screen.getByRole("status").textContent).toContain("Deleted the watch for Adidas Samba OG.");
+  });
+
+  it("does not re-read while the tab is hidden, and catches up when it is shown", () => {
+    vi.useFakeTimers();
+    view();
+    const hidden = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    act(() => vi.advanceTimersByTime(POLL_MS));
+    expect(router.refresh).not.toHaveBeenCalled();
+    hidden.mockReturnValue("visible");
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(router.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("re-reads alerts from the server every 60 seconds", () => {
@@ -316,7 +342,7 @@ describe("AlertsBadge", () => {
   });
 
   it("shows nothing at zero or when the request fails", async () => {
-    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 0 } }));
+    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 0, readCount: 0 } }));
     const { container, unmount } = render(<AlertsBadge describedById="badge-desc" />);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     expect(container.textContent).toBe("");
@@ -325,6 +351,21 @@ describe("AlertsBadge", () => {
     const r = render(<AlertsBadge describedById="badge-desc" />);
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
     expect(r.container.textContent).toBe("");
+  });
+
+  it("ignores an older response that arrives after a newer one", async () => {
+    let finishOld: (r: Response) => void = () => {};
+    vi.mocked(fetch)
+      .mockReturnValueOnce(new Promise<Response>((r) => (finishOld = r)))
+      .mockResolvedValueOnce(json(200, { data: { groups: [], unreadCount: 2, readCount: 0 } }));
+    render(<AlertsBadge describedById="badge-desc" />);
+    act(() => {
+      window.dispatchEvent(new Event(ALERTS_CHANGED));
+    });
+    expect(await screen.findByText("2")).toBeTruthy();
+    await act(async () => finishOld(json(200, { data: { groups: [], unreadCount: 3, readCount: 0 } })));
+    expect(screen.getByText("2")).toBeTruthy();
+    expect(screen.queryByText("3")).toBeNull();
   });
 
   it("refetches when told alerts changed", async () => {

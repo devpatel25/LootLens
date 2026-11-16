@@ -24,7 +24,7 @@ export function currentSource(listings: Listing[]): ListingUpdate[] {
 export async function applyRefresh(
   itemId: string,
   source: (listings: Listing[]) => ListingUpdate[],
-): Promise<{ alertsCreated: number }> {
+): Promise<{ alertsCreated: number; listingsChanged: number }> {
   return prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM "Item" WHERE id = ${itemId} FOR UPDATE`;
     const load = async () => {
@@ -83,7 +83,7 @@ export async function applyRefresh(
         alertsCreated++;
       }
     }
-    return { alertsCreated };
+    return { alertsCreated, listingsChanged: 0 };
   }, { timeout: 15000 });
 }
 

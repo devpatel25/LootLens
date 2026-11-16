@@ -34,7 +34,7 @@ describe("loadAlerts", () => {
   });
 
   it("is scoped to the user", async () => {
-    expect(await loadAlerts(b)).toEqual({ groups: [], unreadCount: 0 });
+    expect(await loadAlerts(b)).toEqual({ groups: [], unreadCount: 0, readCount: 0 });
   });
 });
 

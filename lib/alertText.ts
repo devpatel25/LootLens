@@ -25,6 +25,9 @@ export function watchSummary(watch: Pick<Watch, "size" | "targetPrice" | "baseli
 /** Window event other components listen for to refetch alerts (the nav badge). */
 export const ALERTS_CHANGED = "lootlens:alerts-changed";
 
+/** How often the Alerts page and the nav badge re-read alerts. */
+export const POLL_MS = 60_000;
+
 /** Tell the rest of the page that alerts may have changed. */
 export function announceAlertsChanged(): void {
   window.dispatchEvent(new Event(ALERTS_CHANGED));

@@ -162,6 +162,12 @@ describe("applyRefresh with a watch deleted mid-refresh", () => {
 });
 
 describe("applyRefresh sources", () => {
+  it("reports how many listings changed (price or stock), and 0 for a no-op", async () => {
+    const first = await applyRefresh(itemId, demoSource);
+    expect(first.listingsChanged).toBeGreaterThan(0);
+    expect((await applyRefresh(itemId, currentSource)).listingsChanged).toBe(0);
+  });
+
   it("leaves updatedAt alone for listings that did not change", async () => {
     const before = await prisma.listing.findMany({ orderBy: { id: "asc" } });
     await applyRefresh(itemId, currentSource);
@@ -235,6 +241,7 @@ describe("POST /api/items/[id]/refresh", () => {
     expect(res.status).toBe(200);
     const { data } = await res.json();
     expect(data.alertsCreated).toBe(1);
+    expect(data.listingsChanged).toBeGreaterThan(0);
     expect(data.comparison.item.id).toBe(itemId);
     expect(data.comparison.listings.find((l: { id: string }) => l.id === fbm).price).toBe(54);
     const row = await prisma.item.findUniqueOrThrow({ where: { id: itemId } });

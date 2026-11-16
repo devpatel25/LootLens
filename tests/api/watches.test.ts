@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MAX_LOW_STOCK } from "@/lib/alerts";
 import { DELETE } from "@/app/api/watches/[id]/route";
 import { GET, POST } from "@/app/api/watches/route";
 import { Prisma } from "@/lib/generated/prisma/client";
@@ -85,9 +86,21 @@ describe("POST /api/watches", () => {
   });
 
   it("starts the cond flags from the current state", async () => {
-    // Cheapest is 60, so a target of 70 is already met; stock 10 is above lowStockAt 3.
-    await post({ itemId: samba, size: "9", targetPrice: 70 });
-    expect(await prisma.watch.findFirstOrThrow()).toMatchObject({ priceCondMet: true, stockCondMet: false });
+    // Cheapest is 60 and 10 are left in size 9 across stores: a target of 55 is not met yet, lowStockAt 10 already is.
+    await post({ itemId: samba, size: "9", targetPrice: 55, lowStockAt: 10 });
+    expect(await prisma.watch.findFirstOrThrow()).toMatchObject({ priceCondMet: false, stockCondMet: true });
+  });
+
+  it.each([60, 70])("400 target_not_below for a target of %s when the cheapest price is 60", async (targetPrice) => {
+    // A target at or above today's price would be met at creation and stay silent until the price rose again.
+    const res = await post({ itemId: samba, size: "9", targetPrice });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe("target_not_below");
+    expect(await prisma.watch.count()).toBe(0);
+  });
+
+  it("400 for a low-stock threshold above MAX_LOW_STOCK", async () => {
+    expect((await post({ itemId: samba, size: "9", lowStockAt: MAX_LOW_STOCK + 1 })).status).toBe(400);
   });
 
   it("404 when the item vanishes before the insert", async () => {

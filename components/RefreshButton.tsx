@@ -16,7 +16,7 @@ const snapshot = (ls: Listing[] | undefined) =>
   JSON.stringify((ls ?? []).map((l) => [l.id, l.price, l.stockBySize]).sort());
 
 /** POST /api/items/[id]/refresh, then router.refresh() so the server re-renders the comparison. */
-export default function RefreshButton({ itemId, listings }: { itemId: string; listings: Listing[] }) {
+export default function RefreshButton({ itemId, listings = [] }: { itemId: string; listings?: Listing[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   // seq gives each announcement a fresh node, so a repeated message is announced again.

@@ -5,6 +5,8 @@ export const MAX_WATCHES_PER_USER = 10;
 
 /** Matches the Watch.lowStockAt column default. */
 export const DEFAULT_LOW_STOCK = 3;
+/** Highest low-stock threshold a watch may use (the API validates it; the form says it). */
+export const MAX_LOW_STOCK = 50;
 
 export type WatchRule = { targetPrice: number | null; baselinePrice: number; lowStockAt: number };
 export type WatchNow = { price: number | null; stock: number };
