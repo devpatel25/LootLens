@@ -184,6 +184,32 @@ describe("/api/items/[id]", () => {
     expect(list.find((i: { id: string }) => i.id === id).cheapest).not.toBeNull();
   });
 
+  it("PATCH selectedSize alone stocks the new size when nothing has it", async () => {
+    await prisma.listing.updateMany({ where: { itemId: id }, data: { stockBySize: { S: 0, M: 2, L: 1 } } });
+    expect((await patch({ selectedSize: "S" })).status).toBe(200);
+    const list = (await (await GET()).json()).data;
+    expect(list.find((i: { id: string }) => i.id === id).cheapest).not.toBeNull();
+  });
+
+  it("PATCH adding a size does not touch listing updatedAt", async () => {
+    const before = await prisma.listing.findMany({ where: { itemId: id }, orderBy: { id: "asc" } });
+    await patch({ sizes: ["S", "M", "L", "XL"] });
+    const after = await prisma.listing.findMany({ where: { itemId: id }, orderBy: { id: "asc" } });
+    expect(after.map((l) => l.updatedAt.toISOString())).toEqual(before.map((l) => l.updatedAt.toISOString()));
+    expect(after.some((l) => "XL" in (l.stockBySize as object))).toBe(true);
+  });
+
+  it("PATCH removing a size also deletes the alerts of its watches", async () => {
+    const w = await prisma.watch.create({ data: { userId: a, itemId: id, size: "S", baselinePrice: 40 } });
+    const keep = await prisma.watch.create({ data: { userId: a, itemId: id, size: "M", baselinePrice: 40 } });
+    const al = (watchId: string) => ({ userId: a, itemId: id, watchId, kind: "PRICE_DROP" as const, detail: {} });
+    await prisma.alert.create({ data: al(w.id) });
+    await prisma.alert.create({ data: al(keep.id) });
+    await patch({ sizes: ["M", "L"], selectedSize: "M" });
+    const alerts = await prisma.alert.findMany({ where: { itemId: id } });
+    expect(alerts.map((x) => x.watchId)).toEqual([keep.id]);
+  });
+
   it("PATCH removing a size drops its stock key", async () => {
     await patch({ sizes: ["M", "L"], selectedSize: "M" });
     const rows = await prisma.listing.findMany({ where: { itemId: id } });
