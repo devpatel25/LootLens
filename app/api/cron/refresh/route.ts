@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { ok, route, unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import { applyRefresh, refreshSource } from "@/lib/refresh";
+import { refreshItems, refreshSource } from "@/lib/refresh";
 
 const PAGE = 50;
 
@@ -25,28 +25,21 @@ export const GET = route(async (req: Request) => {
 
   // ponytail: sequential pages of 50; ends at the function max duration. Upgrade path: a queue with one job per item.
   const source = refreshSource();
-  let items = 0;
-  let alertsCreated = 0;
-  let failed = 0;
-  let cursor: string | undefined;
+  const total = { items: 0, alertsCreated: 0, failed: 0 };
+  let lastId = "";
   for (;;) {
     const page = await prisma.item.findMany({
       select: { id: true },
+      where: { id: { gt: lastId } },
       orderBy: { id: "asc" },
       take: PAGE,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
-    for (const { id } of page) {
-      try {
-        alertsCreated += (await applyRefresh(id, source)).alertsCreated;
-        items++;
-      } catch (e) {
-        console.error("cron refresh failed for item", id, e);
-        failed++;
-      }
-    }
+    const r = await refreshItems(page.map((i) => i.id), source);
+    total.items += r.items;
+    total.alertsCreated += r.alertsCreated;
+    total.failed += r.failed;
     if (page.length < PAGE) break;
-    cursor = page[page.length - 1].id;
+    lastId = page[page.length - 1].id;
   }
-  return ok({ items, alertsCreated, codesExpired, failed });
+  return ok({ ...total, codesExpired });
 });
