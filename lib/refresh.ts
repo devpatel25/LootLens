@@ -73,7 +73,9 @@ export async function applyRefresh(
       const stockFlipped = await flip("stockCondMet", met.stockCondMet);
       // Already low: the drop from some stock to none is its own alert.
       const soldOut = !stockFlipped && met.stockCondMet && prev.stock > 0 && now.stock === 0;
-      if (stockFlipped || soldOut) {
+      // The sold-out path has no flip, so claim the row here: a watch deleted since the read matches nothing.
+      const claimed = soldOut && (await tx.watch.updateMany({ where: { id: w.id }, data: { stockCondMet: true } })).count === 1;
+      if (stockFlipped || claimed) {
         const kind = alertKindForStock(now.stock);
         await tx.alert.create({
           data: { ...base, kind: kind === "low_size" ? "LOW_SIZE" : "OUT_OF_STOCK", detail: { qty: now.stock } },
