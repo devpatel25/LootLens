@@ -3,6 +3,7 @@
 // It only reads public or signed-out responses. It never signs in and never changes data.
 // A preview behind Vercel deployment protection answers with a login page; run it against an open URL.
 // It does not prove DEMO_MODE is off in production: check that in the Vercel project settings.
+// None of the checks touch the database, so a broken database connection will not show up here.
 
 const base = (process.env.SMOKE_URL ?? process.argv[2] ?? "").replace(/\/+$/, "");
 if (!/^https?:\/\//.test(base)) {

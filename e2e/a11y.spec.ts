@@ -69,7 +69,7 @@ for (const viewport of [
         expect((await request.post("/api/watches", { data: { itemId: item.id, size: "One size" } })).status()).toBe(201);
         await request.post("/api/demo/simulate", { data: { itemId: item.id } });
         await page.goto("/alerts");
-        await expectNoViolations(page, page.getByRole("region", { name }).getByText(/^Price dropped from/));
+        await expectNoViolations(page, page.getByRole("region", { name, exact: true }).getByText(/^Price dropped from/));
         await page.goto(`/items/${item.id}`);
         await expectNoViolations(page, page.getByRole("button", { name: "Delete watch" }));
       } finally {

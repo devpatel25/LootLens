@@ -22,7 +22,7 @@ Each case waits for the screen's real content (for example the Save settings but
 | Item not found | pass | pass | pass |
 | Codes, default list | pass | pass | pass |
 | Codes, Show dead codes | pass | pass | pass |
-| Alerts with no alerts | pass | pass | pass |
+| Alerts in the seeded default state (no alerts yet) | pass | pass | pass |
 | Alerts with a price-drop alert and an active watch | pass | pass | pass |
 | Settings | pass | pass | pass |
 
@@ -37,7 +37,7 @@ Not scanned automatically: the error screens (they only appear when something fa
 | Keyboard order | Tab through Item Detail from the top: Skip to content, LootLens home, Account menu, Wishlist, Codes, Alerts, Settings, Back to wishlist, Code settings, the watch form, Refresh now, the price table | Logical, matches the visual order |
 | Focus visible | Every stop above shows a focus outline (checked with computed styles) | Pass |
 | Skip link | First Tab shows "Skip to content" and jumps to the main area | Pass |
-| Dialogs | Add, edit, delete, and watch-delete dialogs: focus starts in the dialog (first field, or Cancel for a delete), Escape closes, focus returns to the button that opened it, or to the page heading if that button is gone | Pass (E2E and component tests) |
+| Dialogs | Add, edit, delete, and watch-delete dialogs: focus starts in the dialog (first field, or Cancel for a delete), Escape closes, focus returns to the button that opened it (passed from the click, so it also works in Safari); after a wishlist add or delete it moves to the page heading, and after a watch is deleted it can fall to the page because the button is gone | Pass (E2E and component tests) |
 | Account menu | Opens with Enter, `aria-expanded` changes, Escape closes and returns focus | Pass (component tests) |
 | Labels | Every input has a visible label; errors are tied to fields with `aria-describedby` and `aria-invalid` | Pass |
 | Button names | Repeated buttons say what they act on and start with their visible text ("Mark dead SAMBA20", "Edit Adidas Samba OG", "Mark read: Price dropped ...") | Pass |
@@ -50,11 +50,11 @@ Not scanned automatically: the error screens (they only appear when something fa
 
 ## 3. Known limits and follow-ups
 
-These are not WCAG failures, but they are worth knowing. Each one is filed as a follow-up issue (linked in the PR for #18).
+These are not WCAG failures, but they are worth knowing. Each one is filed as a follow-up issue.
 
-1. **Signed-in screens need JavaScript.** They stream their data behind `<Suspense>`, and streamed content stays hidden until JavaScript runs. The sign-in page is server-rendered and works without it.
-2. **The price table is wide.** On a phone it scrolls sideways inside its own box. A stacked card layout for phones would be easier to read.
-3. **Screen reader testing.** The checks above use the accessibility tree (Testing Library and Playwright roles, axe). A pass with VoiceOver on iOS and NVDA on Windows is still worth doing before the demo.
+1. **Signed-in screens need JavaScript** (#38). They stream their data behind `<Suspense>`, and streamed content stays hidden until JavaScript runs. The sign-in page is server-rendered and works without it.
+2. **The price table is wide** (#39). On a phone it scrolls sideways inside its own box. A stacked card layout for phones would be easier to read.
+3. **Screen reader testing** (#40). The checks above use the accessibility tree (Testing Library and Playwright roles, axe). A pass with VoiceOver on iOS and NVDA on Windows is still worth doing before the demo.
 
 ## How to run the checks
 
