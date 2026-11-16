@@ -39,13 +39,22 @@ describe("GET /api/items", () => {
     expect(typeof samba.typicalPrice).toBe("number");
     expect(samba).not.toHaveProperty("userId");
     expect(samba).not.toHaveProperty("lastRefreshedAt");
-    expect(samba.cheapest).toEqual({ listingId: expect.any(String), storeName: "Facebook Marketplace", price: 60 });
+    expect(samba.cheapest).toEqual({
+      listingId: expect.any(String), storeName: "Facebook Marketplace", price: 60,
+      condition: "used", source: "demo", fictional: false, lowTrust: false,
+    });
     expect(new Date(samba.createdAt).toISOString()).toBe(samba.createdAt);
   });
 
   it("does not list another user's items", async () => {
     signInAs(b);
     expect((await (await GET()).json()).data).toEqual([]);
+  });
+
+  it("flags a fictional, low-trust cheapest store so the card can label it", async () => {
+    const { data } = await (await GET()).json();
+    const denim = data.find((i: { name: string }) => i.name === "Denim jacket");
+    expect(denim.cheapest).toMatchObject({ storeName: "KickSwap (fictional demo store)", condition: "resale", fictional: true, lowTrust: true });
   });
 
   it("null cheapest when nothing is in stock for the size", async () => {

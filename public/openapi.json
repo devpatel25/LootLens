@@ -1725,7 +1725,11 @@
                     "required": [
                       "listingId",
                       "storeName",
-                      "price"
+                      "price",
+                      "condition",
+                      "source",
+                      "fictional",
+                      "lowTrust"
                     ],
                     "properties": {
                       "listingId": {
@@ -1736,6 +1740,29 @@
                       },
                       "price": {
                         "type": "number"
+                      },
+                      "condition": {
+                        "type": "string",
+                        "enum": [
+                          "new",
+                          "used",
+                          "resale"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "live",
+                          "demo"
+                        ]
+                      },
+                      "fictional": {
+                        "type": "boolean",
+                        "description": "The store is a made-up demo store"
+                      },
+                      "lowTrust": {
+                        "type": "boolean",
+                        "description": "The store fails trustFlags"
                       }
                     }
                   },
@@ -1743,7 +1770,7 @@
                     "type": "null"
                   }
                 ],
-                "description": "Cheapest in-stock listing for the saved size"
+                "description": "Cheapest in-stock listing for the saved size, with what a card needs to label it"
               }
             }
           }

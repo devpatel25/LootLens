@@ -51,6 +51,78 @@ describe("WishlistCard", () => {
   });
 });
 
+describe("WishlistCard labels (Dev's review)", () => {
+  const card = (cheapest: WishlistItem["cheapest"]) =>
+    render(<ul><WishlistCard item={{ ...samba(), cheapest }} onEdit={() => {}} onDelete={() => {}} /></ul>);
+  const base = { listingId: "l", storeName: "Facebook Marketplace", price: 60, condition: "used" as const, source: "demo" as const, fictional: false, lowTrust: false };
+
+  it("labels the condition and that the price is demo data", () => {
+    card(base);
+    expect(screen.getByText("Used")).toBeTruthy();
+    expect(screen.getByText("Demo")).toBeTruthy();
+  });
+
+  it("labels a low-trust, fictional cheapest store", () => {
+    card({ ...base, storeName: "KickSwap", condition: "resale", fictional: true, lowTrust: true });
+    expect(screen.getByText("Cheapest: $60.00 at KickSwap (fictional)")).toBeTruthy();
+    expect(screen.getByText("Low-trust")).toBeTruthy();
+    expect(screen.getByText("Resale")).toBeTruthy();
+  });
+
+  it("shows no Demo label for a live price", () => {
+    card({ ...base, condition: "new", source: "live" });
+    expect(screen.queryByText("Demo")).toBeNull();
+    expect(screen.queryByText("New")).toBeNull();
+  });
+});
+
+describe("dialogs (Dev's review)", () => {
+  it("returns focus to the button that opened the sheet even when the click did not focus it (Safari)", () => {
+    render(<WishlistView items={items()} anyDemo />);
+    const edit = screen.getByRole("button", { name: "Edit Adidas Samba OG" });
+    (document.activeElement as HTMLElement | null)?.blur();
+    fireEvent.click(edit);
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    expect(document.activeElement).toBe(edit);
+  });
+
+  it("a browser close after cancel does not call onClose twice", () => {
+    const onClose = vi.fn();
+    render(<ItemSheet open item={null} onClose={onClose} onSaved={() => {}} onMissing={() => {}} />);
+    const dialog = screen.getByRole("dialog");
+    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+    dialog.dispatchEvent(new Event("close"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("a browser close while saving reopens the sheet instead of losing it", () => {
+    vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>(() => {}));
+    const onClose = vi.fn();
+    render(<ItemSheet open item={samba()} onClose={onClose} onSaved={() => {}} onMissing={() => {}} />);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    dialog.removeAttribute("open");
+    dialog.dispatchEvent(new Event("close"));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(dialog.hasAttribute("open")).toBe(true);
+  });
+
+  it("announces a repeated message again (the status text is a fresh node each time)", async () => {
+    vi.mocked(fetch).mockImplementation(async () => json(200, { data: {} }));
+    render(<WishlistView items={items()} anyDemo />);
+    const save = async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Edit Adidas Samba OG" }));
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+      return screen.getByRole("status").firstElementChild;
+    };
+    const first = await save();
+    const second = await save();
+    expect(second?.textContent).toBe("Saved Adidas Samba OG.");
+    expect(second).not.toBe(first);
+  });
+});
+
 describe("WishlistView", () => {
   it("populated: lists every item with the Demo data badge", () => {
     render(<WishlistView items={items()} anyDemo />);

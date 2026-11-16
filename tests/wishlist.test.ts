@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/items/route";
 import { prisma } from "@/lib/prisma";
-import { hasDemoListings, loadWishlist } from "@/lib/wishlist";
+import { hasDemoListings, loadWishlist, loadWishlistPage } from "@/lib/wishlist";
 import { seed } from "@/prisma/seed";
 import { signInAs } from "./helpers/auth";
 import { resetDb } from "./helpers/db";
@@ -43,5 +43,15 @@ describe("hasDemoListings", () => {
     await prisma.listing.updateMany({ data: { source: "LIVE" } });
     expect(await hasDemoListings(a)).toBe(false);
     expect(await hasDemoListings(b)).toBe(false);
+  });
+});
+
+describe("loadWishlistPage", () => {
+  it("returns the items and whether any listing is demo from one query", async () => {
+    const page = await loadWishlistPage(a);
+    expect(page.items.map((i) => i.name).sort()).toEqual(["Adidas Samba OG", "Denim jacket", "Mechanical keyboard"]);
+    expect(page.anyDemo).toBe(true);
+    await prisma.listing.updateMany({ data: { source: "LIVE" } });
+    expect((await loadWishlistPage(a)).anyDemo).toBe(false);
   });
 });

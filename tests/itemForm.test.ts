@@ -48,7 +48,7 @@ describe("toItemBody", () => {
       sizes: "Enter at least one size.",
       selectedSize: "Pick your size from the sizes.",
       typicalPrice: "Enter a price like 49.99.",
-      sourceUrl: "Enter a full link that starts with https://",
+      sourceUrl: "Enter a full link that starts with https:// or http://",
     });
   });
 
@@ -66,7 +66,7 @@ describe("toItemBody", () => {
     expect(!r2.ok && r2.errors.sizes).toBe("Each size can be at most 20 characters.");
   });
 
-  it.each(["0", "-5", "abc", "12.345", "100000"])("rejects price %s", (typicalPrice) => {
+  it.each(["0", "-5", "abc", "12.345", "100000", "0x20", "1e3", " 12", "12."])("rejects price %s", (typicalPrice) => {
     const r = toItemBody({ ...good, typicalPrice });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors.typicalPrice).toBe("Enter a price like 49.99.");

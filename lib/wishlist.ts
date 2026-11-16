@@ -15,7 +15,10 @@ export async function loadWishlist(userId: string): Promise<WishlistItem[]> {
     const best = cheapestListing(listings, stores, row.selectedSize);
     return {
       ...toItem(row),
-      cheapest: best ? { listingId: best.id, storeName: storeName(stores, best), price: best.price } : null,
+      // Stub fields for the red step; filled from the listing and store in the fix.
+      cheapest: best
+        ? { listingId: best.id, storeName: storeName(stores, best), price: best.price, condition: "new" as const, source: "live" as const, fictional: false, lowTrust: false }
+        : null,
     };
   });
 }
@@ -24,4 +27,10 @@ export async function loadWishlist(userId: string): Promise<WishlistItem[]> {
 export async function hasDemoListings(userId: string): Promise<boolean> {
   const demo = await prisma.listing.findFirst({ where: { source: "DEMO", item: { userId } }, select: { id: true } });
   return demo !== null;
+}
+
+/** Items plus whether any listing is demo. Stub. */
+export async function loadWishlistPage(userId: string): Promise<{ items: WishlistItem[]; anyDemo: boolean }> {
+  void userId;
+  return { items: [], anyDemo: false };
 }
