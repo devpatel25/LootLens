@@ -37,9 +37,12 @@ describe("apiFetch", () => {
 });
 
 describe("friendlyMessage", () => {
-  it("passes through 400, 404, and 409 messages from the API", () => {
-    expect(friendlyMessage(new ApiClientError("name: Too small", 400, "bad_request"))).toBe("name: Too small");
-    expect(friendlyMessage(new ApiClientError("Item not found", 404, "not_found"))).toBe("Item not found");
+  it("never shows the server's raw text for 4xx errors", () => {
+    expect(friendlyMessage(new ApiClientError("name: Too big", 400, "bad_request"))).toBe(
+      "Some details were not accepted. Check the form and try again.",
+    );
+    expect(friendlyMessage(new ApiClientError("Item not found", 404, "not_found"))).toBe("It was not found. It may have been deleted.");
+    expect(friendlyMessage(new ApiClientError("x", 409, "conflict"))).toBe("This changed somewhere else. Reload and try again.");
   });
 
   it("explains an ended session", () => {

@@ -76,7 +76,12 @@ describe("WishlistView", () => {
     render(<WishlistView items={items()} anyDemo />);
     fireEvent.click(screen.getByRole("button", { name: "Edit Adidas Samba OG" }));
     const dialog = screen.getByRole("dialog", { name: "Edit item" });
-    expect(within(dialog).getByLabelText<HTMLInputElement>("Name").value).toBe("Adidas Samba OG");
+    const value = (label: string) => within(dialog).getByLabelText<HTMLInputElement | HTMLSelectElement>(label).value;
+    expect(value("Name")).toBe("Adidas Samba OG");
+    expect(value("Category")).toBe("shoes");
+    expect(value("Sizes")).toBe("8, 9, 10");
+    expect(value("Your size")).toBe("9");
+    expect(value("Typical price (USD)")).toBe("100");
   });
 
   it("Delete asks first, then deletes, refreshes, and announces it", async () => {
@@ -90,6 +95,27 @@ describe("WishlistView", () => {
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/items/item-samba");
     expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("DELETE");
     expect(screen.getByRole("status").textContent).toContain("Deleted Adidas Samba OG.");
+    expect(document.activeElement).toBe(screen.getByRole("heading", { level: 1, name: "Wishlist" }));
+  });
+
+  it("Delete of an item already removed elsewhere closes, refreshes, and says so", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(404, { error: { code: "not_found", message: "Item not found" } }));
+    render(<WishlistView items={items()} anyDemo />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete Adidas Samba OG" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("That item was already removed.");
+  });
+
+  it("Save of an item already removed elsewhere closes, refreshes, and says so", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(404, { error: { code: "not_found", message: "Item not found" } }));
+    render(<WishlistView items={items()} anyDemo />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Adidas Samba OG" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("That item was already removed.");
   });
 });
 
@@ -129,7 +155,7 @@ describe("ItemSheet", () => {
   };
 
   it("labels every input", () => {
-    render(<ItemSheet open item={null} onClose={() => {}} onSaved={() => {}} />);
+    render(<ItemSheet open item={null} onClose={() => {}} onSaved={() => {}} onMissing={() => {}} />);
     const dialog = screen.getByRole("dialog", { name: "Add item" });
     for (const label of ["Name", "Category", "Sizes", "Your size", "Typical price (USD)", "Product link (optional)"]) {
       expect(within(dialog).getByLabelText(label)).toBeTruthy();
@@ -137,7 +163,7 @@ describe("ItemSheet", () => {
   });
 
   it("offers your size from the sizes typed", () => {
-    render(<ItemSheet open item={null} onClose={() => {}} onSaved={() => {}} />);
+    render(<ItemSheet open item={null} onClose={() => {}} onSaved={() => {}} onMissing={() => {}} />);
     const dialog = screen.getByRole("dialog");
     fill(dialog, { Sizes: "S, M, L" });
     const options = within(within(dialog).getByLabelText("Your size")).getAllByRole("option").map((o) => o.textContent);
@@ -145,7 +171,7 @@ describe("ItemSheet", () => {
   });
 
   it("shows field errors and does not call the API when input is invalid", () => {
-    render(<ItemSheet open item={null} onClose={() => {}} onSaved={() => {}} />);
+    render(<ItemSheet open item={null} onClose={() => {}} onSaved={() => {}} onMissing={() => {}} />);
     const dialog = screen.getByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
     const name = within(dialog).getByLabelText("Name");
@@ -157,7 +183,7 @@ describe("ItemSheet", () => {
   it("adds an item with POST and reports the name", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(json(201, { data: { id: "new" } }));
     const onSaved = vi.fn();
-    render(<ItemSheet open item={null} onClose={() => {}} onSaved={onSaved} />);
+    render(<ItemSheet open item={null} onClose={() => {}} onSaved={onSaved} onMissing={() => {}} />);
     const dialog = screen.getByRole("dialog");
     fill(dialog, { Name: "Hoodie", Category: "clothes", Sizes: "S, M", "Your size": "M", "Typical price (USD)": "40" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
@@ -173,25 +199,66 @@ describe("ItemSheet", () => {
   it("edits an item with PATCH to its id", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { id: "item-samba" } }));
     const onSaved = vi.fn();
-    render(<ItemSheet open item={samba()} onClose={() => {}} onSaved={onSaved} />);
+    render(<ItemSheet open item={samba()} onClose={() => {}} onSaved={onSaved} onMissing={() => {}} />);
     const dialog = screen.getByRole("dialog", { name: "Edit item" });
     fill(dialog, { Name: "Samba OG" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith("Samba OG"));
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/items/item-samba");
     expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("PATCH");
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({
+      name: "Samba OG", category: "shoes", sizes: ["8", "9", "10"], selectedSize: "9", typicalPrice: 100, sourceUrl: null,
+    });
+  });
+
+  it("warns before a removed size takes its watches and alerts with it", () => {
+    render(<ItemSheet open item={samba()} onClose={() => {}} onSaved={() => {}} onMissing={() => {}} />);
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).queryByText(/also deletes/)).toBeNull();
+    fill(dialog, { Sizes: "8, 9" });
+    expect(within(dialog).getByText("Removing size 10 also deletes its price watches and alerts.")).toBeTruthy();
+  });
+
+  it("keeps a category the form does not list", () => {
+    render(<ItemSheet open item={{ ...samba(), category: "sneakers" }} onClose={() => {}} onSaved={() => {}} onMissing={() => {}} />);
+    const select = within(screen.getByRole("dialog")).getByLabelText<HTMLSelectElement>("Category");
+    expect(select.value).toBe("sneakers");
+    expect(within(select).getByRole("option", { name: "sneakers" })).toBeTruthy();
+  });
+
+  it("blocks a second save, Cancel, and Escape while saving", async () => {
+    let finish: (r: Response) => void = () => {};
+    vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>((r) => (finish = r)));
+    const onClose = vi.fn();
+    render(<ItemSheet open item={samba()} onClose={onClose} onSaved={() => {}} onMissing={() => {}} />);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(within(dialog).getByRole<HTMLButtonElement>("button", { name: "Saving…" }).disabled).toBe(true);
+    expect(within(dialog).getByRole<HTMLButtonElement>("button", { name: "Cancel" }).disabled).toBe(true);
+    dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    finish(json(200, { data: {} }));
+  });
+
+  it("Escape closes the sheet when idle", () => {
+    const onClose = vi.fn();
+    render(<ItemSheet open item={null} onClose={onClose} onSaved={() => {}} onMissing={() => {}} />);
+    screen.getByRole("dialog").dispatchEvent(new Event("cancel", { cancelable: true }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("shows the API's message when the server rejects the save", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(json(400, { error: { code: "bad_request", message: "name: Too big" } }));
-    render(<ItemSheet open item={samba()} onClose={() => {}} onSaved={() => {}} />);
+    render(<ItemSheet open item={samba()} onClose={() => {}} onSaved={() => {}} onMissing={() => {}} />);
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Save" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("name: Too big");
+    expect((await screen.findByRole("alert")).textContent).toContain("Some details were not accepted.");
+    expect(screen.queryByText(/Too big/)).toBeNull();
   });
 
   it("Cancel closes", () => {
     const onClose = vi.fn();
-    render(<ItemSheet open item={null} onClose={onClose} onSaved={() => {}} />);
+    render(<ItemSheet open item={null} onClose={onClose} onSaved={() => {}} onMissing={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });

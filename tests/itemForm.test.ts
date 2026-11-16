@@ -58,6 +58,14 @@ describe("toItemBody", () => {
     if (!r.ok) expect(r.errors).toEqual({ selectedSize: "Pick your size from the sizes." });
   });
 
+  it("explains too many sizes and too-long sizes", () => {
+    const many = Array.from({ length: 13 }, (_, i) => String(i + 1)).join(", ");
+    const r1 = toItemBody({ ...good, sizes: many, selectedSize: "1" });
+    expect(!r1.ok && r1.errors.sizes).toBe("Use at most 12 sizes.");
+    const r2 = toItemBody({ ...good, sizes: "9, " + "x".repeat(21), selectedSize: "9" });
+    expect(!r2.ok && r2.errors.sizes).toBe("Each size can be at most 20 characters.");
+  });
+
   it.each(["0", "-5", "abc", "12.345", "100000"])("rejects price %s", (typicalPrice) => {
     const r = toItemBody({ ...good, typicalPrice });
     expect(r.ok).toBe(false);

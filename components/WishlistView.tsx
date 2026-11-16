@@ -57,6 +57,7 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
         open={sheet !== null}
         item={sheet?.item ?? null}
         onClose={() => setSheet(null)}
+        onMissing={() => {}}
         onSaved={(name) => {
           setMessage(sheet?.item ? `Saved ${name}.` : `Added ${name}.`);
           setSheet(null);

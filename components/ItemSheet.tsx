@@ -19,6 +19,8 @@ export type ItemSheetProps = {
   item: Item | null;
   onClose: () => void;
   onSaved: (name: string) => void;
+  /** The item was deleted elsewhere (404). */
+  onMissing: () => void;
 };
 
 export default function ItemSheet(props: ItemSheetProps) {
