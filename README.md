@@ -70,7 +70,12 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` first. It pa
 
 ## Deploy
 
-Vercel builds with `npm run vercel-build`: `prisma generate`, then `prisma migrate deploy`, then `next build`. Each pull request gets a preview with its own Neon branch. Production deploys from `main`. Secrets live in Vercel env vars, never in the repo. New variables go into `.env.example` with an empty value.
+What exists today:
+
+- `vercel.json` registers the daily cron for `/api/cron/refresh`.
+- `npm run vercel-build` runs `prisma generate`, then `prisma migrate deploy`, then `next build`.
+
+Planned (set up in #5): Vercel builds with `vercel-build`, each pull request gets a preview with its own Neon branch, and production deploys from `main`. Secrets will live in Vercel env vars, never in the repo. New variables go into `.env.example` with an empty value.
 
 ## Alerts and refresh
 

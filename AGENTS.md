@@ -20,10 +20,12 @@ app/                    routes (server components by default)
   wishlist/             Wishlist home
   items/[id]/           Item Detail: comparison table, Best Deal, codes, watch panel
   codes/  alerts/  settings/
+  api-docs/             Swagger UI page for the API spec
   api/                  route handlers = the public API (items, items/[id]/listings, codes,
                         watches, alerts, stores, settings, health, cron, demo)
 proxy.ts                signed-out redirect (pages) and 401 (API)
 types/                  TypeScript type augmentations (next-auth)
+public/openapi.json     API spec (OpenAPI 3.1). Update it when routes change
 components/             UI components (ComparisonTable, CodeCard, WatchPanel, ...)
 lib/
   pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
