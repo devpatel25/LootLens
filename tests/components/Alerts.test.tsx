@@ -120,6 +120,20 @@ describe("WatchPanel", () => {
     await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
   });
 
+  it("an old error does not come back after the watch is deleted", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(409, { error: { code: "watch_exists", message: "x" } }));
+    const { rerender } = renderPanel();
+    fireEvent.click(within(panel()).getByRole("button", { name: "Watch this item" }));
+    await within(panel()).findByRole("alert");
+    rerender(<WatchPanel item={item()} watch={watch} cheapestPrice={60} />);
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { id: "watch-samba" } }));
+    fireEvent.click(within(panel()).getByRole("button", { name: "Delete watch" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    rerender(<WatchPanel item={item()} watch={null} cheapestPrice={60} />);
+    expect(within(panel()).queryByRole("alert")).toBeNull();
+  });
+
   it("shows Saving while the watch is created", () => {
     vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>(() => {}));
     renderPanel();
