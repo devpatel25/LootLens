@@ -68,7 +68,7 @@ const CODES: C[] = [
   ["code-walmart-10", "store-walmart", "SAVE10", "10% off", "PCT", 10, "LIVE", 30],
   // Marked dead.
   ["code-amazon-dead", "store-amazon", "DEADDEAL", "15% off", "PCT", 15, "DEAD", 2],
-  ["code-amazon-25", "store-amazon", "SAVE25", "$25 off orders over $150", "FLAT", 25, "LIVE", 2, { minSpend: 150 }],
+  ["code-amazon-25", "store-amazon", "SAVE25", "$25 off orders of $150 or more", "FLAT", 25, "LIVE", 2, { minSpend: 150 }],
   ["code-ae-first15", "store-ae", "WELCOME15", "15% off your first order", "PCT", 15, "LIVE", 3, { firstOrderOnly: true }],
   // Live, but its end date has passed.
   ["code-target-expired", "store-target", "TGT20", "20% off", "PCT", 20, "LIVE", 1, { expiresInHours: -1 }],

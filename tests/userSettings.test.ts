@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ensureUserSettings, handleCreateUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resetDb } from "@/tests/helpers/db";
@@ -25,6 +25,8 @@ describe("ensureUserSettings", () => {
 });
 
 describe("handleCreateUser", () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it("resolves when the settings write fails, so sign-in is not aborted", async () => {
     vi.spyOn(prisma.userSettings, "upsert").mockRejectedValue(new Error("db down"));
     const log = vi.spyOn(console, "error").mockImplementation(() => {});

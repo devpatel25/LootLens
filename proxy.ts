@@ -13,6 +13,8 @@ export default auth((req) => {
   if (d === "redirect") return NextResponse.redirect(new URL(signInUrl(req.nextUrl.pathname, req.nextUrl.search), req.nextUrl));
 });
 
+// Only root-level public files skip the proxy. Sign-in page assets must stay at the root, or use static
+// imports / next/font (served from /_next/static).
 // /api/* is always matched, even dotted paths. Static assets and metadata files stay public.
 export const config = {
   matcher: [

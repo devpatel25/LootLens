@@ -202,9 +202,9 @@ describe("/api/items/[id]", () => {
   it("PATCH removing a size also deletes the alerts of its watches", async () => {
     const w = await prisma.watch.create({ data: { userId: a, itemId: id, size: "S", baselinePrice: 40 } });
     const keep = await prisma.watch.create({ data: { userId: a, itemId: id, size: "M", baselinePrice: 40 } });
-    const al = (watchId: string) => ({ userId: a, itemId: id, watchId, kind: "PRICE_DROP" as const, detail: {} });
-    await prisma.alert.create({ data: al(w.id) });
-    await prisma.alert.create({ data: al(keep.id) });
+    const al = (watchId: string, size: string) => ({ userId: a, itemId: id, watchId, size, kind: "PRICE_DROP" as const, detail: {} });
+    await prisma.alert.create({ data: al(w.id, "S") });
+    await prisma.alert.create({ data: al(keep.id, "M") });
     await patch({ sizes: ["M", "L"], selectedSize: "M" });
     const alerts = await prisma.alert.findMany({ where: { itemId: id } });
     expect(alerts.map((x) => x.watchId)).toEqual([keep.id]);

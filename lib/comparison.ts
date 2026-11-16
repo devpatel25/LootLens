@@ -22,7 +22,8 @@ export async function loadComparison(itemId: string, userId: string): Promise<It
     })
   ).map(toCode);
 
-  const bestDeals = listings.map((l) => bestTotal(l, stores.find((s) => s.id === l.storeId)!, codes, settings));
+  const now = new Date();
+  const bestDeals = listings.map((l) => bestTotal(l, stores.find((s) => s.id === l.storeId)!, codes, settings, now));
   return {
     item,
     stores,
@@ -30,6 +31,6 @@ export async function loadComparison(itemId: string, userId: string): Promise<It
     cheapestListingId: cheapestListing(listings, stores, item.selectedSize)?.id ?? null,
     cheapestTrustedListingId: cheapestTrustedListing(listings, stores, item.selectedSize)?.id ?? null,
     bestDeals,
-    bestDeal: bestDeal(listings, stores, codes, item.selectedSize, settings),
+    bestDeal: bestDeal(listings, stores, codes, item.selectedSize, settings, now),
   };
 }
