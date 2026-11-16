@@ -111,7 +111,7 @@ erDiagram
   }
   UserSettings {
     string id PK
-    string userId "FK, UK"
+    string userId FK, UK
     int freshnessHours
     boolean firstOrderEligible
   }
