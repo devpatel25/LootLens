@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { isUnder } from "@/lib/paths";
 
 type NavItem = { href: string; label: string; also?: string[]; icon: ReactNode };
 
@@ -39,12 +40,8 @@ export const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-function matches(pathname: string, base: string): boolean {
-  return pathname === base || pathname.startsWith(base + "/");
-}
-
 export function isCurrent(pathname: string, item: Pick<NavItem, "href" | "also">): boolean {
-  return [item.href, ...(item.also ?? [])].some((base) => matches(pathname, base));
+  return [item.href, ...(item.also ?? [])].some((base) => isUnder(pathname, base));
 }
 
 /** The Main nav. `pathname` null renders it with nothing marked current (Suspense fallback). */
@@ -53,7 +50,7 @@ export default function NavBar({ pathname }: { pathname: string | null }) {
 
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:static md:z-auto md:border-t-0 md:border-r md:bg-transparent md:pb-0 md:backdrop-blur-none dark:border-zinc-800 dark:bg-zinc-950/95 md:dark:bg-transparent"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-14 md:z-auto md:h-[calc(100dvh-3.5rem)] md:self-start md:overflow-y-auto md:border-t-0 md:border-r md:bg-transparent md:pb-0 md:backdrop-blur-none dark:border-zinc-800 dark:bg-zinc-950/95 md:dark:bg-transparent"
     >
       <ul className="grid grid-cols-4 md:flex md:flex-col md:gap-1 md:p-3">
         {NAV_ITEMS.map((item) => {

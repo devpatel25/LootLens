@@ -1,3 +1,5 @@
+import { isUnder } from "@/lib/paths";
+
 export const DEFAULT_AFTER_SIGNIN = "/wishlist";
 
 const BASE = "http://lootlens.invalid";
@@ -11,18 +13,17 @@ export function safeCallbackUrl(raw: string | string[] | undefined): string {
   const value = first(raw);
   if (!value.startsWith("/")) return DEFAULT_AFTER_SIGNIN;
 
-  let decoded: string;
+  const url = new URL(value, BASE);
+  if (url.origin !== BASE) return DEFAULT_AFTER_SIGNIN;
+  // Only the path decides where we land; the query may hold any text (for example "100%").
+  let path: string;
   try {
-    decoded = decodeURIComponent(value);
+    path = decodeURIComponent(url.pathname);
   } catch {
     return DEFAULT_AFTER_SIGNIN;
   }
-  if (decoded.startsWith("//") || decoded.includes("\\")) return DEFAULT_AFTER_SIGNIN;
-
-  const url = new URL(value, BASE);
-  if (url.origin !== BASE) return DEFAULT_AFTER_SIGNIN;
-  const under = (base: string) => url.pathname === base || url.pathname.startsWith(base + "/");
-  if (under("/signin") || under("/api")) return DEFAULT_AFTER_SIGNIN;
+  if (path.startsWith("//") || path.includes("\\")) return DEFAULT_AFTER_SIGNIN;
+  if (isUnder(url.pathname, "/signin") || isUnder(url.pathname, "/api")) return DEFAULT_AFTER_SIGNIN;
 
   return url.pathname + url.search;
 }

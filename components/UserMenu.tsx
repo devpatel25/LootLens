@@ -34,6 +34,10 @@ export default function UserMenu({ name, email, signOutAction }: UserMenuProps) 
     <div
       ref={rootRef}
       className="relative"
+      // Keyboard users who Tab past the last item leave the menu; close it so it does not float over the page.
+      onBlur={(e) => {
+        if (open && !rootRef.current?.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
       onKeyDown={(e) => {
         if (e.key === "Escape" && open) {
           e.stopPropagation();
@@ -52,11 +56,12 @@ export default function UserMenu({ name, email, signOutAction }: UserMenuProps) 
       >
         <span aria-hidden="true">{initial}</span>
       </button>
-      {open && (
-        <div
-          id={panelId}
-          className="absolute right-0 top-11 z-40 w-64 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
-        >
+      {/* Always rendered (hidden when closed), so aria-controls never points at a missing element. */}
+      <div
+        id={panelId}
+        hidden={!open}
+        className="absolute right-0 top-11 z-40 w-64 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+      >
           {name && <p className="truncate text-sm font-semibold">{name}</p>}
           {email && <p className="truncate text-sm text-zinc-600 dark:text-zinc-300">{email}</p>}
           <form action={signOutAction} className="mt-3 border-t border-zinc-200 pt-3 dark:border-zinc-700">
@@ -67,8 +72,7 @@ export default function UserMenu({ name, email, signOutAction }: UserMenuProps) 
               Sign out
             </button>
           </form>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

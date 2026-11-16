@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import NextAuth from "next-auth";
 import { authConfig, routeDecision, signInUrl } from "@/lib/authConfig";
+import { safeCallbackUrl } from "@/lib/signin";
 
 // Built from authConfig only, so the proxy never loads Prisma.
 const { auth } = NextAuth(authConfig);
@@ -11,6 +12,9 @@ export default auth((req) => {
     return Response.json({ error: { code: "unauthorized", message: "Sign in required" } }, { status: 401 });
   }
   if (d === "redirect") return NextResponse.redirect(new URL(signInUrl(req.nextUrl.pathname, req.nextUrl.search), req.nextUrl));
+  if (d === "leave-signin") {
+    return NextResponse.redirect(new URL(safeCallbackUrl(req.nextUrl.searchParams.get("callbackUrl") ?? undefined), req.nextUrl));
+  }
 });
 
 // Only root-level public files skip the proxy. Sign-in page assets must stay at the root, or use static

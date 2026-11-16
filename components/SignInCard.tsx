@@ -1,3 +1,5 @@
+import LogoMark from "@/components/LogoMark";
+
 export type SignInCardProps = {
   action: (formData: FormData) => void | Promise<void>;
   callbackUrl: string;
@@ -18,9 +20,7 @@ function GoogleMark() {
 export default function SignInCard({ action, callbackUrl, error }: SignInCardProps) {
   return (
     <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div aria-hidden="true" className="mb-6 grid size-10 place-items-center rounded-xl bg-emerald-700 text-lg font-bold text-white">
-        L
-      </div>
+      <LogoMark className="mb-6 size-10" />
       <h1 className="text-2xl font-bold tracking-tight">Sign in to LootLens</h1>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
         Track prices and live promo codes for the things you want, in one place.

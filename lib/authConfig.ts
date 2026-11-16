@@ -1,11 +1,14 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
+import { isUnder } from "@/lib/paths";
 
 const PUBLIC = ["/signin", "/api/auth", "/api/health", "/api/cron/refresh", "/api-docs", "/openapi.json"];
 
-export function routeDecision(pathname: string, signedIn: boolean): "next" | "redirect" | "unauthorized" {
-  if (signedIn || PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "next";
-  return pathname === "/api" || pathname.startsWith("/api/") ? "unauthorized" : "redirect";
+export function routeDecision(pathname: string, signedIn: boolean): "next" | "redirect" | "unauthorized" | "leave-signin" {
+  // A signed-in visit to the sign-in page goes on to its callbackUrl, so the page itself never reads the session.
+  if (signedIn) return isUnder(pathname, "/signin") ? "leave-signin" : "next";
+  if (PUBLIC.some((p) => isUnder(pathname, p))) return "next";
+  return isUnder(pathname, "/api") ? "unauthorized" : "redirect";
 }
 
 export const callbacks = {
