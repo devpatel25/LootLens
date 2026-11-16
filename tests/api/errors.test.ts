@@ -19,6 +19,7 @@ type Model = Record<string, (...a: never[]) => unknown>;
 const cases: [string, () => Promise<Response>, Model, string][] = [
   ["GET /api/items", () => itemsRoute.GET(), prisma.item as unknown as Model, "findMany"],
   ["POST /api/items", () => itemsRoute.POST(req("/api/items", "POST", good)), prisma.store as unknown as Model, "findMany"],
+  ["PATCH /api/items/[id]", () => itemRoute.PATCH(req("/api/items/x", "PATCH", { name: "y" }), ctx("x")), prisma as unknown as Model, "$transaction"],
   ["GET /api/items/[id]", () => itemRoute.GET(req("/api/items/x"), ctx("x")), prisma.item as unknown as Model, "findFirst"],
   ["DELETE /api/items/[id]", () => itemRoute.DELETE(req("/api/items/x", "DELETE"), ctx("x")), prisma.item as unknown as Model, "deleteMany"],
   ["GET /api/items/[id]/listings", () => listingsRoute.GET(req("/api/items/x/listings"), ctx("x")), prisma.item as unknown as Model, "findFirst"],
