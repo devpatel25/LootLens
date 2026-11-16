@@ -3,6 +3,7 @@ import { POST as REFRESH } from "@/app/api/items/[id]/refresh/route";
 import * as refresh from "@/lib/refresh";
 import { demoSource } from "@/lib/demoSource";
 import { applyRefresh, currentSource, REFRESH_COOLDOWN_MS, type ListingUpdate } from "@/lib/refresh";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { ctx, req } from "./helpers/api";
@@ -134,21 +135,17 @@ describe("applyRefresh with a watch deleted mid-refresh", () => {
       data: { userId: b, itemId, size: "9", targetPrice: 1, lowStockAt: 3, baselinePrice: 60, stockCondMet: true },
     });
     // Delete the watch right after the refresh has read its watches, before it raises alerts.
-    const real = prisma.$transaction.bind(prisma);
-    const spy = vi.spyOn(prisma, "$transaction").mockImplementation(((fn: (tx: any) => unknown, opts: unknown) =>
-      (real as any)((tx: any) => {
-        const watchApi = new Proxy(tx.watch, {
-          get: (t, k) =>
-            k === "findMany"
-              ? async (...args: unknown[]) => {
-                  const rows = await t.findMany(...args);
-                  await prisma.watch.delete({ where: { id: gone.id } });
-                  return rows;
-                }
-              : t[k].bind(t),
-        });
-        return fn(new Proxy(tx, { get: (t, k) => (k === "watch" ? watchApi : typeof t[k] === "function" ? t[k].bind(t) : t[k]) }));
-      }, opts)) as any);
+    type Tx = Prisma.TransactionClient;
+    const real = prisma.$transaction.bind(prisma) as unknown as (fn: (tx: Tx) => Promise<unknown>, opts: unknown) => Promise<unknown>;
+    const spy = vi.spyOn(prisma, "$transaction").mockImplementation(((fn: (tx: Tx) => Promise<unknown>, opts: unknown) =>
+      real((tx) => {
+        const findMany = async (args?: Prisma.WatchFindManyArgs) => {
+          const rows = await tx.watch.findMany(args);
+          await prisma.watch.delete({ where: { id: gone.id } });
+          return rows;
+        };
+        return fn(new Proxy(tx, { get: (t, k) => (k === "watch" ? { ...t.watch, findMany, updateMany: t.watch.updateMany.bind(t.watch) } : Reflect.get(t, k)) }));
+      }, opts)) as unknown as typeof prisma.$transaction);
     try {
       const r = await apply(itemId, [{ listingId: fbm, price: 59, stockBySize: { "8": 0, "9": 0, "10": 0 } }]);
       expect(r.alertsCreated).toBe(1);
