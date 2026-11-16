@@ -100,10 +100,14 @@ describe("CodeCard", () => {
 describe("CodesView", () => {
   const view = (codes: Code[], showDead = false) =>
     render(<CodesView codes={codes} showDead={showDead} freshnessHours={24} now={NOW} />);
-  const listed = () =>
-    within(screen.getByRole("list", { name: "Codes" }))
+  // Cards only: each card also holds a nested Terms list.
+  const listed = () => {
+    const list = screen.getByRole("list", { name: "Codes" });
+    return within(list)
       .getAllByRole("listitem")
+      .filter((li) => li.parentElement === list)
       .map((li) => li.getAttribute("aria-label"));
+  };
 
   it("populated: heading, Demo data badge, freshness note, one card per code", () => {
     view(live());

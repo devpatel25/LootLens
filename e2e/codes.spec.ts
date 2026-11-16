@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 test.describe.configure({ mode: "serial" });
 
 const list = (page: Page) => page.getByRole("list", { name: "Codes" });
+const cards = (page: Page) => list(page).locator(":scope > li");
 const card = (page: Page, code: string) => page.getByRole("listitem", { name: `Code ${code}` });
 
 test("shows only live, recently checked, unexpired codes", async ({ page }) => {
@@ -11,7 +12,7 @@ test("shows only live, recently checked, unexpired codes", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Codes" })).toBeVisible();
   await expect(page.getByText("Demo data")).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Show dead codes" })).not.toBeChecked();
-  await expect(list(page).getByRole("listitem")).toHaveCount(5);
+  await expect(cards(page)).toHaveCount(5);
   await expect(card(page, "SAMBA20").getByText("checked 1h ago")).toBeVisible();
   await expect(card(page, "SAVE25").getByText("Min spend $150.00")).toBeVisible();
   await expect(card(page, "WELCOME15").getByText("First order only")).toBeVisible();
@@ -21,11 +22,11 @@ test("shows only live, recently checked, unexpired codes", async ({ page }) => {
 test("filter by store and search", async ({ page }) => {
   await page.goto("/codes");
   await page.getByLabel("Store").selectOption("Amazon");
-  await expect(list(page).getByRole("listitem")).toHaveCount(1);
+  await expect(cards(page)).toHaveCount(1);
   await expect(card(page, "SAVE25")).toBeVisible();
   await page.getByLabel("Store").selectOption("");
   await page.getByLabel("Search codes").fill("tgt");
-  await expect(list(page).getByRole("listitem")).toHaveCount(1);
+  await expect(cards(page)).toHaveCount(1);
   await expect(card(page, "TGT50")).toBeVisible();
 });
 
