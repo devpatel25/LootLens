@@ -2,11 +2,21 @@ import { expect, test } from "@playwright/test";
 
 // Each test gets its own item, so simulated price drops and refreshes never touch the seeded items
 // that other spec files check. Deleting the item also deletes its watches and alerts.
+//
+// The names are fixed on purpose. Demo listings are generated from the item name, and the demo feed
+// takes 10% off and removes one unit of stock. With a random name the cheapest listing can sell out
+// and the next cheapest can cost more than the starting price, so no price-drop alert fires (correct
+// app behaviour, flaky test). These names were checked to give a drop. The seed deletes the demo
+// user's items at the start of every run, so fixed names never collide with leftovers.
+const NAMES: Record<string, string> = {
+  "create a watch, simulate a drop, see the price-drop alert, delete the watch": "E2E watch drop",
+  "Refresh now updates prices and shows the new alert, then rate-limits": "E2E watch refresh",
+};
 let itemId = "";
 let name = "";
 
-test.beforeEach(async ({ request }) => {
-  name = `E2E watch ${Date.now()} ${Math.floor(Math.random() * 1e6)}`;
+test.beforeEach(async ({ request }, testInfo) => {
+  name = NAMES[testInfo.title];
   const res = await request.post("/api/items", {
     data: { name, category: "tech", sizes: ["One size"], selectedSize: "One size", typicalPrice: 50 },
   });
