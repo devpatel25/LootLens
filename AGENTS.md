@@ -32,9 +32,9 @@ lib/
   db-guard.ts           assertNonProdDb()
   prisma.ts  auth.ts
   authConfig.ts         edge-safe auth config and routeDecision (no Prisma)
-  http.ts               route helpers: ok, fail, requireUserId, parse, isStaleUser
+  http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings)
-  settings.ts           getSettings(userId): the user's settings, created on first read
+  settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)
   demoListings.ts       generateDemoListings: seeded demo listings for a new item
   comparison.ts         loadComparison: item, listings, stores, best deals for the comparison route
   itemSchema.ts         zod schemas for item bodies and the id route param

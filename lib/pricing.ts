@@ -14,7 +14,7 @@ export function sortByPrice(listings: Listing[]): Listing[] {
   return [...listings].sort((a, b) => a.price - b.price);
 }
 
-const storeName = (stores: Store[], l: Listing) => stores.find((s) => s.id === l.storeId)?.name ?? "";
+export const storeName = (stores: Store[], l: Listing) => stores.find((s) => s.id === l.storeId)?.name ?? "";
 
 /** Tie rule: new condition first, then store name A to Z. Negative when a wins. */
 function tieBreak(a: Listing, b: Listing, stores: Store[]): number {
