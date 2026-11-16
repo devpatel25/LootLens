@@ -38,7 +38,7 @@ describe("ComparisonTable (populated)", () => {
     render(<ComparisonTable comparison={demo()} />);
     const rows = bodyRows();
     expect(rows).toHaveLength(5);
-    expect(rows.map((r) => within(r).getAllByRole("cell")[0].textContent)).toEqual([
+    expect(rows.map((r) => within(r).getByRole("rowheader").textContent)).toEqual([
       expect.stringContaining("Facebook Marketplace"),
       expect.stringContaining("Amazon"),
       expect.stringContaining("Walmart"),
