@@ -5,6 +5,7 @@ import { fail, fkName, itemNotFound, ok, parse, requireUserId, route } from "@/l
 import { Prisma } from "@/lib/generated/prisma/client";
 import { moneySchema } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
+import type { CreatedWatch } from "@/lib/types";
 
 const watchSchema = z.object({
   itemId: z.string().min(1).max(64),
@@ -57,7 +58,10 @@ export const POST = route(async (req: Request) => {
       const row = await tx.watch.create({
         data: { userId, itemId: item.id, size: body.size, targetPrice, lowStockAt, baselinePrice: price, priceCondMet, stockCondMet },
       });
-      return ok({ ...toWatch(row), alreadyMet: false /* stub */ }, 201);
+      // "Any drop" (no target) is never already met.
+      const alreadyMet = targetPrice !== null && price <= targetPrice;
+      const created: CreatedWatch = { ...toWatch(row), alreadyMet };
+      return ok(created, 201);
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003" && fkName(e) === "Watch_itemId_fkey") {

@@ -59,7 +59,7 @@ export async function applyRefresh(
         { targetPrice: w.targetPrice?.toNumber() ?? null, baselinePrice: w.baselinePrice.toNumber(), lowStockAt: w.lowStockAt },
         now,
       );
-      const base = { userId: w.userId, itemId, watchId: w.id, size: "" }; // stub: set to w.size in the fix
+      const base = { userId: w.userId, itemId, watchId: w.id, size: w.size };
       const flip = async (field: "priceCondMet" | "stockCondMet", cond: boolean) => {
         const r = await tx.watch.updateMany({ where: { id: w.id, [field]: !cond }, data: { [field]: cond } });
         return cond && r.count === 1;
