@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import spec from "@/public/openapi.json";
@@ -48,5 +48,46 @@ describe("openapi.json", () => {
       for (const m of documented(path)) if (!ops[m.toLowerCase()].responses["401"]) missing.push(`${m} ${path}`);
     }
     expect(missing).toEqual([]);
+  });
+});
+
+// Fixtures hold the unwrapped payload, so each one maps to a component schema by hand.
+const FIXTURES: Record<string, string> = {
+  "alerts.json": "AlertsResponse",
+  "codes-all.json": "Code",
+  "codes.json": "Code",
+  "comparison.json": "ItemComparison",
+  "settings.json": "Settings",
+  "wishlist.json": "WishlistItem",
+};
+
+type Schema = { $ref?: string; allOf?: Schema[]; properties?: Record<string, unknown>; required?: string[] };
+const schemas = (spec.components.schemas as unknown) as Record<string, Schema>;
+
+/** Properties and required names of a schema, following allOf and $ref. */
+function shape(s: Schema): { props: Set<string>; required: Set<string> } {
+  const out = { props: new Set<string>(), required: new Set<string>() };
+  const walk = (n: Schema) => {
+    if (n.$ref) walk(schemas[n.$ref.split("/").pop()!]);
+    n.allOf?.forEach(walk);
+    Object.keys(n.properties ?? {}).forEach((k) => out.props.add(k));
+    n.required?.forEach((k) => out.required.add(k));
+  };
+  walk(s);
+  return out;
+}
+
+describe("fixtures match the spec", () => {
+  it("maps every fixture file", () => {
+    const files = readdirSync(join(process.cwd(), "fixtures")).filter((f) => f.endsWith(".json"));
+    expect(files.sort()).toEqual(Object.keys(FIXTURES).sort());
+  });
+
+  it.each(Object.entries(FIXTURES))("%s fits %s", (file, name) => {
+    const raw = JSON.parse(readFileSync(join(process.cwd(), "fixtures", file), "utf8"));
+    const data: Record<string, unknown> = Array.isArray(raw) ? raw[0] : raw;
+    const { props, required } = shape(schemas[name]);
+    expect([...Object.keys(data)].filter((k) => !props.has(k))).toEqual([]);
+    expect([...required].filter((k) => !(k in data))).toEqual([]);
   });
 });
