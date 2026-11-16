@@ -74,7 +74,7 @@ describe("POST /api/watches", () => {
       clientVersion: "x",
       meta: { driverAdapterError: { cause: { kind: "ForeignKeyConstraintViolation", constraint: { index: "Watch_itemId_fkey" } } } },
     });
-    vi.spyOn(prisma.watch, "create").mockRejectedValueOnce(err);
+    vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(err);
     const res = await post({ itemId: samba, size: "9" });
     expect(res.status).toBe(404);
     expect((await res.json()).error.code).toBe("not_found");
