@@ -99,11 +99,12 @@ export function toAlert(a: DbAlert & { item: DbItem }): Alert {
     watchId: a.watchId,
     itemId: a.itemId,
     itemName: a.item.name,
+    size: "", // stub
     kind: a.kind.toLowerCase() as AlertKind,
     detail: a.detail as Alert["detail"],
     read: a.read,
     createdAt: iso(a.createdAt),
-  };
+  } as Alert;
 }
 
 /** Include for an item's listings in price order, with their stores. Pair with toListingsAndStores. */

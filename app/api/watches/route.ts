@@ -57,7 +57,7 @@ export const POST = route(async (req: Request) => {
       const row = await tx.watch.create({
         data: { userId, itemId: item.id, size: body.size, targetPrice, lowStockAt, baselinePrice: price, priceCondMet, stockCondMet },
       });
-      return ok(toWatch(row), 201);
+      return ok({ ...toWatch(row), alreadyMet: false /* stub */ }, 201);
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003" && fkName(e) === "Watch_itemId_fkey") {

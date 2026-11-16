@@ -16,7 +16,7 @@ let samba: string;
 let jacket: string;
 const mk = (userId: string, itemId: string, read: boolean, at: string, kind: "PRICE_DROP" | "LOW_SIZE" = "LOW_SIZE") =>
   prisma.alert.create({
-    data: { userId, itemId, kind, read, createdAt: new Date(at), detail: kind === "LOW_SIZE" ? { qty: 1 } : { from: 60, to: 50 } },
+    data: { userId, itemId, size: "9", kind, read, createdAt: new Date(at), detail: kind === "LOW_SIZE" ? { qty: 1 } : { from: 60, to: 50 } },
   });
 
 beforeEach(async () => {
@@ -53,7 +53,7 @@ describe("GET /api/alerts", () => {
       "2026-10-03T10:00:00.000Z", "2026-10-02T10:00:00.000Z", "2026-10-01T10:00:00.000Z",
     ]);
     expect(g.alerts[0]).toEqual({
-      id: expect.any(String), watchId: null, itemId: samba, itemName: "Adidas Samba OG", kind: "price_drop",
+      id: expect.any(String), watchId: null, itemId: samba, itemName: "Adidas Samba OG", size: "9", kind: "price_drop",
       detail: { from: 60, to: 50 }, read: true, createdAt: "2026-10-03T10:00:00.000Z",
     });
   });
@@ -63,7 +63,7 @@ describe("GET /api/alerts limit", () => {
   it("returns at most 200 alerts but counts every unread one", async () => {
     await prisma.alert.createMany({
       data: Array.from({ length: 205 }, (_, i) => ({
-        userId: a, itemId: samba, kind: "LOW_SIZE" as const, detail: { qty: 1 }, createdAt: new Date(Date.UTC(2026, 9, 1, 0, 0, i)),
+        userId: a, itemId: samba, size: "9", kind: "LOW_SIZE" as const, detail: { qty: 1 }, createdAt: new Date(Date.UTC(2026, 9, 1, 0, 0, i)),
       })),
     });
     await mk(a, jacket, false, "2026-09-01T10:00:00Z");

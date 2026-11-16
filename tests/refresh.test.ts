@@ -52,6 +52,7 @@ describe("applyRefresh with fixed updates", () => {
     const alert = await prisma.alert.findFirstOrThrow({ where: { userId: a } });
     expect(alert.kind).toBe("PRICE_DROP");
     expect(alert.detail).toEqual({ from: 60, to: 50 });
+    expect(alert.size).toBe("9");
   });
 
   it("two concurrent applies create exactly one alert", async () => {
@@ -78,6 +79,7 @@ describe("applyRefresh with fixed updates", () => {
     const alert = await prisma.alert.findFirstOrThrow({ where: { userId: a } });
     expect(alert.kind).toBe("OUT_OF_STOCK");
     expect(alert.detail).toEqual({ qty: 0 });
+    expect(alert.size).toBe("9");
   });
 
   it("a deleted watch creates no alert and old alerts keep their row with watchId null", async () => {
@@ -89,6 +91,7 @@ describe("applyRefresh with fixed updates", () => {
     const alerts = await prisma.alert.findMany({ where: { userId: a } });
     expect(alerts).toHaveLength(1);
     expect(alerts[0].watchId).toBeNull();
+    expect(alerts[0].size).toBe("9");
   });
 
   it("ignores inactive watches", async () => {
