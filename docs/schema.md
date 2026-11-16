@@ -72,9 +72,9 @@ erDiagram
   }
   Code {
     string id PK
-    string storeId FK
+    string storeId FK, UK
     string lastCheckedById FK
-    string code
+    string code UK
     string label
     CodeType type
     decimal value
@@ -104,6 +104,7 @@ erDiagram
     string userId FK
     string itemId FK
     string watchId FK
+    string size
     AlertKind kind
     json detail
     boolean read
@@ -151,10 +152,10 @@ erDiagram
 | Listing | the item's owner | Reached through Item. Deleted with the item. One row per item, store and condition. |
 | PriceHistory | the item's owner | Reached through Listing. Deleted with the listing. |
 | Watch | the signed-in user | One per user, item and size. Deleted with the item or user. |
-| Alert | the signed-in user | Deleted with the item or user. Deleting a watch keeps its alerts and sets `watchId` to null. Removing a size in PATCH items deletes that size's watches and their alerts. |
+| Alert | the signed-in user | Deleted with the item or user. Each alert stores the watch `size`, so deleting a watch keeps its alerts with their size and sets `watchId` to null. Removing a size in PATCH items deletes that size's watches and their alerts. |
 | UserSettings | the signed-in user | One row per user, created at sign-up by the `createUser` event. Reads fall back to defaults if the row is missing, and PATCH upserts it. |
 | Store | shared | Any signed-in user can read. Created by seed only. |
-| Code | shared | Any signed-in user can read and mark live or dead, which sets `lastCheckedAt` and `lastCheckedById`. Created by seed or ingestion only. |
+| Code | shared | Any signed-in user can read and mark live or dead, which sets `lastCheckedAt` and `lastCheckedById`. Created by seed or ingestion only. `(storeId, code)` is unique, so a store has one row per code text. |
 
 ## Alert dedupe
 

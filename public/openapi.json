@@ -859,7 +859,7 @@
                   ],
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/Watch"
+                      "$ref": "#/components/schemas/CreatedWatch"
                     }
                   }
                 }
@@ -1361,6 +1361,15 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "description": "Seconds until the next refresh is allowed",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
             }
           }
         }
@@ -2078,64 +2087,220 @@
           }
         }
       },
-      "Alert": {
-        "type": "object",
-        "required": [
-          "id",
-          "watchId",
-          "itemId",
-          "itemName",
-          "kind",
-          "detail",
-          "read",
-          "createdAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
+      "CreatedWatch": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Watch"
           },
-          "watchId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "itemId": {
-            "type": "string"
-          },
-          "itemName": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "price_drop",
-              "low_size",
-              "out_of_stock"
-            ]
-          },
-          "detail": {
+          {
             "type": "object",
-            "description": "price_drop: from and to. low_size: qty. out_of_stock: qty 0.",
+            "required": [
+              "alreadyMet"
+            ],
             "properties": {
-              "from": {
-                "type": "number"
+              "alreadyMet": {
+                "type": "boolean",
+                "description": "True when the current cheapest in-stock price for the size is already at or below targetPrice. False for any drop. No alert fires for this, alerts fire only on a later crossing."
+              }
+            }
+          }
+        ]
+      },
+      "Alert": {
+        "description": "One schema per kind. `kind` decides the shape of `detail`.",
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "watchId",
+              "itemId",
+              "itemName",
+              "size",
+              "kind",
+              "detail",
+              "read",
+              "createdAt"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
               },
-              "to": {
-                "type": "number"
+              "watchId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Null after the watch is deleted. The alert stays."
               },
-              "qty": {
-                "type": "integer"
+              "itemId": {
+                "type": "string"
+              },
+              "itemName": {
+                "type": "string"
+              },
+              "size": {
+                "type": "string",
+                "description": "The saved size the alert is about. It stays after the watch is deleted."
+              },
+              "read": {
+                "type": "boolean"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "price_drop"
+                ]
+              },
+              "detail": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "number"
+                  },
+                  "to": {
+                    "type": "number"
+                  }
+                }
               }
             }
           },
-          "read": {
-            "type": "boolean"
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "watchId",
+              "itemId",
+              "itemName",
+              "size",
+              "kind",
+              "detail",
+              "read",
+              "createdAt"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "watchId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Null after the watch is deleted. The alert stays."
+              },
+              "itemId": {
+                "type": "string"
+              },
+              "itemName": {
+                "type": "string"
+              },
+              "size": {
+                "type": "string",
+                "description": "The saved size the alert is about. It stays after the watch is deleted."
+              },
+              "read": {
+                "type": "boolean"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "low_size"
+                ]
+              },
+              "detail": {
+                "type": "object",
+                "required": [
+                  "qty"
+                ],
+                "properties": {
+                  "qty": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Stock summed across stores, so there is no store name"
+                  }
+                }
+              }
+            }
           },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "watchId",
+              "itemId",
+              "itemName",
+              "size",
+              "kind",
+              "detail",
+              "read",
+              "createdAt"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "watchId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Null after the watch is deleted. The alert stays."
+              },
+              "itemId": {
+                "type": "string"
+              },
+              "itemName": {
+                "type": "string"
+              },
+              "size": {
+                "type": "string",
+                "description": "The saved size the alert is about. It stays after the watch is deleted."
+              },
+              "read": {
+                "type": "boolean"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "out_of_stock"
+                ]
+              },
+              "detail": {
+                "type": "object",
+                "required": [
+                  "qty"
+                ],
+                "properties": {
+                  "qty": {
+                    "type": "integer",
+                    "enum": [
+                      0
+                    ]
+                  }
+                }
+              }
+            }
           }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
         }
       },
       "AlertsResponse": {

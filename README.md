@@ -66,7 +66,9 @@ npm run test:e2e               # Playwright, builds and serves on port 3100
 | PR preview | Neon branch per preview | `prisma migrate deploy` in the Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
 | Production | Neon `production` (default branch) | `prisma migrate deploy` in the Vercel build | Vercel Production scope, no demo |
 
-Seed, reset, simulate, and test truncation call `assertNonProdDb()` first. It passes only when `DB_TARGET` is `local`, `ci`, or `preview`, and the `DATABASE_URL` host differs from `PROD_DB_HOST`. Production sets `DB_TARGET=production`.
+Seed, reset, simulate, and test truncation call `assertNonProdDb()` first. It passes only when `DB_TARGET` is `local`, `ci`, or `preview`, and the `DATABASE_URL` host differs from `PROD_DB_HOST`. `PROD_DB_HOST` must be set unless the `DATABASE_URL` host is loopback (`localhost`, `127.0.0.1`, `::1`); if it is missing for any other host, the guard throws. Production sets `DB_TARGET=production`.
+
+The guard is also fail-closed on Prisma CLI commands. Only `generate`, `version`, `validate`, `format`, `migrate deploy`, `migrate status`, `migrate diff`, and `db seed` run without it (the seed calls the guard itself). Every other command, such as `migrate dev` or `migrate reset`, runs the guard first and stops when it throws.
 
 ## Deploy
 
