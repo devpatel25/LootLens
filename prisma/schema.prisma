@@ -173,6 +173,7 @@ model Code {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
+  @@unique([storeId, code])
   @@index([storeId, status])
   @@index([lastCheckedById])
 }
@@ -203,6 +204,7 @@ model Alert {
   userId    String
   itemId    String
   watchId   String?
+  size      String
   kind      AlertKind
   detail    Json
   read      Boolean   @default(false)

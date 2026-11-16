@@ -9,7 +9,9 @@ export async function ensureUserSettings(userId: string): Promise<void> {
 
 export async function handleCreateUser({ user }: { user: { id?: string } }): Promise<void> {
   if (!user.id) return;
-  // Never abort sign-in: Auth.js runs createUser before linkAccount, so a throw orphans the user.
+  // @auth/core already catches and logs errors thrown in event handlers (eventsErrorHandler), so this
+  // try/catch is an explicit safety net, not load-bearing. Sign-in must not abort here: createUser runs
+  // before linkAccount, so a throw would orphan the user.
   // The settings route falls back to defaults on read and upserts only on PATCH.
   try {
     await ensureUserSettings(user.id);

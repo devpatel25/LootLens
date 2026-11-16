@@ -122,6 +122,46 @@ describe("assertNonProdDb rejects", () => {
   });
 });
 
+describe("assertNonProdDb requires PROD_DB_HOST off loopback", () => {
+  it.each([undefined, ""])("preview with a non-loopback host and PROD_DB_HOST %j", (prod) => {
+    expect(() =>
+      assertNonProdDb({ DB_TARGET: "preview", DATABASE_URL: url(PROD), PROD_DB_HOST: prod }),
+    ).toThrow(/PROD_DB_HOST/);
+  });
+  it("loopback DATABASE_URL but a remote UNPOOLED url", () => {
+    expect(() =>
+      assertNonProdDb({
+        DB_TARGET: "local",
+        DATABASE_URL: url("localhost"),
+        DATABASE_URL_UNPOOLED: url(PROD),
+      }),
+    ).toThrow(/PROD_DB_HOST/);
+  });
+});
+
+describe("assertNonProdDb rejects whitespace and control characters", () => {
+  it.each([
+    ["tab inside the scheme", `postgresql:/\t/u:p@${PROD}/db`],
+    ["newline", `postgresql://u:p@${PROD}/db\nx`],
+    ["space", `postgresql://u:p@${PROD} /db`],
+    ["NUL", `postgresql://u:p@${PROD}\u0000/db`],
+  ])("DATABASE_URL with %s", (_n, u) => {
+    expect(() => assertNonProdDb({ DB_TARGET: "local", PROD_DB_HOST: PROD, DATABASE_URL: u })).toThrow(
+      /DATABASE_URL/,
+    );
+  });
+  it("DATABASE_URL_UNPOOLED with a tab", () => {
+    expect(() =>
+      assertNonProdDb({
+        DB_TARGET: "local",
+        PROD_DB_HOST: PROD,
+        DATABASE_URL: url("dev.example.com"),
+        DATABASE_URL_UNPOOLED: `postgresql:/\t/u:p@${PROD}/db`,
+      }),
+    ).toThrow(/DATABASE_URL_UNPOOLED/);
+  });
+});
+
 describe("assertNonProdDb rejects URL host tricks", () => {
   const env = (extra: Record<string, string>) => ({ DB_TARGET: "local", PROD_DB_HOST: PROD, ...extra });
   it.each([
@@ -151,14 +191,12 @@ describe("assertNonProdDb passes", () => {
     ).not.toThrow();
   });
 
-  it.each([undefined, ""])("local with PROD_DB_HOST %j", (prod) => {
-    expect(() =>
-      assertNonProdDb({
-        DB_TARGET: "local",
-        DATABASE_URL: url("dev.example.com"),
-        PROD_DB_HOST: prod,
-      }),
-    ).not.toThrow();
+  it.each([undefined, ""])("local on a loopback host with PROD_DB_HOST %j", (prod) => {
+    for (const host of ["localhost", "127.0.0.1", "[::1]"]) {
+      expect(() =>
+        assertNonProdDb({ DB_TARGET: "local", DATABASE_URL: url(host), PROD_DB_HOST: prod }),
+      ).not.toThrow();
+    }
   });
 
   it("local with a safe UNPOOLED url, or an empty one", () => {
@@ -197,16 +235,36 @@ describe("isDestructivePrismaCommand", () => {
     ["migrate dev with flags", ["migrate", "dev", "--name", "x"]],
     ["migrate reset", ["migrate", "reset", "--force"]],
     ["db push", ["db", "push"]],
+    ["db pull", ["db", "pull"]],
     ["db execute", ["db", "execute", "--file", "x.sql"]],
     ["migrate resolve", ["migrate", "resolve", "--applied", "x"]],
+    ["studio", ["studio"]],
+    ["studio with a port", ["studio", "--port", "5555"]],
+    ["unknown command", ["something-new"]],
+    ["flag before reset", ["migrate", "--preview-feature", "reset", "--force"]],
+    ["config before reset", ["migrate", "--config", "prisma.config.ts", "reset"]],
+    ["config=value before reset", ["migrate", "--config=prisma.config.ts", "reset"]],
+    ["flag before push", ["db", "--preview-feature", "push"]],
+    ["telemetry flag before dev", ["migrate", "--telemetry-information", "x", "dev"]],
+    ["flag before the command", ["--preview-feature", "migrate", "reset"]],
+    ["safe command followed by a destructive one", ["--bogus", "generate", "migrate", "reset"]],
+    ["help-less migrate", ["migrate"]],
   ])("true for %s", (_name, rest) => {
     expect(isDestructivePrismaCommand(argv(...rest))).toBe(true);
   });
   it.each([
     ["migrate deploy", ["migrate", "deploy"]],
     ["migrate status", ["migrate", "status"]],
-    ["migrate diff", ["migrate", "diff"]],
+    ["migrate diff", ["migrate", "diff", "--from-config-datasource", "--to-schema", "x.prisma", "--exit-code"]],
+    ["migrate deploy with config", ["migrate", "--config", "prisma.config.ts", "deploy"]],
+    ["migrate deploy with preview flag", ["migrate", "--preview-feature", "deploy"]],
     ["generate", ["generate"]],
+    ["generate with flags", ["generate", "--schema", "prisma/schema.prisma", "--no-hints"]],
+    ["validate", ["validate"]],
+    ["format", ["format"]],
+    ["version", ["version"]],
+    ["version flag", ["--version"]],
+    ["help flag", ["--help"]],
     ["db seed", ["db", "seed"]],
     ["no command", []],
   ])("false for %s", (_name, rest) => {
