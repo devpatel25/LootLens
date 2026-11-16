@@ -28,7 +28,7 @@ test("Item Detail compares every store and marks the cheapest in the saved size"
   await expect(cheapest.getByText("Cheapest")).toBeVisible();
   await expect(cheapest.getByText("Used")).toBeVisible();
   await expect(table.getByText("Cheapest")).toHaveCount(1);
-  await expect(table.getByRole("row", { name: /KickSwap/ }).getByText("Resale")).toBeVisible();
+  await expect(table.getByRole("row", { name: /KickSwap/ }).getByText("Resale", { exact: true })).toBeVisible();
   await expect(table.getByRole("row", { name: /Amazon/ }).getByText("Out of stock")).toBeVisible();
 });
 
