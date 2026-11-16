@@ -86,6 +86,13 @@ describe("CodeCard", () => {
     expect(r.onMark).toHaveBeenCalledWith("live");
   });
 
+  it("a dead code whose end date has passed says Ended, not Ends in", () => {
+    renderCard({ ...all().find((c) => c.code === "OLD25")!, expiresAt: "2026-10-01T00:00:00.000Z" }, "dead");
+    const c = card("OLD25");
+    expect(within(c).getByText("Ended")).toBeTruthy();
+    expect(within(c).queryByText(/Ends in/)).toBeNull();
+  });
+
   it("tags stale and expired codes; an expired code cannot be marked", () => {
     renderCard(all().find((c) => c.code === "STALE15")!, "stale");
     expect(within(card("STALE15")).getByText("Not checked recently")).toBeTruthy();
