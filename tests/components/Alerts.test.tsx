@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AlertsError from "@/app/(app)/alerts/error";
 import AlertsLoading from "@/app/(app)/alerts/loading";
 import AlertsBadge from "@/components/AlertsBadge";
+import NavBar from "@/components/NavBar";
 import AlertsView, { POLL_MS } from "@/components/AlertsView";
 import RefreshButton from "@/components/RefreshButton";
 import WatchPanel from "@/components/WatchPanel";
@@ -26,6 +27,12 @@ const watch: Watch = {
   createdAt: "2026-10-28T12:00:00.000Z",
 };
 const watches = (): WatchWithItem[] => [{ ...watch, itemName: "Adidas Samba OG" }];
+const listingsNow = () => (structuredClone(comparisonFixture) as ItemComparison).listings;
+const changedComparison = () => {
+  const c = structuredClone(comparisonFixture) as ItemComparison;
+  c.listings[0] = { ...c.listings[0], price: c.listings[0].price - 1 };
+  return c;
+};
 
 beforeEach(() => {
   router.refresh.mockReset();
@@ -106,6 +113,27 @@ describe("WatchPanel", () => {
     expect((await within(panel()).findByRole("alert")).textContent).toContain(message);
   });
 
+  it("refreshes when the watch already exists (made in another tab), so the panel can show it", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(409, { error: { code: "watch_exists", message: "x" } }));
+    renderPanel();
+    fireEvent.click(within(panel()).getByRole("button", { name: "Watch this item" }));
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("shows Saving while the watch is created", () => {
+    vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>(() => {}));
+    renderPanel();
+    fireEvent.click(within(panel()).getByRole("button", { name: "Watch this item" }));
+    expect(within(panel()).getByRole<HTMLButtonElement>("button", { name: "Saving…" }).disabled).toBe(true);
+  });
+
+  it("switches from the form to the watch summary when the refreshed page passes the new watch", () => {
+    const { rerender } = renderPanel();
+    rerender(<WatchPanel item={item()} watch={watch} cheapestPrice={60} />);
+    expect(within(panel()).queryByRole("button", { name: "Watch this item" })).toBeNull();
+    expect(within(panel()).getByText(/^Size 9: any price drop/)).toBeTruthy();
+  });
+
   it("with no stock in the size, explains instead of showing the form", () => {
     renderPanel(null, null);
     expect(within(panel()).getByText("No store has size 9 in stock right now, so there is no price to watch.")).toBeTruthy();
@@ -131,12 +159,12 @@ describe("RefreshButton", () => {
     vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>((r) => (finish = r)));
     const changed = vi.fn();
     window.addEventListener(ALERTS_CHANGED, changed);
-    render(<RefreshButton itemId="item-samba" />);
+    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Refreshing…" }).disabled).toBe(true);
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/items/item-samba/refresh");
     expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("POST");
-    await act(async () => finish(json(200, { data: { comparison: {}, alertsCreated: 1 } })));
+    await act(async () => finish(json(200, { data: { comparison: changedComparison(), alertsCreated: 1 } })));
     expect(router.refresh).toHaveBeenCalledTimes(1);
     expect(changed).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("status").textContent).toContain("Prices updated. 1 new alert.");
@@ -147,10 +175,17 @@ describe("RefreshButton", () => {
     [0, "Prices updated."],
     [2, "Prices updated. 2 new alerts."],
   ])("counts %i new alerts", async (n, text) => {
-    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: {}, alertsCreated: n } }));
-    render(<RefreshButton itemId="item-samba" />);
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: changedComparison(), alertsCreated: n } }));
+    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain(text));
+  });
+
+  it("says nothing changed when the store prices and stock are the same", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: structuredClone(comparisonFixture), alertsCreated: 0 } }));
+    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Prices checked. Nothing changed."));
   });
 
   it.each([
@@ -159,7 +194,7 @@ describe("RefreshButton", () => {
     [61, "Prices were refreshed a moment ago. Try again in 2 minutes."],
   ])("explains the rate limit with the wait (%i s)", async (retryAfterSeconds, text) => {
     vi.mocked(fetch).mockResolvedValueOnce(json(429, { error: { code: "rate_limited", message: "x", retryAfterSeconds } }));
-    render(<RefreshButton itemId="item-samba" />);
+    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain(text));
     expect(router.refresh).not.toHaveBeenCalled();
@@ -167,7 +202,7 @@ describe("RefreshButton", () => {
 
   it("shows an error alert when the refresh fails", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(json(500, { error: { code: "internal", message: "x" } }));
-    render(<RefreshButton itemId="item-samba" />);
+    render(<RefreshButton itemId="item-samba" listings={listingsNow()} />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     expect((await screen.findByRole("alert")).textContent).toContain("Something went wrong. Try again.");
   });
@@ -222,6 +257,11 @@ describe("AlertsView", () => {
   it("hides Clear read alerts when nothing is read", () => {
     view();
     expect(screen.queryByRole("button", { name: "Clear read alerts" })).toBeNull();
+  });
+
+  it("labels demo data when there are watches but no alerts", () => {
+    view({ groups: [], unreadCount: 0 }, watches());
+    expect(screen.getByText("Demo data")).toBeTruthy();
   });
 
   it("empty: explains how alerts appear", () => {
@@ -282,6 +322,40 @@ describe("AlertsBadge", () => {
       window.dispatchEvent(new Event(ALERTS_CHANGED));
     });
     expect(await screen.findByText("4")).toBeTruthy();
+  });
+});
+
+describe("AlertsBadge in the nav", () => {
+  it("keeps the link's name exactly Alerts and puts the count in its description", async () => {
+    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 3 } }));
+    render(<NavBar pathname="/wishlist" />);
+    const link = await screen.findByRole("link", { name: "Alerts", description: "3 unread alerts" });
+    expect(link).toBeTruthy();
+  });
+
+  it("the Suspense fallback nav (no pathname yet) does not mount a second badge", () => {
+    render(<NavBar pathname={null} />);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("polls every 60 seconds, skips while the tab is hidden, and stops on unmount", async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 1 } }));
+    const { unmount } = render(<AlertsBadge describedById="d" />);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await act(async () => vi.advanceTimersByTime(60_000));
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const hidden = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    await act(async () => vi.advanceTimersByTime(60_000));
+    expect(fetch).toHaveBeenCalledTimes(2);
+    hidden.mockReturnValue("visible");
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(fetch).toHaveBeenCalledTimes(3);
+    unmount();
+    await act(async () => vi.advanceTimersByTime(120_000));
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
 });
 

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
 import { announceAlertsChanged } from "@/lib/alertText";
+import type { Listing } from "@/lib/types";
 
 function waitText(seconds?: number): string {
   if (!seconds) return "a few minutes";
@@ -11,7 +12,8 @@ function waitText(seconds?: number): string {
 }
 
 /** POST /api/items/[id]/refresh, then router.refresh() so the server re-renders the comparison. */
-export default function RefreshButton({ itemId }: { itemId: string }) {
+export default function RefreshButton({ itemId, listings }: { itemId: string; listings: Listing[] }) {
+  void listings;
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
