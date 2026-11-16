@@ -53,3 +53,22 @@ test("sign out returns to the sign-in page and protects the app again", async ({
   await page.goto("/wishlist");
   await expect(page).toHaveURL(/\/signin\?callbackUrl=%2Fwishlist/);
 });
+
+test("the server HTML already marks the current tab, so it is right before JavaScript runs", async ({ request }) => {
+  const html = await (await request.get("/codes")).text();
+  expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/codes"|<a[^>]*href="\/codes"[^>]*aria-current="page"/);
+});
+
+test("on desktop the sidebar stays in view when the page scrolls", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/wishlist");
+  const position = await page.getByRole("navigation", { name: "Main" }).evaluate((el) => getComputedStyle(el).position);
+  expect(position).toBe("sticky");
+});
+
+test("a signed-in visit to /signin goes on to its callbackUrl", async ({ request }) => {
+  const res = await request.get("/signin?callbackUrl=%2Fcodes", { maxRedirects: 0 });
+  expect(res.status()).toBeGreaterThanOrEqual(300);
+  expect(res.status()).toBeLessThan(400);
+  expect(res.headers()["location"]).toMatch(/\/codes$/);
+});

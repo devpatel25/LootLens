@@ -14,3 +14,10 @@ test("sign-in page explains a failed sign-in", async ({ page }) => {
   // Next.js adds its own empty role="alert" route announcer, so match ours by text.
   await expect(page.getByRole("alert").filter({ hasText: "Google sign-in was cancelled or denied. Try again." })).toBeVisible();
 });
+
+test("the sign-in page is fully server-rendered: destination and error work before JavaScript", async ({ request }) => {
+  const html = await (await request.get("/signin?callbackUrl=%2Fcodes&error=AccessDenied")).text();
+  expect(html).toMatch(/name="callbackUrl"[^>]*value="\/codes"|value="\/codes"[^>]*name="callbackUrl"/);
+  expect(html).toContain("Google sign-in was cancelled or denied. Try again.");
+  expect(html).not.toMatch(/<div hidden id="S:\d+">[\s\S]*Sign in to LootLens/);
+});

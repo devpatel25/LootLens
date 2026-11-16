@@ -12,6 +12,11 @@ describe("safeCallbackUrl", () => {
     expect(safeCallbackUrl("")).toBe("/wishlist");
   });
 
+  it("keeps a destination whose query has a bare % or an encoded backslash", () => {
+    expect(safeCallbackUrl("/codes?q=100%")).toBe("/codes?q=100%");
+    expect(safeCallbackUrl("/items/x?q=a%5Cb")).toBe("/items/x?q=a%5Cb");
+  });
+
   it("uses the first value when the param repeats", () => {
     expect(safeCallbackUrl(["/codes", "https://evil.example"])).toBe("/codes");
   });
