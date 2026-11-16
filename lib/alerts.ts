@@ -1,6 +1,8 @@
 import { cheapestListing, stockInSize } from "@/lib/pricing";
 import type { AlertKind, Listing, Store } from "@/lib/types";
 
+export const MAX_WATCHES_PER_USER = 10;
+
 /** Matches the Watch.lowStockAt column default. */
 export const DEFAULT_LOW_STOCK = 3;
 

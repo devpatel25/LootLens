@@ -53,11 +53,34 @@ describe("GET /api/cron/refresh", () => {
   it("one failing item does not stop the rest", async () => {
     vi.stubEnv("DEMO_MODE", "true");
     vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.mocked(refresh.applyRefresh).mockRejectedValueOnce(new Error("boom"));
+    vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(new Error("boom"));
     const res = await call("Bearer s3cret-value");
     expect(res.status).toBe(200);
     expect((await res.json()).data).toMatchObject({ items: 2, failed: 1, codesExpired: 1 });
     expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-target-expired" } })).status).toBe("DEAD");
+  });
+
+  it("keeps paging when an item vanishes at a page boundary", async () => {
+    await prisma.item.createMany({
+      data: Array.from({ length: 49 }, (_, i) => ({ userId: a, name: `bulk ${i}`, category: "tech", sizes: ["x"], selectedSize: "x", typicalPrice: 10 })),
+    });
+    const actual = await vi.importActual<typeof import("@/lib/refresh")>("@/lib/refresh");
+    let calls = 0;
+    vi.mocked(refresh.applyRefresh).mockImplementation(async (id, source) => {
+      // The 50th item is the last of page one and is the paging anchor.
+      if (++calls === 50) {
+        await prisma.item.delete({ where: { id } });
+        return { alertsCreated: 0 };
+      }
+      return actual.applyRefresh(id, source);
+    });
+    try {
+      const res = await call("Bearer s3cret-value");
+      expect(res.status).toBe(200);
+      expect((await res.json()).data).toMatchObject({ items: 52, failed: 0 });
+    } finally {
+      vi.mocked(refresh.applyRefresh).mockImplementation(actual.applyRefresh);
+    }
   });
 
   it("leaves prices alone when DEMO_MODE is true on a production database target", async () => {

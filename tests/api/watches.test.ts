@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DELETE } from "@/app/api/watches/[id]/route";
 import { GET, POST } from "@/app/api/watches/route";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { MAX_WATCHES_PER_USER } from "@/lib/refresh";
+import { MAX_WATCHES_PER_USER } from "@/lib/alerts";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { ctx, req } from "../helpers/api";
@@ -109,6 +109,28 @@ describe("POST /api/watches", () => {
     const res = await post({ itemId: samba, size: "9" });
     expect(res.status).toBe(409);
     expect((await res.json()).error.code).toBe("watch_limit");
+  });
+});
+
+describe("POST /api/watches at the cap", () => {
+  const fill = (n: number, skip = "") =>
+    prisma.watch.createMany({
+      data: Array.from({ length: n }, (_, i) => ({ userId: a, itemId: samba, size: `x${i}${skip}`, baselinePrice: 1 })),
+    });
+
+  it("a duplicate answers watch_exists even when the user is at the cap", async () => {
+    await post({ itemId: samba, size: "9" });
+    await fill(MAX_WATCHES_PER_USER - 1);
+    const res = await post({ itemId: samba, size: "9" });
+    expect(res.status).toBe(409);
+    expect((await res.json()).error.code).toBe("watch_exists");
+  });
+
+  it("two concurrent creates at one below the cap make only one watch", async () => {
+    await fill(MAX_WATCHES_PER_USER - 1);
+    const res = await Promise.all([post({ itemId: samba, size: "8" }), post({ itemId: samba, size: "10" })]);
+    expect(res.map((r) => r.status).sort()).toEqual([201, 409]);
+    expect(await prisma.watch.count({ where: { userId: a } })).toBe(MAX_WATCHES_PER_USER);
   });
 });
 
