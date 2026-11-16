@@ -120,8 +120,9 @@ describe("CodesView", () => {
   it("populated: heading, Demo data badge, freshness note, one card per code", () => {
     view(live());
     expect(screen.getByRole("heading", { level: 1, name: "Codes" })).toBeTruthy();
-    expect(screen.getByText("Demo data")).toBeTruthy();
-    expect(screen.getByText("Codes checked in the last 24 hours that still work.")).toBeTruthy();
+    const header = screen.getByRole("heading", { level: 1, name: "Codes" }).closest("div")!.parentElement!;
+    expect(within(header).getByText("Demo data")).toBeTruthy();
+    expect(within(header).getByText("Codes checked in the last 24 hours that still work.")).toBeTruthy();
     expect(listed()).toEqual(["Code SAMBA40", "Code WELCOME50", "Code SAVE30"]);
   });
 
@@ -257,6 +258,41 @@ describe("CodesView", () => {
     rerender(<CodesView codes={all()} showDead freshnessHours={24} now={NOW} />);
     expect((screen.getByLabelText("Search codes") as HTMLInputElement).value).toBe("save");
     expect((screen.getByRole("checkbox", { name: "Show dead codes" }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("with Show dead codes on and no codes, does not tell you to turn it on", () => {
+    view([], true);
+    expect(screen.getByRole("heading", { name: "No codes yet" })).toBeTruthy();
+    expect(screen.queryByText(/Turn on Show dead codes/)).toBeNull();
+  });
+
+  it("a device clock that runs fast does not hide codes the server called live", () => {
+    // The device thinks it is 20 hours later than the server does.
+    vi.useFakeTimers({ now: new Date("2026-10-30T12:00:00.000Z"), toFake: ["Date", "setInterval", "clearInterval"] });
+    try {
+      view(live());
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(listed()).toHaveLength(3);
+      expect(within(card("SAMBA40")).getByText("checked 3h ago")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a newer server time after a refresh is used at once", () => {
+    const { rerender } = view(live());
+    rerender(<CodesView codes={live()} showDead={false} freshnessHours={24} now="2026-10-29T18:00:00.000Z" />);
+    expect(within(card("SAMBA40")).getByText("checked 5h ago")).toBeTruthy();
+  });
+
+  it("when Mark dead fails, focus goes back to that code's button", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(500, { error: { code: "internal", message: "x" } }));
+    view(live());
+    const button = screen.getByRole("button", { name: "Mark dead SAMBA40" });
+    button.focus();
+    fireEvent.click(button);
+    await screen.findByRole("alert");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Mark dead SAMBA40" })));
   });
 
   it("announces a copy", async () => {

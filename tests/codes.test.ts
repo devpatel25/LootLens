@@ -20,25 +20,30 @@ beforeEach(async () => {
 const codesOf = (list: { code: string }[]) => list.map((c) => c.code).sort();
 
 describe("loadCodes", () => {
-  it("default: only live codes checked inside the user's window and not expired", async () => {
-    expect(codesOf(await loadCodes(a, { showDead: false }))).toEqual(["BR10", "SAMBA20", "SAVE25", "TGT50", "WELCOME15"]);
+  it("default: only live codes checked inside the window and not expired", async () => {
+    expect(codesOf(await loadCodes({ showDead: false, freshnessHours: 24 }))).toEqual(["BR10", "SAMBA20", "SAVE25", "TGT50", "WELCOME15"]);
   });
 
   it("showDead: every code, including dead, stale, and expired", async () => {
-    expect(await loadCodes(a, { showDead: true })).toHaveLength(8);
+    expect(await loadCodes({ showDead: true, freshnessHours: 24 })).toHaveLength(8);
   });
 
   it("filters by store", async () => {
-    expect(codesOf(await loadCodes(a, { showDead: true, storeId: "store-amazon" }))).toEqual(["DEADDEAL", "SAVE25"]);
+    expect(codesOf(await loadCodes({ showDead: true, storeId: "store-amazon", freshnessHours: 24 }))).toEqual(["DEADDEAL", "SAVE25"]);
   });
 
-  it("follows the user's freshness window", async () => {
+  it("follows the freshness window it is given", async () => {
+    expect(codesOf(await loadCodes({ showDead: false, freshnessHours: 48 }))).toContain("SAVE10");
+  });
+
+  it("GET /api/codes uses the user's saved window", async () => {
     await prisma.userSettings.upsert({ where: { userId: a }, update: { freshnessHours: 48 }, create: { userId: a, freshnessHours: 48 } });
-    expect(codesOf(await loadCodes(a, { showDead: false }))).toContain("SAVE10");
+    const { data } = await (await GET(req("/api/codes"))).json();
+    expect(codesOf(data)).toContain("SAVE10");
   });
 
   it("GET /api/codes returns the same list as the loader", async () => {
     const { data } = await (await GET(req("/api/codes"))).json();
-    expect(codesOf(data)).toEqual(codesOf(await loadCodes(a, { showDead: false })));
+    expect(codesOf(data)).toEqual(codesOf(await loadCodes({ showDead: false, freshnessHours: 24 })));
   });
 });

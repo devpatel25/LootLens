@@ -1,12 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// Codes are shared by every user, so this file runs in order and puts BR10 back the way it found it.
+// Codes are shared by every user, so this file runs in order. Only the mark test changes a code (BR10),
+// and it marks it live again in a finally block. That restores its status, not its seeded check time:
+// BR10 then reads "checked just now", which no other spec depends on.
 test.describe.configure({ mode: "serial" });
-
-// Put BR10 back even if a test fails half way (and before a CI retry).
-test.afterEach(async ({ request }) => {
-  await request.patch("/api/codes/code-br-10", { data: { status: "live" } });
-});
 
 const list = (page: Page) => page.getByRole("list", { name: "Codes" });
 const cards = (page: Page) => list(page).locator(":scope > li");
@@ -15,7 +12,7 @@ const card = (page: Page, code: string) => page.getByRole("listitem", { name: `C
 test("shows only live, recently checked, unexpired codes", async ({ page }) => {
   await page.goto("/codes");
   await expect(page.getByRole("heading", { level: 1, name: "Codes" })).toBeVisible();
-  await expect(page.getByText("Demo data")).toBeVisible();
+  await expect(page.getByRole("main").getByText("Demo data")).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Show dead codes" })).not.toBeChecked();
   for (const code of ["SAMBA20", "SAVE25", "WELCOME15", "TGT50", "BR10"]) await expect(card(page, code)).toBeVisible();
   await expect(cards(page)).toHaveCount(5);
@@ -44,7 +41,15 @@ test("copy puts the code on the clipboard", async ({ page, context }) => {
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("SAMBA20");
 });
 
-test("mark dead hides a code at once; show dead codes and mark alive bring it back", async ({ page }) => {
+test("mark dead hides a code at once; show dead codes and mark alive bring it back", async ({ page, request }) => {
+  try {
+    await markDeadAndBack(page);
+  } finally {
+    await request.patch("/api/codes/code-br-10", { data: { status: "live" } });
+  }
+});
+
+async function markDeadAndBack(page: Page) {
   await page.goto("/codes");
   await page.getByRole("button", { name: "Mark dead BR10" }).click();
   await expect(card(page, "BR10")).toHaveCount(0);
@@ -65,4 +70,4 @@ test("mark dead hides a code at once; show dead codes and mark alive bring it ba
   await expect(page).toHaveURL(/\/codes$/);
   await expect(card(page, "BR10")).toBeVisible();
   await expect(card(page, "BR10").getByText("checked just now")).toBeVisible();
-});
+}
