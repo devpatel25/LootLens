@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import WishlistError from "@/app/(app)/wishlist/error";
 import WishlistLoading from "@/app/(app)/wishlist/loading";
@@ -120,6 +120,18 @@ describe("WishlistView", () => {
 });
 
 describe("ConfirmDialog", () => {
+  it("blocks Cancel and Escape while the action runs", async () => {
+    let finish: () => void = () => {};
+    const onConfirm = vi.fn(() => new Promise<void>((r) => (finish = r)));
+    const onClose = vi.fn();
+    render(<ConfirmDialog open title="Delete X?" message="m" confirmLabel="Delete" onConfirm={onConfirm} onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Cancel" }).disabled).toBe(true);
+    screen.getByRole("alertdialog").dispatchEvent(new Event("cancel", { cancelable: true }));
+    expect(onClose).not.toHaveBeenCalled();
+    await act(async () => finish());
+  });
+
   it("Cancel closes without confirming", () => {
     const onConfirm = vi.fn(async () => {});
     const onClose = vi.fn();
@@ -224,6 +236,17 @@ describe("ItemSheet", () => {
     const select = within(screen.getByRole("dialog")).getByLabelText<HTMLSelectElement>("Category");
     expect(select.value).toBe("sneakers");
     expect(within(select).getByRole("option", { name: "sneakers" })).toBeTruthy();
+    fireEvent.change(select, { target: { value: "shoes" } });
+    expect(within(select).getByRole("option", { name: "sneakers" })).toBeTruthy();
+  });
+
+  it("ties the removed-size warning to the Sizes field for screen readers", () => {
+    render(<ItemSheet open item={samba()} onClose={() => {}} onSaved={() => {}} onMissing={() => {}} />);
+    const dialog = screen.getByRole("dialog");
+    fill(dialog, { Sizes: "8, 9" });
+    const sizes = within(dialog).getByLabelText("Sizes");
+    const ids = sizes.getAttribute("aria-describedby")!.split(" ");
+    expect(ids.map((i) => document.getElementById(i)?.textContent)).toContain("Removing size 10 also deletes its price watches and alerts.");
   });
 
   it("blocks a second save, Cancel, and Escape while saving", async () => {
