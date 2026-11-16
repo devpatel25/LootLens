@@ -53,7 +53,7 @@ describe("CodeCard", () => {
     expect(within(c).getByText(samba().label)).toBeTruthy();
     expect(within(c).getByText("Adidas")).toBeTruthy();
     expect(within(c).getByText("Min spend $80.00")).toBeTruthy();
-    expect(within(c).getByText("Ends Nov 30")).toBeTruthy();
+    expect(within(c).getByText("Ends in 31d")).toBeTruthy();
     expect(within(c).getByText("checked 3h ago")).toBeTruthy();
   });
 
@@ -76,30 +76,31 @@ describe("CodeCard", () => {
 
   it("live code offers Mark dead; dead code offers Mark alive with a Dead tag", () => {
     const { onMark } = renderCard(samba());
-    fireEvent.click(screen.getByRole("button", { name: "Mark SAMBA40 dead" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark dead SAMBA40" }));
     expect(onMark).toHaveBeenCalledWith("dead");
     cleanup();
     const dead = all().find((c) => c.code === "OLD25")!;
     const r = renderCard(dead, "dead");
     expect(within(card("OLD25")).getByText("Dead")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Mark OLD25 alive" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark alive OLD25" }));
     expect(r.onMark).toHaveBeenCalledWith("live");
   });
 
   it("tags stale and expired codes; an expired code cannot be marked", () => {
     renderCard(all().find((c) => c.code === "STALE15")!, "stale");
     expect(within(card("STALE15")).getByText("Not checked recently")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Mark STALE15 dead" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Mark dead STALE15" })).toBeTruthy();
     cleanup();
     renderCard(all().find((c) => c.code === "EXPIRED20")!, "expired");
     expect(within(card("EXPIRED20")).getByText("Expired")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Mark EXPIRED20/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Mark (dead|alive) EXPIRED20$/ })).toBeNull();
   });
 });
 
 describe("CodesView", () => {
   const view = (codes: Code[], showDead = false) =>
     render(<CodesView codes={codes} showDead={showDead} freshnessHours={24} now={NOW} />);
+  // "Dead" as a whole word: getByText("Dead") alone would not match DEADDEAL, but keep it explicit.
   // Cards only: each card also holds a nested Terms list.
   const listed = () => {
     const list = screen.getByRole("list", { name: "Codes" });
@@ -158,7 +159,7 @@ describe("CodesView", () => {
     let finish: (r: Response) => void = () => {};
     vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>((r) => (finish = r)));
     view(live());
-    fireEvent.click(screen.getByRole("button", { name: "Mark SAMBA40 dead" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark dead SAMBA40" }));
     expect(listed()).toEqual(["Code WELCOME50", "Code SAVE30"]);
     const [url, init] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe("/api/codes/code-adidas-40");
@@ -172,7 +173,7 @@ describe("CodesView", () => {
   it("brings the code back and explains when Mark dead fails", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(json(500, { error: { code: "internal", message: "boom" } }));
     view(live());
-    fireEvent.click(screen.getByRole("button", { name: "Mark SAMBA40 dead" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark dead SAMBA40" }));
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByRole("alert").textContent).toContain("Something went wrong. Try again.");
     expect(listed()).toContain("Code SAMBA40");
@@ -181,10 +182,74 @@ describe("CodesView", () => {
 
   it("Mark alive on a dead code shows it as live right away", async () => {
     view(all(), true);
-    fireEvent.click(screen.getByRole("button", { name: "Mark OLD25 alive" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark alive OLD25" }));
     expect(within(card("OLD25")).queryByText("Dead")).toBeNull();
     expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({ status: "live" });
     await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("after a refresh, the server's data wins over an earlier optimistic mark", async () => {
+    const { rerender } = view(all(), true);
+    fireEvent.click(screen.getByRole("button", { name: "Mark alive OLD25" }));
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+    // Someone else marked it dead again; the refreshed props carry a newer check time.
+    const fresh = all().map((c) => (c.code === "OLD25" ? { ...c, status: "dead" as const, lastCheckedAt: "2026-10-29T15:59:00.000Z" } : c));
+    rerender(<CodesView codes={fresh} showDead freshnessHours={24} now={NOW} />);
+    expect(within(card("OLD25")).getByText("Dead", { exact: true })).toBeTruthy();
+  });
+
+  it("a failed mark restores the earlier optimistic state, not the stale server one", async () => {
+    view(all(), true);
+    fireEvent.click(screen.getByRole("button", { name: "Mark alive OLD25" }));
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+    vi.mocked(fetch).mockResolvedValueOnce(json(500, { error: { code: "internal", message: "x" } }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark dead OLD25" }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(within(card("OLD25")).queryByText("Dead", { exact: true })).toBeNull();
+    expect(screen.getByRole("button", { name: "Mark dead OLD25" })).toBeTruthy();
+  });
+
+  it("marking a code dead while filtered keeps the filter and moves focus to the list", async () => {
+    view(live());
+    fireEvent.change(screen.getByLabelText("Store"), { target: { value: "Adidas" } });
+    const button = screen.getByRole("button", { name: "Mark dead SAMBA40" });
+    button.focus();
+    fireEvent.click(button);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("list", { name: "Codes" })));
+    expect(listed()).toEqual(["Code WELCOME50", "Code SAVE30"]);
+    expect((screen.getByLabelText("Store") as HTMLSelectElement).value).toBe("Adidas");
+  });
+
+  it("keeps the selected store in the menu after its codes leave the list", () => {
+    const { rerender } = view(live());
+    fireEvent.change(screen.getByLabelText("Store"), { target: { value: "Adidas" } });
+    rerender(<CodesView codes={[]} showDead={false} freshnessHours={24} now={NOW} />);
+    expect((screen.getByLabelText("Store") as HTMLSelectElement).value).toBe("Adidas");
+  });
+
+  it("hides a live code once the clock passes its freshness window, without a reload", () => {
+    vi.useFakeTimers({ now: new Date(NOW), toFake: ["Date", "setInterval", "clearInterval"] });
+    try {
+      view(live());
+      expect(listed()).toHaveLength(3);
+      act(() => {
+        vi.setSystemTime(new Date("2026-10-30T14:00:00.000Z"));
+        vi.advanceTimersByTime(60_000);
+      });
+      expect(screen.queryByRole("list", { name: "Codes" })).toBeNull();
+      expect(screen.getByRole("heading", { name: "No live codes right now" })).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("the toggle keeps search text", () => {
+    const { rerender } = view(live());
+    fireEvent.change(screen.getByLabelText("Search codes"), { target: { value: "save" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Show dead codes" }));
+    rerender(<CodesView codes={all()} showDead freshnessHours={24} now={NOW} />);
+    expect((screen.getByLabelText("Search codes") as HTMLInputElement).value).toBe("save");
+    expect((screen.getByRole("checkbox", { name: "Show dead codes" }) as HTMLInputElement).checked).toBe(true);
   });
 
   it("announces a copy", async () => {

@@ -3,6 +3,11 @@ import { expect, test, type Page } from "@playwright/test";
 // Codes are shared by every user, so this file runs in order and puts BR10 back the way it found it.
 test.describe.configure({ mode: "serial" });
 
+// Put BR10 back even if a test fails half way (and before a CI retry).
+test.afterEach(async ({ request }) => {
+  await request.patch("/api/codes/code-br-10", { data: { status: "live" } });
+});
+
 const list = (page: Page) => page.getByRole("list", { name: "Codes" });
 const cards = (page: Page) => list(page).locator(":scope > li");
 const card = (page: Page, code: string) => page.getByRole("listitem", { name: `Code ${code}` });
@@ -12,6 +17,7 @@ test("shows only live, recently checked, unexpired codes", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Codes" })).toBeVisible();
   await expect(page.getByText("Demo data")).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Show dead codes" })).not.toBeChecked();
+  for (const code of ["SAMBA20", "SAVE25", "WELCOME15", "TGT50", "BR10"]) await expect(card(page, code)).toBeVisible();
   await expect(cards(page)).toHaveCount(5);
   await expect(card(page, "SAMBA20").getByText("checked 1h ago")).toBeVisible();
   await expect(card(page, "SAVE25").getByText("Min spend $150.00")).toBeVisible();
@@ -40,7 +46,7 @@ test("copy puts the code on the clipboard", async ({ page, context }) => {
 
 test("mark dead hides a code at once; show dead codes and mark alive bring it back", async ({ page }) => {
   await page.goto("/codes");
-  await page.getByRole("button", { name: "Mark BR10 dead" }).click();
+  await page.getByRole("button", { name: "Mark dead BR10" }).click();
   await expect(card(page, "BR10")).toHaveCount(0);
   await expect(page.getByRole("status")).toContainText("Marked BR10 dead.");
   await page.reload();
@@ -53,7 +59,7 @@ test("mark dead hides a code at once; show dead codes and mark alive bring it ba
   await expect(card(page, "SAVE10").getByText("Not checked recently")).toBeVisible();
   await expect(card(page, "TGT20").getByText("Expired", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Mark BR10 alive" }).click();
+  await page.getByRole("button", { name: "Mark alive BR10" }).click();
   await expect(page.getByRole("status")).toContainText("Marked BR10 alive.");
   await page.getByRole("checkbox", { name: "Show dead codes" }).uncheck();
   await expect(page).toHaveURL(/\/codes$/);

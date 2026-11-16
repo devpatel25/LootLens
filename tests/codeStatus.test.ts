@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CODES_ARE_DEMO, codeState } from "@/lib/codeStatus";
-import { checkedAgo, formatShortDate } from "@/lib/format";
+import { checkedAgo, endsIn } from "@/lib/format";
 
 const now = new Date("2026-10-29T16:00:00.000Z");
 const code = (over: Partial<{ status: "live" | "dead"; lastCheckedAt: string; expiresAt: string | null }>) => ({
@@ -48,9 +48,12 @@ describe("checkedAgo", () => {
   });
 });
 
-describe("formatShortDate", () => {
-  it("shows month and day in UTC so every reader sees the same date", () => {
-    expect(formatShortDate("2026-11-30T00:00:00.000Z")).toBe("Nov 30");
-    expect(formatShortDate("2026-11-30T23:30:00.000Z")).toBe("Nov 30");
+describe("endsIn", () => {
+  it.each([
+    ["2026-11-30T00:00:00.000Z", "Ends in 31d"],
+    ["2026-10-30T20:00:00.000Z", "Ends in 28h"],
+    ["2026-10-29T16:30:00.000Z", "Ends in under an hour"],
+  ])("%s -> %s (relative, so no timezone can shift the day)", (iso, text) => {
+    expect(endsIn(iso, now)).toBe(text);
   });
 });

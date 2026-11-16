@@ -21,3 +21,9 @@ const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numer
 export function formatShortDate(iso: string): string {
   return shortDate.format(new Date(iso));
 }
+
+/** "Ends in 31d". Stub. */
+export function endsIn(iso: string, now: Date): string {
+  void iso; void now;
+  return "";
+}
