@@ -68,6 +68,7 @@ type Schema = {
   allOf?: Schema[];
   oneOf?: Schema[];
   type?: string | string[];
+  enum?: unknown[];
   items?: Schema;
   properties?: Record<string, Schema>;
   required?: string[];
@@ -94,11 +95,17 @@ function check(schema: Schema, value: unknown, at = "$"): string[] {
     return tries.some((t) => t.length === 0) ? [] : tries[0];
   }
   const types = ([] as string[]).concat(s.type ?? []);
-  if (value === null) return types.length === 0 || types.includes("null") ? [] : [`${at} is null`];
+  if (value === null) return types.includes("null") ? [] : [`${at} is null`];
   if (Array.isArray(value)) {
-    return s.items ? value.flatMap((v, i) => check(s.items!, v, `${at}[${i}]`)) : [];
+    if (!s.items) return [`${at} is an array but the schema is not`];
+    return value.flatMap((v, i) => check(s.items!, v, `${at}[${i}]`));
   }
-  if (typeof value !== "object") return [];
+  if (typeof value !== "object") {
+    const kind = Number.isInteger(value) ? ["integer", "number"] : [typeof value];
+    if (types.length && !types.some((t) => kind.includes(t))) return [`${at} is ${typeof value}, schema wants ${types.join("|")}`];
+    if (s.enum && !s.enum.includes(value)) return [`${at} is ${JSON.stringify(value)}, not in enum`];
+    return [];
+  }
   const { props, required } = collect(s);
   if (Object.keys(props).length === 0 && required.size === 0) return []; // free-form map, such as stockBySize
   const data = value as Record<string, unknown>;
