@@ -116,7 +116,7 @@
         }
       },
       "post": {
-        "summary": "Add an item. Demo listings are created for every store.",
+        "summary": "Add an item. Demo listings are created at 3 to 5 stores.",
         "security": [
           {
             "sessionCookie": []
@@ -831,7 +831,6 @@
                     ],
                     "exclusiveMinimum": 0,
                     "maximum": 99999.99,
-                    "multipleOf": 0.01,
                     "description": "Null or omitted means any drop"
                   },
                   "lowStockAt": {
@@ -949,7 +948,7 @@
     },
     "/api/alerts": {
       "get": {
-        "summary": "List alerts grouped by item, newest group first",
+        "summary": "List alerts grouped by item, newest group first. Returns the newest 200 alerts. unread and unreadCount are counted over all alerts.",
         "security": [
           {
             "sessionCookie": []
@@ -1114,7 +1113,7 @@
         "tags": [
           "Cron"
         ],
-        "summary": "Refresh every item and expire old codes. Called by Vercel Cron daily at 09:00 UTC.",
+        "summary": "Expire old codes, then refresh every item one by one. Called by Vercel Cron daily at 09:00 UTC.",
         "description": "No session. Needs `Authorization: Bearer ${CRON_SECRET}`. The 401 comes from a missing or wrong token, or an unset CRON_SECRET.",
         "security": [
           {
@@ -1137,11 +1136,13 @@
                       "required": [
                         "items",
                         "alertsCreated",
-                        "codesExpired"
+                        "codesExpired",
+                        "failed"
                       ],
                       "properties": {
                         "items": {
-                          "type": "integer"
+                          "type": "integer",
+                          "description": "Items refreshed successfully"
                         },
                         "alertsCreated": {
                           "type": "integer"
@@ -1149,6 +1150,10 @@
                         "codesExpired": {
                           "type": "integer",
                           "description": "Live codes past expiresAt, now marked dead"
+                        },
+                        "failed": {
+                          "type": "integer",
+                          "description": "Items whose refresh threw. They are skipped and logged."
                         }
                       }
                     }
@@ -1396,16 +1401,6 @@
           }
         }
       },
-      "ApiOk": {
-        "type": "object",
-        "required": [
-          "data"
-        ],
-        "properties": {
-          "data": {}
-        },
-        "description": "Envelope for every success body. `data` is the payload each operation names."
-      },
       "CashbackOffer": {
         "type": "object",
         "required": [
@@ -1494,201 +1489,206 @@
           }
         }
       },
-      "ItemInput": {
+      "ItemFields": {
         "type": "object",
-        "required": [
-          "name",
-          "category",
-          "sizes",
-          "selectedSize",
-          "typicalPrice"
-        ],
+        "description": "Item fields as returned by the API",
         "properties": {
           "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 120
-          },
-          "category": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
-          },
-          "sizes": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 12,
-            "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 20
-            }
-          },
-          "selectedSize": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 20,
-            "description": "Must be one of sizes"
-          },
-          "typicalPrice": {
-            "type": "number",
-            "exclusiveMinimum": 0,
-            "maximum": 99999.99,
-            "multipleOf": 0.01,
-            "description": "USD, at most 2 decimal places"
-          },
-          "imageUrl": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri",
-            "description": "http or https"
-          },
-          "sourceUrl": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri",
-            "description": "http or https"
-          }
-        }
-      },
-      "ItemPatch": {
-        "type": "object",
-        "minProperties": 0,
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 120
-          },
-          "category": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
-          },
-          "sizes": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 12,
-            "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 20
-            }
-          },
-          "selectedSize": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 20,
-            "description": "Must be one of sizes"
-          },
-          "typicalPrice": {
-            "type": "number",
-            "exclusiveMinimum": 0,
-            "maximum": 99999.99,
-            "multipleOf": 0.01,
-            "description": "USD, at most 2 decimal places"
-          },
-          "imageUrl": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri",
-            "description": "http or https"
-          },
-          "sourceUrl": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri",
-            "description": "http or https"
-          }
-        }
-      },
-      "Item": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "category",
-          "sizes",
-          "selectedSize",
-          "typicalPrice",
-          "imageUrl",
-          "sourceUrl",
-          "createdAt",
-          "updatedAt"
-        ],
-        "properties": {
-          "id": {
             "type": "string"
           },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 120
-          },
           "category": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 40
+            "type": "string"
           },
           "sizes": {
             "type": "array",
-            "minItems": 1,
-            "maxItems": 12,
-            "uniqueItems": true,
             "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 20
+              "type": "string"
             }
           },
           "selectedSize": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 20,
-            "description": "Must be one of sizes"
+            "type": "string"
           },
           "typicalPrice": {
-            "type": "number",
-            "exclusiveMinimum": 0,
-            "maximum": 99999.99,
-            "multipleOf": 0.01,
-            "description": "USD, at most 2 decimal places"
+            "type": "number"
           },
           "imageUrl": {
             "type": [
               "string",
               "null"
-            ],
-            "format": "uri",
-            "description": "http or https"
+            ]
           },
           "sourceUrl": {
             "type": [
               "string",
               "null"
-            ],
-            "format": "uri",
-            "description": "http or https"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
+            ]
           }
         }
+      },
+      "ItemInput": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ItemFields"
+          },
+          {
+            "type": "object",
+            "required": [
+              "name",
+              "category",
+              "sizes",
+              "selectedSize",
+              "typicalPrice"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "category": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "sizes": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 12,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20
+                }
+              },
+              "selectedSize": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20,
+                "description": "Must be one of sizes"
+              },
+              "typicalPrice": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 99999.99,
+                "description": "USD, positive, at most 2 decimal places"
+              },
+              "imageUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri",
+                "description": "http or https"
+              },
+              "sourceUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri",
+                "description": "http or https"
+              }
+            }
+          }
+        ]
+      },
+      "ItemPatch": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ItemFields"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "category": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "sizes": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 12,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20
+                }
+              },
+              "selectedSize": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20,
+                "description": "Must be one of sizes"
+              },
+              "typicalPrice": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 99999.99,
+                "description": "USD, positive, at most 2 decimal places"
+              },
+              "imageUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri",
+                "description": "http or https"
+              },
+              "sourceUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri",
+                "description": "http or https"
+              }
+            }
+          }
+        ],
+        "description": "Any subset of ItemInput"
+      },
+      "Item": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ItemFields"
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "category",
+              "sizes",
+              "selectedSize",
+              "typicalPrice",
+              "imageUrl",
+              "sourceUrl",
+              "createdAt",
+              "updatedAt"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        ]
       },
       "WishlistItem": {
         "allOf": [
