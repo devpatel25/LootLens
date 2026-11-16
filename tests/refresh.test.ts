@@ -120,10 +120,11 @@ describe("applyRefresh stock alerts", () => {
   it("a watch created with the condition already true gives no alert on an unchanged refresh", async () => {
     signInAs(a);
     const { POST } = await import("@/app/api/watches/route");
-    const res = await POST(req("/api/watches", "POST", { itemId, size: "9", targetPrice: 70, lowStockAt: 10 }));
+    // A met price target is refused at creation now (target_not_below), so the already-met condition is stock.
+    const res = await POST(req("/api/watches", "POST", { itemId, size: "9", targetPrice: 55, lowStockAt: 10 }));
     expect(res.status).toBe(201);
     const w = await prisma.watch.findFirstOrThrow({ where: { userId: a } });
-    expect(w).toMatchObject({ priceCondMet: true, stockCondMet: true });
+    expect(w).toMatchObject({ priceCondMet: false, stockCondMet: true });
     expect((await apply(itemId, setStock(1))).alertsCreated).toBe(0);
     expect(await alertCount()).toBe(0);
   });

@@ -35,7 +35,7 @@ describe("GET /api/alerts", () => {
   });
 
   it("empty for a user with no alerts", async () => {
-    expect((await (await GET()).json()).data).toEqual({ groups: [], unreadCount: 0 });
+    expect((await (await GET()).json()).data).toEqual({ groups: [], unreadCount: 0, readCount: 0 });
   });
 
   it("groups by item, newest first, with unread counts", async () => {
