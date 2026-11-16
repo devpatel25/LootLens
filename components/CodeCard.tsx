@@ -1,6 +1,7 @@
 "use client";
 
 import type { CodeState } from "@/lib/codeStatus";
+import { smallButton } from "@/components/styles";
 import { checkedAgo, endsIn, formatUsd } from "@/lib/format";
 import { isExpired } from "@/lib/pricing";
 import type { Code } from "@/lib/types";
@@ -25,8 +26,6 @@ const TAGS: Record<Exclude<CodeState, "live">, { label: string; className: strin
   },
 };
 
-const small =
-  "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:opacity-60 dark:border-zinc-600 dark:hover:bg-zinc-800";
 
 export default function CodeCard({ code, state, now, busy, onMark, onCopied, onCopyFailed }: CodeCardProps) {
   const terms = [
@@ -59,7 +58,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-mono text-xl font-bold tracking-wider [overflow-wrap:anywhere]">{code.code}</span>
-        <button type="button" onClick={copy} aria-label={`Copy code ${code.code}`} className={small}>
+        <button type="button" onClick={copy} aria-label={`Copy code ${code.code}`} className={smallButton}>
           Copy
         </button>
       </div>
@@ -74,7 +73,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-zinc-600 dark:text-zinc-400">{checkedAgo(code.lastCheckedAt, new Date(now))}</span>
         {state === "dead" ? (
-          <button type="button" disabled={busy} onClick={() => onMark("live")} aria-label={`Mark alive ${code.code}`} className={small}>
+          <button type="button" disabled={busy} onClick={() => onMark("live")} aria-label={`Mark alive ${code.code}`} className={smallButton}>
             Mark alive
           </button>
         ) : state !== "expired" ? (
@@ -83,7 +82,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
             disabled={busy}
             onClick={() => onMark("dead")}
             aria-label={`Mark dead ${code.code}`}
-            className={`${small} text-red-800 dark:text-red-300`}
+            className={`${smallButton} text-red-800 dark:text-red-300`}
           >
             Mark dead
           </button>

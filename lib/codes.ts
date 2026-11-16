@@ -1,22 +1,21 @@
+import { codeState } from "@/lib/codeStatus";
 import { toCode } from "@/lib/dto";
-import { isExpired, isFresh } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
-import { getSettings } from "@/lib/settings";
 import type { Code } from "@/lib/types";
 
-/** Codes for the Codes view. Default: live, fresh for the user's window, not expired. showDead: every code. */
+/**
+ * Codes for the Codes view and GET /api/codes. Default: only codes whose codeState is "live" for the given
+ * freshness window (the same rule the browser uses). showDead: every code. The caller reads the user's
+ * settings once and passes the window in.
+ */
 export async function loadCodes(opts: { showDead: boolean; storeId?: string; freshnessHours: number }): Promise<Code[]> {
-  const userId = "";
-  const [rows, settings] = await Promise.all([
-    prisma.code.findMany({
-      where: { ...(opts.storeId ? { storeId: opts.storeId } : {}), ...(opts.showDead ? {} : { status: "LIVE" as const }) },
-      include: { store: true },
-      orderBy: [{ lastCheckedAt: "desc" }, { id: "asc" }],
-    }),
-    opts.showDead ? null : getSettings(userId),
-  ]);
+  const rows = await prisma.code.findMany({
+    where: { ...(opts.storeId ? { storeId: opts.storeId } : {}), ...(opts.showDead ? {} : { status: "LIVE" as const }) },
+    include: { store: true },
+    orderBy: [{ lastCheckedAt: "desc" }, { id: "asc" }],
+  });
   const codes = rows.map(toCode);
-  if (!settings) return codes;
+  if (opts.showDead) return codes;
   const now = new Date();
-  return codes.filter((c) => isFresh(c, settings.freshnessHours, now) && !isExpired(c, now));
+  return codes.filter((c) => codeState(c, opts.freshnessHours, now) === "live");
 }

@@ -6,8 +6,10 @@ import CodeCard from "@/components/CodeCard";
 import DemoDataBadge from "@/components/DemoDataBadge";
 import EmptyState from "@/components/EmptyState";
 import { apiFetch, friendlyMessage } from "@/lib/apiClient";
+import { smallButton } from "@/components/styles";
 import { CODES_ARE_DEMO, codeState } from "@/lib/codeStatus";
 import type { Code } from "@/lib/types";
+import { useServerClock } from "@/lib/useNow";
 
 export type CodesViewProps = { codes: Code[]; showDead: boolean; freshnessHours: number; now: string };
 
@@ -20,20 +22,10 @@ type Mark = { status: "live" | "dead"; at: string; from: string };
 const input =
   "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-700 dark:border-zinc-600 dark:bg-zinc-800";
 
-/** Starts at the server's time (so the first render matches), then follows the real clock every minute. */
-function useNow(serverNow: string): Date {
-  const [now, setNow] = useState(() => new Date(serverNow));
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(t);
-  }, []);
-  return now;
-}
-
 export default function CodesView({ codes, showDead, freshnessHours, now: serverNow }: CodesViewProps) {
   const router = useRouter();
   const uid = useId();
-  const now = useNow(serverNow);
+  const { now, current } = useServerClock(serverNow);
   const listRef = useRef<HTMLUListElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [query, setQuery] = useState("");
@@ -45,6 +37,8 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
   const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
   const [error, setError] = useState<string | null>(null);
   const [focusList, setFocusList] = useState(0);
+  // After a failed mark, focus goes back to that code's button so keyboard users do not lose their place.
+  const [focusCode, setFocusCode] = useState<string | null>(null);
   // The box shows where we are going while the server loads the other list.
   const [switching, startSwitch] = useTransition();
   const [target, setTarget] = useState<boolean | null>(null);
@@ -54,6 +48,11 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
     if (focusList === 0) return;
     (listRef.current ?? headingRef.current)?.focus();
   }, [focusList]);
+
+  useEffect(() => {
+    if (!focusCode) return;
+    listRef.current?.querySelector<HTMLButtonElement>(`button[aria-label="Mark dead ${focusCode}"], button[aria-label="Mark alive ${focusCode}"]`)?.focus();
+  }, [focusCode]);
 
   const shown = codes.map((c) => {
     const m = marks[c.id];
@@ -73,7 +72,8 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
     if (!server) return;
     const before = marks[code.id];
     setError(null);
-    setMarks((m) => ({ ...m, [code.id]: { status, at: now.toISOString(), from: server.lastCheckedAt } }));
+    setFocusCode(null);
+    setMarks((m) => ({ ...m, [code.id]: { status, at: current().toISOString(), from: server.lastCheckedAt } }));
     setPending((p) => new Set(p).add(code.id));
     if (status === "dead" && !showDead) setFocusList((n) => n + 1);
     try {
@@ -88,6 +88,7 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
         return next;
       });
       setError(friendlyMessage(e));
+      setFocusCode(code.code);
     } finally {
       setPending((p) => {
         const next = new Set(p);
@@ -97,10 +98,11 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
     }
   }
 
-  const filtersOn = q !== "" || store !== "";
-  const emptyLive = (
+  const emptyLive = showDead ? (
+    <EmptyState title="No codes yet" message="No codes have been added for these stores yet." />
+  ) : (
     <EmptyState
-      title={showDead ? "No codes yet" : "No live codes right now"}
+      title="No live codes right now"
       message={`Codes show here when a store's code was checked in the last ${freshnessHours} hours and still works. Turn on Show dead codes to see older ones.`}
     />
   );
@@ -173,18 +175,17 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
           title="No codes match"
           message="Try another store or search."
           action={
-            filtersOn ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery("");
-                  setStore("");
-                }}
-                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:border-zinc-600 dark:hover:bg-zinc-800"
-              >
-                Clear filters
-              </button>
-            ) : undefined
+            // Only reached when a filter is set: an empty list is handled above.
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setStore("");
+              }}
+              className={smallButton}
+            >
+              Clear filters
+            </button>
           }
         />
       ) : (
