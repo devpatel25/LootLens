@@ -27,7 +27,8 @@ export const POST = route(async (_req: Request, ctx: RouteContext<"/api/items/[i
   if (claim.count === 0) {
     const last = (await prisma.item.findFirst({ where: { id: item.id, userId }, select: { lastRefreshedAt: true } }))?.lastRefreshedAt;
     const wait = last ? Math.ceil((last.getTime() + REFRESH_COOLDOWN_MS - Date.now()) / 1000) : 1;
-    return fail(429, "rate_limited", "Refreshed recently, try again soon", { retryAfterSeconds: Math.max(1, wait) });
+    const retryAfterSeconds = Math.max(1, wait);
+    return fail(429, "rate_limited", "Refreshed recently, try again soon", { retryAfterSeconds }, { "Retry-After": String(retryAfterSeconds) });
   }
 
   let alertsCreated: number;
