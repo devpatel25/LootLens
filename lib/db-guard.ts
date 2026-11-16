@@ -12,14 +12,27 @@ export function hostOf(raw: string | undefined): string {
   }
 }
 
-// Prisma CLI commands that write to the database. deploy, generate, status, diff and seed stay open.
+// Prisma CLI flags that take a separate value. Anything else starting with "-" is treated as a bare flag.
+const VALUE_FLAGS = new Set([
+  "--config", "--schema", "--generator", "--url", "--telemetry-information",
+  "--from-url", "--to-url", "--from-schema", "--to-schema", "--from-migrations", "--to-migrations",
+  "--script", "--file", "--shadow-database-url",
+]);
+
+// Commands that never write to the database (db seed guards itself). "" means no command, --help or --version. Matched on positional args only.
+const SAFE_COMMANDS = ["", "generate", "version", "validate", "format", "migrate deploy", "migrate status", "migrate diff", "db seed"];
+
+// Fail-closed: every Prisma CLI command is guarded unless it is on the safe list above.
+// Flags are stripped first, so "migrate --preview-feature reset" is still seen as "migrate reset".
 export function isDestructivePrismaCommand(argv: string[]): boolean {
-  return argv.some(
-    (a, i) =>
-      (a === "migrate" && (argv[i + 1] === "dev" || argv[i + 1] === "reset")) ||
-      (a === "migrate" && argv[i + 1] === "resolve") ||
-      (a === "db" && (argv[i + 1] === "push" || argv[i + 1] === "execute")),
-  );
+  const positional: string[] = [];
+  const args = argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (!a.startsWith("-")) positional.push(a);
+    else if (!a.includes("=") && VALUE_FLAGS.has(a)) i++;
+  }
+  return !SAFE_COMMANDS.includes(positional.join(" "));
 }
 
 // Fail-closed: throws unless the env is clearly non-production. Messages never include URL or host values.
@@ -31,6 +44,15 @@ export function assertNonProdDb(
   }
   if (env.VERCEL_ENV === "production") {
     throw new Error("assertNonProdDb: VERCEL_ENV is production");
+  }
+
+  // URL strips tabs and newlines but pg does not, so the guard and the driver could read different hosts.
+  const BAD_CHARS = /[\s\x00-\x1f\x7f]/;
+  if (BAD_CHARS.test(env.DATABASE_URL?.trim() ?? "")) {
+    throw new Error("assertNonProdDb: DATABASE_URL has whitespace or control characters");
+  }
+  if (BAD_CHARS.test(env.DATABASE_URL_UNPOOLED?.trim() ?? "")) {
+    throw new Error("assertNonProdDb: DATABASE_URL_UNPOOLED has whitespace or control characters");
   }
 
   const hostname = hostOf(env.DATABASE_URL);
@@ -53,6 +75,13 @@ export function assertNonProdDb(
   // Neon pooled and direct hosts differ only by "-pooler" on the first label.
   const norm = (h: string) =>
     h.toLowerCase().replace(/\.$/, "").replace(/^([^.]*)-pooler(?=\.|$)/, "$1");
+  // Without PROD_DB_HOST there is nothing to compare against, so only loopback hosts may pass.
+  if (!prod) {
+    const loopback = (h: string) => ["localhost", "127.0.0.1", "[::1]", "::1"].includes(h.toLowerCase());
+    if (!loopback(hostname) || (unpooledHost && !loopback(unpooledHost))) {
+      throw new Error("assertNonProdDb: PROD_DB_HOST must be set unless the database host is loopback");
+    }
+  }
   if (prod) {
     if (norm(hostname) === norm(prod)) {
       throw new Error("assertNonProdDb: DATABASE_URL host matches PROD_DB_HOST");
