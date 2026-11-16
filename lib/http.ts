@@ -22,6 +22,11 @@ export function parse<T>(schema: z.ZodType<T>, input: unknown): T | Response {
   return fail(400, "bad_request", path.length ? `${path.join(".")}: ${message}` : message);
 }
 
+/** A write that matched no row (P2025). */
+export function isMissingRow(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025";
+}
+
 /** A foreign key violation: the session names a user that no longer exists. */
 export function isStaleUser(e: unknown): boolean {
   return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003";

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { toCode } from "@/lib/dto";
-import { fail, isStaleUser, ok, parse, requireUserId } from "@/lib/http";
+import { fail, isMissingRow, isStaleUser, ok, parse, requireUserId } from "@/lib/http";
 import { idParams } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
 
@@ -18,13 +18,14 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/codes/[id]">) 
     return fail(404, "not_found", "Code not found");
   }
   try {
-    const row = await prisma.code.update({
+    const { count } = await prisma.code.updateMany({
       where: { id: params.id },
       data: { status: b.status === "live" ? "LIVE" : "DEAD", lastCheckedAt: new Date(), lastCheckedById: userId },
-      include: { store: true },
     });
-    return ok(toCode(row));
+    const row = count === 0 ? null : await prisma.code.findUnique({ where: { id: params.id }, include: { store: true } });
+    return row ? ok(toCode(row)) : fail(404, "not_found", "Code not found");
   } catch (e) {
+    if (isMissingRow(e)) return fail(404, "not_found", "Code not found");
     if (isStaleUser(e)) return fail(401, "unauthorized", "Sign in required");
     throw e;
   }

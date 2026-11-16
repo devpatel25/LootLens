@@ -13,12 +13,7 @@ const stale = () => fail(401, "unauthorized", "Sign in required");
 export async function GET(_req: Request) {
   const userId = await requireUserId();
   if (userId instanceof Response) return userId;
-  try {
-    return ok(await getSettings(userId));
-  } catch (e) {
-    if (isStaleUser(e)) return stale();
-    throw e;
-  }
+  return ok(await getSettings(userId));
 }
 
 export async function PATCH(req: Request) {

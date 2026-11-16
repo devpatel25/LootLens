@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { toCode } from "@/lib/dto";
-import { fail, isStaleUser, ok, parse, requireUserId } from "@/lib/http";
+import { ok, parse, requireUserId } from "@/lib/http";
 import { isExpired, isFresh } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -16,18 +16,14 @@ export async function GET(req: Request) {
   const q = parse(query, Object.fromEntries(new URL(req.url).searchParams));
   if (q instanceof Response) return q;
 
-  try {
-    const settings = await getSettings(userId);
-    const rows = await prisma.code.findMany({
-      where: q.storeId ? { storeId: q.storeId } : {},
-      include: { store: true },
-      orderBy: [{ lastCheckedAt: "desc" }, { id: "asc" }],
-    });
-    const now = new Date();
-    const codes = rows.map(toCode);
-    return ok(q.showDead === "true" ? codes : codes.filter((c) => isFresh(c, settings.freshnessHours, now) && !isExpired(c, now)));
-  } catch (e) {
-    if (isStaleUser(e)) return fail(401, "unauthorized", "Sign in required");
-    throw e;
-  }
+  const showDead = q.showDead === "true";
+  const settings = await getSettings(userId);
+  const rows = await prisma.code.findMany({
+    where: { ...(q.storeId ? { storeId: q.storeId } : {}), ...(showDead ? {} : { status: "LIVE" as const }) },
+    include: { store: true },
+    orderBy: [{ lastCheckedAt: "desc" }, { id: "asc" }],
+  });
+  const now = new Date();
+  const codes = rows.map(toCode);
+  return ok(showDead ? codes : codes.filter((c) => isFresh(c, settings.freshnessHours, now) && !isExpired(c, now)));
 }

@@ -1,5 +1,6 @@
+import { generateDemoListings } from "@/lib/demoListings";
 import { toItem } from "@/lib/dto";
-import { fail, ok, parse, requireUserId } from "@/lib/http";
+import { fail, isMissingRow, ok, parse, requireUserId } from "@/lib/http";
 import { idParams, itemPatchSchema, itemSchema } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
 
@@ -28,8 +29,25 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/items/[id]">) 
 
   const merged = parse(itemSchema, { ...toItem(row), ...patch });
   if (merged instanceof Response) return merged;
-  const updated = await prisma.item.update({ where: { id: row.id }, data: merged });
-  return ok(toItem(updated));
+
+  const sizesChanged = merged.sizes.join("\u0000") !== row.sizes.join("\u0000");
+  const storeIds = sizesChanged ? (await prisma.store.findMany({ select: { id: true }, orderBy: { id: "asc" } })).map((s) => s.id) : [];
+  try {
+    const count = await prisma.$transaction(async (tx) => {
+      const r = await tx.item.updateMany({ where: { id: row.id, userId }, data: merged });
+      if (r.count === 0 || !sizesChanged) return r.count;
+      // ponytail: all listings are demo until the price source lands; revisit when live listings exist
+      await tx.listing.deleteMany({ where: { itemId: row.id } });
+      await tx.listing.createMany({ data: generateDemoListings(merged, storeIds).map((l) => ({ ...l, itemId: row.id })) });
+      await tx.watch.deleteMany({ where: { itemId: row.id, size: { notIn: merged.sizes } } });
+      return r.count;
+    });
+    const updated = count === 0 ? null : await prisma.item.findFirst({ where: { id: row.id, userId } });
+    return updated ? ok(toItem(updated)) : notFound();
+  } catch (e) {
+    if (isMissingRow(e)) return notFound();
+    throw e;
+  }
 }
 
 export async function DELETE(_req: Request, ctx: RouteContext<"/api/items/[id]">) {

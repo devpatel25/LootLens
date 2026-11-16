@@ -10,8 +10,13 @@ const base = z.object({
     .min(1)
     .max(12)
     .refine((a) => new Set(a).size === a.length, "sizes must be unique"),
-  selectedSize: z.string(),
-  typicalPrice: z.number().positive(),
+  selectedSize: z.string().trim().min(1).max(20),
+  // Fits Decimal(10,2): at most 99999.99 and whole cents.
+  typicalPrice: z
+    .number()
+    .positive()
+    .max(99999.99)
+    .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, "at most 2 decimal places"),
   imageUrl: url,
   sourceUrl: url,
 });
