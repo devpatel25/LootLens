@@ -19,7 +19,9 @@ const snapshot = (ls: Listing[] | undefined) =>
 export default function RefreshButton({ itemId, listings }: { itemId: string; listings: Listing[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  // seq gives each announcement a fresh node, so a repeated message is announced again.
+  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
+  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
   const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
@@ -59,7 +61,7 @@ export default function RefreshButton({ itemId, listings }: { itemId: string; li
         {busy ? "Refreshing…" : "Refresh now"}
       </button>
       <p role="status" aria-live="polite" className="text-right text-xs text-zinc-700 dark:text-zinc-300">
-        {message}
+        <span key={seq}>{message}</span>
       </p>
       {error && (
         <p role="alert" className="text-right text-xs font-medium text-red-800 dark:text-red-300">

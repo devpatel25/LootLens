@@ -27,7 +27,10 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
   const now = useNow(serverNow);
   const [busy, setBusy] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<WatchWithItem | null>(null);
-  const [message, setMessage] = useState("");
+  const [opener, setOpener] = useState<HTMLElement | null>(null);
+  // seq gives each announcement a fresh node, so a repeated message is announced again.
+  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
+  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
   const [error, setError] = useState<string | null>(null);
   const anyRead = data.groups.some((g) => g.alerts.some((a) => a.read));
 
@@ -77,7 +80,7 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
       </div>
 
       <p role="status" aria-live="polite" className="-my-4 min-h-5 text-sm text-emerald-800 dark:text-emerald-300">
-        {message}
+        <span key={seq}>{message}</span>
       </p>
       {error && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
@@ -161,7 +164,10 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
                   type="button"
                   className={`${small} text-red-800 dark:text-red-300`}
                   aria-label={`Delete watch for ${w.itemName}`}
-                  onClick={() => setDeleting(w)}
+                  onClick={(e) => {
+                    setOpener(e.currentTarget);
+                    setDeleting(w);
+                  }}
                 >
                   Delete watch
                 </button>
@@ -177,6 +183,7 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
         message="You will stop getting new alerts for it. Alerts you already have stay until you clear them."
         confirmLabel="Delete"
         onClose={() => setDeleting(null)}
+        opener={opener}
         onConfirm={async () => {
           if (!deleting) return;
           const name = deleting.itemName;

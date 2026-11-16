@@ -26,9 +26,12 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
   const [lowStock, setLowStock] = useState("3");
   const [errors, setErrors] = useState<{ target?: string; lowStock?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
+  // seq gives each announcement a fresh node, so a repeated message is announced again.
+  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
+  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [opener, setOpener] = useState<HTMLElement | null>(null);
 
   const noStock = `No store has size ${size} in stock right now, so there is no price to watch.`;
   const apiErrors: Record<string, string> = {
@@ -84,7 +87,10 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
           <p className="text-sm">{watchSummary(watch)}</p>
           <button
             type="button"
-            onClick={() => setConfirming(true)}
+            onClick={(e) => {
+              setOpener(e.currentTarget);
+              setConfirming(true);
+            }}
             className={`${button} border border-zinc-300 text-red-800 hover:bg-zinc-50 dark:border-zinc-600 dark:text-red-300 dark:hover:bg-zinc-800`}
           >
             Delete watch
@@ -168,7 +174,7 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
       )}
 
       <p role="status" aria-live="polite" className="text-sm text-emerald-800 dark:text-emerald-300">
-        {message}
+        <span key={seq}>{message}</span>
       </p>
 
       <ConfirmDialog
@@ -177,6 +183,7 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
         message={`You will stop getting alerts for size ${watch?.size ?? size}.`}
         confirmLabel="Delete"
         onClose={() => setConfirming(false)}
+        opener={opener}
         onConfirm={async () => {
           if (!watch) return;
           try {
