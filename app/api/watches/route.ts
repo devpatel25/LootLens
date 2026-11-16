@@ -43,15 +43,16 @@ export const POST = route(async (req: Request) => {
       const now = currentForSize(listings, stores, body.size);
       const { price } = now;
       if (price === null) return fail(400, "no_listing", "No store has this size in stock");
-      // A target at or above today's price would be met at creation and stay silent until the price rose and
-      // fell again, so it is refused here, not only in the form.
-      if (body.targetPrice != null && body.targetPrice >= price) {
-        return fail(400, "target_not_below", "targetPrice: must be below the current cheapest price");
-      }
 
       // Duplicate first: re-submitting an existing watch is not a cap problem.
       if (await tx.watch.findUnique({ where: { userId_itemId_size: { userId, itemId: item.id, size: body.size } } })) {
         return fail(409, "watch_exists", "Already watching this item and size");
+      }
+      // After the duplicate check, so a stale tab re-submitting an existing watch gets watch_exists.
+      // A target at or above today's price would be met at creation and stay silent until the price rose and
+      // fell again, so it is refused here, not only in the form.
+      if (body.targetPrice != null && body.targetPrice >= price) {
+        return fail(400, "target_not_below", "targetPrice: must be below the current cheapest price");
       }
       if ((await tx.watch.count({ where: { userId } })) >= MAX_WATCHES_PER_USER) {
         return fail(409, "watch_limit", `At most ${MAX_WATCHES_PER_USER} watches`);

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DemoDataBadge from "@/components/DemoDataBadge";
 import EmptyState from "@/components/EmptyState";
+import { smallButton } from "@/components/styles";
 import type { WatchWithItem } from "@/lib/alertsData";
 import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
 import { alertText, announceAlertsChanged, POLL_MS, watchSummary } from "@/lib/alertText";
@@ -15,9 +16,6 @@ import { useNow } from "@/lib/useNow";
 
 export type AlertsViewProps = { data: AlertsResponse; watches: WatchWithItem[]; now: string; anyDemo: boolean };
 
-
-const small =
-  "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:opacity-60 dark:border-zinc-600 dark:hover:bg-zinc-800";
 
 /** Alerts come from the server page. Polling is router.refresh() every 60s, so the server stays the only copy. */
 export default function AlertsView({ data, watches, now: serverNow, anyDemo }: AlertsViewProps) {
@@ -75,7 +73,7 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
         {anyRead && (
           <button
             type="button"
-            className={small}
+            className={smallButton}
             disabled={busy !== null}
             onClick={() =>
               run("clear", async () => {
@@ -135,7 +133,7 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
                       </div>
                       <button
                         type="button"
-                        className={small}
+                        className={smallButton}
                         disabled={busy !== null}
                         aria-label={`${a.read ? "Mark unread" : "Mark read"}: ${text}`}
                         onClick={() => run(a.id, async () => void (await apiFetch(`/api/alerts/${a.id}`, { method: "PATCH", json: { read: !a.read } })))}
@@ -172,7 +170,7 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
                 </div>
                 <button
                   type="button"
-                  className={`${small} text-red-800 dark:text-red-300`}
+                  className={`${smallButton} text-red-800 dark:text-red-300`}
                   aria-label={`Delete watch for ${w.itemName}`}
                   onClick={(e) => {
                     setOpener(e.currentTarget);

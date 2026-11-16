@@ -64,8 +64,12 @@ test("Refresh now updates prices and shows the new alert, then rate-limits", asy
   await expect(page.getByRole("status").filter({ hasText: "Watching size One size." })).toBeVisible();
 
   const table = page.getByRole("table", { name: `Prices for ${name} at every store` });
-  // The first store row and its price cell, found by role: the price is the cell that starts with "$".
-  const priceCell = table.getByRole("row").nth(1).getByRole("cell").filter({ hasText: /^\$\d/ }).first();
+  // Pin one store by its outbound link name, then read its price cell by role. The table re-sorts by price
+  // after a refresh, so the row is found by store, not by position.
+  const linkName = (await table.getByRole("row").nth(1).getByRole("link").getAttribute("aria-label")) ??
+    (await table.getByRole("row").nth(1).getByRole("link").innerText());
+  const storeRow = table.getByRole("row").filter({ has: page.getByRole("link", { name: linkName.trim() }) });
+  const priceCell = storeRow.getByRole("cell").filter({ hasText: /^\$\d/ }).first();
   const before = await priceCell.textContent();
 
   await page.getByRole("button", { name: "Refresh now" }).click();

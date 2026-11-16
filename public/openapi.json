@@ -807,7 +807,7 @@
             "sessionCookie": []
           }
         ],
-        "description": "The watch starts from the current price and stock, so an alert fires only on a later crossing. Limits: 10 watches per user, one per item and size. A duplicate is checked first, so re-submitting an existing watch gives `watch_exists`, not `watch_limit`. A 400 with code `no_listing` means no store has the size in stock.",
+        "description": "The watch starts from the current price and stock, so an alert fires only on a later crossing. Limits: 10 watches per user, one per item and size. A duplicate is checked first, so re-submitting an existing watch gives `watch_exists`, not `watch_limit`. A 400 with code `no_listing` means no store has the size in stock. 400 codes: bad_request (validation, size not in item.sizes), no_listing (size out of stock everywhere), target_not_below (targetPrice is at or above the current cheapest price).",
         "tags": [
           "Watches"
         ],
