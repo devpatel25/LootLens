@@ -72,7 +72,10 @@ export function toItemBody(values: ItemFormValues): { ok: true; body: ItemBody }
   const errors: ItemFormErrors = {};
   for (const issue of r.error.issues) {
     const field = issue.path[0] as keyof ItemFormValues | undefined;
-    if (field && field in MESSAGES) errors[field] = MESSAGES[field];
+    if (!field || !(field in MESSAGES) || errors[field]) continue;
+    errors[field] = MESSAGES[field];
+    if (field === "sizes" && issue.path.length > 1) errors.sizes = "Each size can be at most 20 characters.";
+    else if (field === "sizes" && issue.code === "too_big") errors.sizes = "Use at most 12 sizes.";
   }
   // The "size must be in sizes" rule only runs once the fields parse, so check it here too.
   if (body.selectedSize && body.sizes.length > 0 && !body.sizes.includes(body.selectedSize)) {

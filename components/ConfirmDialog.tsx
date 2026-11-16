@@ -18,10 +18,12 @@ export default function ConfirmDialog(props: ConfirmDialogProps) {
 }
 
 function OpenConfirmDialog({ title, message, confirmLabel, onConfirm, onClose }: ConfirmDialogProps) {
-  const ref = useModalDialog(onClose);
+  const [busy, setBusy] = useState(false);
+  const ref = useModalDialog(() => {
+    if (!busy) onClose();
+  });
   const titleId = useId();
   const messageId = useId();
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
@@ -59,7 +61,8 @@ function OpenConfirmDialog({ title, message, confirmLabel, onConfirm, onClose }:
           type="button"
           onClick={onClose}
           data-autofocus
-          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:border-zinc-600 dark:hover:bg-zinc-800"
+          disabled={busy}
+          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold hover:bg-zinc-50 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:border-zinc-600 dark:hover:bg-zinc-800"
         >
           Cancel
         </button>

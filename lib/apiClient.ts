@@ -36,7 +36,10 @@ export function friendlyMessage(err: unknown): string {
         ? `Too many requests. Try again in ${err.retryAfterSeconds} seconds.`
         : "Too many requests. Try again in a moment.";
     }
-    if (err.status >= 400 && err.status < 500 && err.code !== "unknown") return err.message;
+    // Never show the server's own text: it is written for developers (for example "name: Too big").
+    if (err.status === 400) return "Some details were not accepted. Check the form and try again.";
+    if (err.status === 404) return "It was not found. It may have been deleted.";
+    if (err.status === 409) return "This changed somewhere else. Reload and try again.";
     return "Something went wrong. Try again.";
   }
   if (err instanceof TypeError) return "Could not reach LootLens. Check your connection and try again.";

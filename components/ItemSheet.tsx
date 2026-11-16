@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent, type ReactNode } from "react";
-import { apiFetch, friendlyMessage } from "@/lib/apiClient";
+import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
 import {
   CATEGORIES,
   EMPTY_FORM,
@@ -65,16 +65,22 @@ function Field({
 
 const FIELD_ORDER: (keyof ItemFormValues)[] = ["name", "category", "sizes", "selectedSize", "typicalPrice", "sourceUrl"];
 
-function OpenItemSheet({ item, onClose, onSaved }: ItemSheetProps) {
-  const ref = useModalDialog(onClose);
+function OpenItemSheet({ item, onClose, onSaved, onMissing }: ItemSheetProps) {
+  const [busy, setBusy] = useState(false);
+  // While a save is in flight, Escape and Cancel do nothing, so a late reply cannot act on a closed sheet.
+  const ref = useModalDialog(() => {
+    if (!busy) onClose();
+  });
   const uid = useId();
   const id = (f: keyof ItemFormValues) => `${uid}-${f}`;
   const [values, setValues] = useState<ItemFormValues>(item ? formValuesFromItem(item) : EMPTY_FORM);
   const [errors, setErrors] = useState<ItemFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const title = item ? "Edit item" : "Add item";
   const sizes = parseSizes(values.sizes);
+  // PATCH deletes watches and alerts for sizes that leave the list (app/api/items/[id]/route.ts).
+  const removedSizes = item ? item.sizes.filter((s) => !sizes.includes(s)) : [];
+  const customCategory = values.category && !CATEGORIES.some((c) => c.value === values.category) ? values.category : null;
 
   const set = (f: keyof ItemFormValues) => (e: { target: { value: string } }) => setValues((v) => ({ ...v, [f]: e.target.value }));
   const aria = (f: keyof ItemFormValues, hint = false) => ({
@@ -99,6 +105,10 @@ function OpenItemSheet({ item, onClose, onSaved }: ItemSheetProps) {
       await apiFetch(item ? `/api/items/${item.id}` : "/api/items", { method: item ? "PATCH" : "POST", json: r.body });
       onSaved(r.body.name);
     } catch (err) {
+      if (item && err instanceof ApiClientError && err.status === 404) {
+        onMissing();
+        return;
+      }
       setFormError(friendlyMessage(err));
       setBusy(false);
     }
@@ -126,6 +136,7 @@ function OpenItemSheet({ item, onClose, onSaved }: ItemSheetProps) {
           <Field id={id("category")} label="Category" error={errors.category}>
             <select {...aria("category")} className={input} value={values.category} onChange={set("category")}>
               <option value="">Choose</option>
+              {customCategory && <option value={customCategory}>{customCategory}</option>}
               {CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
@@ -136,6 +147,11 @@ function OpenItemSheet({ item, onClose, onSaved }: ItemSheetProps) {
           <Field id={id("sizes")} label="Sizes" hint="Separate sizes with commas, for example 8, 9, 10 or S, M, L." error={errors.sizes}>
             <input {...aria("sizes", true)} className={input} value={values.sizes} onChange={set("sizes")} autoComplete="off" />
           </Field>
+          {removedSizes.length > 0 && (
+            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+              Removing size {removedSizes.join(", ")} also deletes its price watches and alerts.
+            </p>
+          )}
           <Field id={id("selectedSize")} label="Your size" error={errors.selectedSize}>
             <select {...aria("selectedSize")} className={input} value={values.selectedSize} onChange={set("selectedSize")}>
               <option value="">Choose</option>
@@ -157,7 +173,8 @@ function OpenItemSheet({ item, onClose, onSaved }: ItemSheetProps) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:border-zinc-600 dark:hover:bg-zinc-800"
+            disabled={busy}
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold hover:bg-zinc-50 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:border-zinc-600 dark:hover:bg-zinc-800"
           >
             Cancel
           </button>

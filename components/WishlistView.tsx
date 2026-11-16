@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DemoDataBadge from "@/components/DemoDataBadge";
 import EmptyState from "@/components/EmptyState";
 import ItemSheet from "@/components/ItemSheet";
 import WishlistCard from "@/components/WishlistCard";
-import { apiFetch } from "@/lib/apiClient";
+import { ApiClientError, apiFetch } from "@/lib/apiClient";
 import type { Item, WishlistItem } from "@/lib/types";
 
 const primary =
@@ -19,6 +19,21 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
   const [sheet, setSheet] = useState<{ item: Item | null } | null>(null);
   const [deleting, setDeleting] = useState<WishlistItem | null>(null);
   const [message, setMessage] = useState("");
+  // Bumped after an add or delete: the button that opened the dialog may disappear, so focus the heading.
+  const [focusHeading, setFocusHeading] = useState(0);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (focusHeading > 0) headingRef.current?.focus();
+  }, [focusHeading]);
+
+  function gone() {
+    setSheet(null);
+    setDeleting(null);
+    setMessage("That item was already removed.");
+    setFocusHeading((n) => n + 1);
+    router.refresh();
+  }
 
   const addButton = (
     <button type="button" onClick={() => setSheet({ item: null })} className={primary}>
@@ -30,7 +45,9 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">Wishlist</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold tracking-tight focus:outline-none">
+            Wishlist
+          </h1>
           {anyDemo && items.length > 0 && <DemoDataBadge />}
         </div>
         {items.length > 0 && addButton}
@@ -57,10 +74,12 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
         open={sheet !== null}
         item={sheet?.item ?? null}
         onClose={() => setSheet(null)}
-        onMissing={() => {}}
+        onMissing={gone}
         onSaved={(name) => {
-          setMessage(sheet?.item ? `Saved ${name}.` : `Added ${name}.`);
+          const added = !sheet?.item;
+          setMessage(added ? `Added ${name}.` : `Saved ${name}.`);
           setSheet(null);
+          if (added) setFocusHeading((n) => n + 1);
           router.refresh();
         }}
       />
@@ -72,9 +91,15 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
         onClose={() => setDeleting(null)}
         onConfirm={async () => {
           if (!deleting) return;
-          await apiFetch(`/api/items/${deleting.id}`, { method: "DELETE" });
+          try {
+            await apiFetch(`/api/items/${deleting.id}`, { method: "DELETE" });
+          } catch (e) {
+            if (e instanceof ApiClientError && e.status === 404) return gone();
+            throw e;
+          }
           setMessage(`Deleted ${deleting.name}.`);
           setDeleting(null);
+          setFocusHeading((n) => n + 1);
           router.refresh();
         }}
       />
