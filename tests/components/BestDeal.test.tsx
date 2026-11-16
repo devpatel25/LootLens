@@ -34,9 +34,44 @@ describe("BestDealCard", () => {
     render(<BestDealCard comparison={demo()} />);
     expect(within(card()).getByText("Best total of the stores shown: $57.00 at Adidas")).toBeTruthy();
     expect(line("Price").textContent).toContain("$100.00");
-    expect(line("Code SAMBA40").textContent).toContain("−$40.00");
-    expect(line("Cashback DemoCash 5%").textContent).toContain("−$3.00");
+    expect(line("Code SAMBA40").textContent).toContain("$40.00");
+    expect(line("Cashback DemoCash 5%").textContent).toContain("$3.00");
     expect(line("Total").textContent).toContain("$57.00");
+  });
+
+  it("reads discounts as minus amounts for screen readers", () => {
+    render(<BestDealCard comparison={demo()} />);
+    const cell = within(line("Code SAMBA40")).getByRole("cell");
+    expect(cell.textContent).toContain("minus $40.00");
+    expect(within(cell).getByText("\u2212").getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("says amounts are rounded, so a one-cent gap between the parts and the total is explained", () => {
+    const c = demo();
+    // Walmart $92.50 with 10% off and 2% cashback: parts show 92.50, 9.25, 1.67; the total is 81.585 -> $81.59.
+    c.bestDeal = {
+      listingId: "lst-walmart", price: 92.5, code: { id: "x", code: "SAVE10", discount: 9.25 },
+      cashback: { provider: "DemoCash", ratePct: 2, amount: 1.665 }, total: 81.585,
+    };
+    render(<BestDealCard comparison={c} />);
+    expect(line("Cashback DemoCash 2%").textContent).toContain("$1.67");
+    expect(line("Total").textContent).toContain("$81.59");
+    expect(within(card()).getByText("Amounts are rounded to the cent, so the lines may not add up exactly.")).toBeTruthy();
+  });
+
+  it("flags a low-trust best deal store", () => {
+    const c = demo();
+    c.bestDeal = { listingId: "lst-kickswap", price: 118, code: null, cashback: null, total: 118 };
+    render(<BestDealCard comparison={c} />);
+    expect(within(card()).getByText("Low-trust")).toBeTruthy();
+  });
+
+  it("does not claim no stock when the best deal's listing is missing", () => {
+    const c = demo();
+    c.bestDeal = { listingId: "lst-gone", price: 1, code: null, cashback: null, total: 1 };
+    render(<BestDealCard comparison={c} />);
+    expect(within(card()).queryByText(/in stock/)).toBeNull();
+    expect(within(card()).getByText("The best deal could not be shown. Refresh the page to try again.")).toBeTruthy();
   });
 
   it("uses the API's total, rounded only for display", () => {
@@ -128,6 +163,14 @@ describe("SettingsForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
     expect((await screen.findByRole("alert")).textContent).toContain("Something went wrong. Try again.");
     expect(screen.getByRole<HTMLInputElement>("radio", { name: "72 hours" }).checked).toBe(true);
+  });
+
+  it("clears Settings saved. once the user changes something again", async () => {
+    render(<SettingsForm settings={{ freshnessHours: 24, firstOrderEligible: false }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Settings saved."));
+    fireEvent.click(screen.getByRole("radio", { name: "6 hours" }));
+    expect(screen.getByRole("status").textContent).toBe("");
   });
 
   it("blocks a second save while one is in flight", () => {
