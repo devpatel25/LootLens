@@ -6,6 +6,7 @@ import codes from "@/fixtures/codes.json";
 import codesAll from "@/fixtures/codes-all.json";
 import alerts from "@/fixtures/alerts.json";
 import settings from "@/fixtures/settings.json";
+import lowTrust from "@/fixtures/comparison-lowtrust.json";
 import type { AlertsResponse, Code, ItemComparison, Settings, WishlistItem } from "@/lib/types";
 
 // JSON imports widen literals, so compare against a widened shape.
@@ -24,6 +25,7 @@ type Json<T> = T extends string
             : T;
 
 comparison satisfies Json<ItemComparison>;
+lowTrust satisfies Json<ItemComparison>;
 wishlist satisfies Json<WishlistItem>[];
 codes satisfies Json<Code>[];
 codesAll satisfies Json<Code>[];
@@ -36,8 +38,8 @@ const codeList = codes as unknown as Code[];
 const allCodes = codesAll as unknown as Code[];
 const alertData = alerts as unknown as AlertsResponse;
 const NOW = Date.parse("2026-10-29T16:00:00.000Z");
-const DAY = 24 * 3600 * 1000;
-const isStale = (k: Code) => NOW - Date.parse(k.lastCheckedAt) >= DAY;
+const LIMIT = settings.freshnessHours * 3_600_000;
+const isStale = (k: Code) => NOW - Date.parse(k.lastCheckedAt) >= LIMIT;
 const isExpired = (k: Code) => k.expiresAt !== null && Date.parse(k.expiresAt) < NOW;
 
 const ITEM_KEYS = ["category", "createdAt", "id", "imageUrl", "name", "selectedSize", "sizes", "sourceUrl", "typicalPrice", "updatedAt"];
@@ -130,7 +132,7 @@ describe("contract fixtures", () => {
     for (const g of alertData.groups) {
       expect(keys(g)).toEqual(["alerts", "itemId", "itemName", "unread"]);
       for (const a of g.alerts)
-        expect(keys(a)).toEqual(["createdAt", "detail", "id", "itemId", "itemName", "kind", "read", "watchId"]);
+        expect(keys(a)).toEqual(["createdAt", "detail", "id", "itemId", "itemName", "kind", "read", "size", "watchId"]);
     }
   });
 
@@ -148,5 +150,51 @@ describe("contract fixtures", () => {
     expect(allCodes.some((k) => k.status === "dead")).toBe(true);
     expect(allCodes.some(isStale)).toBe(true);
     expect(allCodes.some(isExpired)).toBe(true);
+  });
+
+  it("has a code checked exactly freshnessHours ago, only in codes-all.json", () => {
+    const edge = allCodes.filter((k) => NOW - Date.parse(k.lastCheckedAt) === LIMIT);
+    expect(edge.map((k) => k.code)).toEqual(["STALE15"]);
+    expect(isStale(edge[0])).toBe(true);
+    expect(codeList.map((k) => k.code)).not.toContain("STALE15");
+  });
+
+  it("words SAVE30 as 150 or more", () => {
+    for (const k of [...codeList, ...allCodes].filter((x) => x.code === "SAVE30"))
+      expect(k.label).toBe("$30 off orders of $150 or more");
+  });
+
+});
+
+describe("low-trust comparison fixture (Story 6)", () => {
+  const l = lowTrust as unknown as ItemComparison;
+  const lowIds = l.stores.filter((s) => s.trust.lowTrust).map((s) => s.id);
+  const stock = (id: string) => l.listings.find((x) => x.id === id)!.stockBySize[l.item.selectedSize] ?? 0;
+
+  it("has the cheapest in-stock listing at a low-trust store", () => {
+    const cheapest = l.listings.find((x) => x.id === l.cheapestListingId)!;
+    expect(lowIds).toContain(cheapest.storeId);
+    expect(l.cheapestTrustedListingId).not.toBe(l.cheapestListingId);
+    const trusted = l.listings.find((x) => x.id === l.cheapestTrustedListingId)!;
+    expect(lowIds).not.toContain(trusted.storeId);
+    for (const x of l.listings) if (stock(x.id) > 0) expect(x.price).toBeGreaterThanOrEqual(cheapest.price);
+    for (const x of l.listings)
+      if (stock(x.id) > 0 && !lowIds.includes(x.storeId)) expect(x.price).toBeGreaterThanOrEqual(trusted.price);
+  });
+
+  it("picks the low-trust listing as best deal and keeps totals consistent", () => {
+    expect(l.bestDeal?.listingId).toBe(l.cheapestListingId);
+    expect(l.bestDeals.map((d) => d.listingId)).toEqual(l.listings.map((x) => x.id));
+    const inStock = l.bestDeals.filter((d) => stock(d.listingId) > 0);
+    expect(l.bestDeal?.total).toBe(Math.min(...inStock.map((d) => d.total)));
+    for (const d of l.bestDeals)
+      expect(d.total).toBeCloseTo(d.price - (d.code?.discount ?? 0) - (d.cashback?.amount ?? 0), 5);
+  });
+
+  it("labels KickSwap fictional and every listing demo", () => {
+    const k = l.stores.find((s) => s.id === "store-kickswap");
+    expect(k?.fictional).toBe(true);
+    expect(k?.name).toContain("(fictional demo store)");
+    for (const x of l.listings) expect(x.source).toBe("demo");
   });
 });
