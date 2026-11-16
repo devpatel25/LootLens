@@ -45,7 +45,7 @@ npm run db:seed
 npm run dev                    # http://localhost:3000
 ```
 
-In `.env.local` set `DB_TARGET=local`, `DEMO_MODE=true`, `AUTH_TRUST_HOST=true`, a `DATABASE_URL` that points at port 5433 (for example `postgresql://postgres:postgres@localhost:5433/lootlens`), an `AUTH_SECRET`, the Google OAuth pair `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`, and a `CRON_SECRET`. Set `PROD_DB_HOST` to your production database host so destructive scripts refuse it.
+In `.env.local` set `DB_TARGET=local`, `DEMO_MODE=true`, `AUTH_TRUST_HOST=true`, a `DATABASE_URL` that points at port 5433 (for example `postgresql://postgres:postgres@localhost:5433/lootlens`), an `AUTH_SECRET` (make one with `npx auth secret` or `openssl rand -base64 32`), the Google OAuth pair `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`, and a `CRON_SECRET`. In the Google Cloud console, register `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI for that OAuth client. `DATABASE_URL_UNPOOLED` is optional and falls back to `DATABASE_URL`. Set `PROD_DB_HOST` to your production database host so destructive scripts refuse it.
 
 ### Tests
 
@@ -81,7 +81,7 @@ Planned (set up in #5): Vercel builds with `vercel-build`, each pull request get
 
 Price and stock alerts are the app's stateful core.
 
-- A daily Vercel Cron job (`vercel.json`, 09:00 UTC, daily only because Vercel Hobby allows nothing more often) calls `GET /api/cron/refresh` with `Authorization: Bearer $CRON_SECRET`. It refreshes every item, evaluates every watch, and marks expired codes dead.
+- A daily Vercel Cron job (`vercel.json`, 09:00 UTC, daily only because Vercel Hobby allows nothing more often) calls `GET /api/cron/refresh` with `Authorization: Bearer $CRON_SECRET`. It refreshes every item, evaluates every watch, and marks expired codes dead. Outside demo mode, prices and stock stay as they are until a real data source lands, so the job then only expires codes and re-checks watches.
 - "Refresh now" is `POST /api/items/{id}/refresh`. Each item can refresh once every 5 minutes. A refresh inside that window returns 429 with `retryAfterSeconds`.
 - Alerts are deduped and fire on crossings. A watch remembers whether its price and stock conditions already hold, so an alert is created only when a condition flips from not met to met. A price that stays below target does not alert again.
 - The UI may poll for new alerts. Nothing polls on a timer yet. The Item Detail button and the alerts screens belong to the frontend issues.
@@ -97,7 +97,7 @@ All prices, stock, and codes in this repo are demo data until a real data source
 | `npm run dev` | Dev server |
 | `npm run build` | Production build |
 | `npm run lint` | ESLint |
-| `npm run typecheck` | `tsc --noEmit` |
+| `npm run typecheck` | `next typegen && tsc --noEmit` |
 | `npm test` | Vitest unit and integration tests |
 | `npm run test:e2e` | Playwright E2E (builds, then runs `next start` on port 3100) |
 | `npm run vercel-build` | What Vercel runs: Prisma client, migrate deploy, `next build` |
