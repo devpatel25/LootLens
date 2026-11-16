@@ -158,6 +158,7 @@ describe("applyRefresh", () => {
     const { POST } = await import("@/app/api/demo/simulate/route");
     const { GET } = await import("@/app/api/cron/refresh/route");
     vi.stubEnv("CRON_SECRET", "s");
+    vi.stubEnv("DEMO_MODE", "true");
     await Promise.all([
       POST(req("/api/demo/simulate", "POST", { itemId: kb.id })),
       GET(new Request("http://localhost/api/cron/refresh", { headers: { authorization: "Bearer s" } })),
