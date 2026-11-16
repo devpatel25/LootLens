@@ -76,6 +76,9 @@ describe("POST /api/items", () => {
     ["duplicate sizes", { ...good, sizes: ["8", "8"], selectedSize: "8" }],
     ["javascript url", { ...good, sourceUrl: "javascript:alert(1)" }],
     ["bad json", "{not json"],
+    ["price too large for the column", { ...good, typicalPrice: 1e9 }],
+    ["more than two decimals", { ...good, typicalPrice: 12.345 }],
+    ["overlong selectedSize", { ...good, sizes: ["x".repeat(21)], selectedSize: "x".repeat(21) }],
   ])("400 for %s", async (_n, body) => {
     const res = await post(body);
     expect(res.status).toBe(400);
@@ -91,6 +94,17 @@ describe("POST /api/items", () => {
     const listings = await prisma.listing.findMany({ where: { itemId: data.id } });
     expect(listings.length).toBeGreaterThanOrEqual(3);
     expect(listings.every((l) => l.source === "DEMO")).toBe(true);
+  });
+
+  it("trims selectedSize before comparing it to sizes", async () => {
+    const res = await post({ ...good, sizes: [" M "], selectedSize: " M " });
+    expect(res.status).toBe(201);
+    const { data } = await res.json();
+    expect(data).toMatchObject({ sizes: ["M"], selectedSize: "M" });
+  });
+
+  it("accepts the largest price the column holds", async () => {
+    expect((await post({ ...good, typicalPrice: 99999.99 })).status).toBe(201);
   });
 
   it("ignores a userId in the body", async () => {
@@ -154,6 +168,42 @@ describe("/api/items/[id]", () => {
 
   it("PATCH 400 for bad json", async () => {
     expect((await patch("{nope")).status).toBe(400);
+  });
+
+  it("PATCH 404 when the row is deleted between the read and the write", async () => {
+    const orig = prisma.item.findFirst.bind(prisma.item);
+    vi.spyOn(prisma.item, "findFirst").mockImplementationOnce(((...args: Parameters<typeof orig>) =>
+      orig(...args).then(async (r) => {
+        await prisma.item.delete({ where: { id } });
+        return r;
+      })) as never);
+    const res = await patch({ name: "late" });
+    expect(res.status).toBe(404);
+    expect((await res.json()).error.code).toBe("not_found");
+    vi.restoreAllMocks();
+  });
+
+  it("PATCH with new sizes regenerates listings so cheapest is set for the new size", async () => {
+    expect((await patch({ sizes: ["M", "XL"], selectedSize: "XL" })).status).toBe(200);
+    const list = (await (await GET(req("/api/items"))).json()).data;
+    expect(list.find((i: { id: string }) => i.id === id).cheapest).not.toBeNull();
+    const listings = await prisma.listing.findMany({ where: { itemId: id } });
+    expect(listings.every((l) => l.source === "DEMO" && Object.keys(l.stockBySize as object).sort().join() === "M,XL")).toBe(true);
+  });
+
+  it("PATCH with new sizes deletes watches on removed sizes only", async () => {
+    const mk = (size: string) =>
+      prisma.watch.create({ data: { userId: a, itemId: id, size, baselinePrice: 40 } });
+    await mk("S");
+    await mk("M");
+    await patch({ sizes: ["M", "XL"], selectedSize: "M" });
+    expect((await prisma.watch.findMany({ where: { itemId: id } })).map((w) => w.size)).toEqual(["M"]);
+  });
+
+  it("PATCH without a sizes change keeps the listings", async () => {
+    const before = (await prisma.listing.findMany({ where: { itemId: id } })).map((l) => l.id).sort();
+    await patch({ name: "Renamed" });
+    expect((await prisma.listing.findMany({ where: { itemId: id } })).map((l) => l.id).sort()).toEqual(before);
   });
 
   it("user B gets 404 and A's item is unchanged", async () => {

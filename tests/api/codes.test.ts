@@ -34,9 +34,10 @@ describe("GET /api/codes", () => {
     expect((await GET(req("/api/codes"))).status).toBe(401);
   });
 
-  it("401 for a user that no longer exists", async () => {
+  it("a stale session still reads the shared list, and nothing is written", async () => {
     signInAs("ghost");
-    expect((await GET(req("/api/codes"))).status).toBe(401);
+    expect((await GET(req("/api/codes"))).status).toBe(200);
+    expect(await prisma.userSettings.count({ where: { userId: "ghost" } })).toBe(0);
   });
 
   it("default list: the 5 live, fresh, unexpired codes", async () => {
@@ -131,6 +132,18 @@ describe("PATCH /api/codes/[id]", () => {
     expect((await mark("code-amazon-dead", "live")).status).toBe(200);
     expect(names((await list()).data)).toContain("DEADDEAL");
     expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-amazon-dead" } })).lastCheckedById).toBe(b);
+  });
+
+  it("404 when the row is deleted between the read and the write", async () => {
+    const orig = prisma.code.findUnique.bind(prisma.code);
+    vi.spyOn(prisma.code, "findUnique").mockImplementationOnce(((...args: Parameters<typeof orig>) =>
+      orig(...args).then(async (r) => {
+        await prisma.code.delete({ where: { id: "code-adidas-20" } });
+        return r;
+      })) as never);
+    const res = await mark("code-adidas-20", "dead");
+    expect(res.status).toBe(404);
+    vi.restoreAllMocks();
   });
 
   it("404 for an unknown id", async () => {

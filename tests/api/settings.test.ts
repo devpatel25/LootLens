@@ -27,19 +27,21 @@ describe("/api/settings", () => {
     expect((await patch({})).status).toBe(401);
   });
 
-  it("401 for a user that no longer exists", async () => {
+  it("a stale session reads the defaults, but a write is a 401", async () => {
     signInAs("ghost");
-    expect((await GET(req("/api/settings"))).status).toBe(401);
+    const res = await GET(req("/api/settings"));
+    expect(res.status).toBe(200);
+    expect((await res.json()).data).toEqual({ freshnessHours: 24, firstOrderEligible: false });
     expect((await patch({ freshnessHours: 12 })).status).toBe(401);
   });
 
-  it("GET creates defaults when there is no settings row", async () => {
+  it("GET returns defaults without writing when there is no settings row", async () => {
     signInAs(b);
     expect(await prisma.userSettings.count({ where: { userId: b } })).toBe(0);
     const res = await GET(req("/api/settings"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ data: { freshnessHours: 24, firstOrderEligible: false } });
-    expect(await prisma.userSettings.count({ where: { userId: b } })).toBe(1);
+    expect(await prisma.userSettings.count({ where: { userId: b } })).toBe(0);
   });
 
   it("PATCH updates one field and keeps the other", async () => {
