@@ -96,4 +96,67 @@ Fallback rule: no key or any failed call returns the deterministic demo values, 
 13. CJ developer portal: https://developers.cj.com/docs/product-feed
 14. Best Buy APIs overview: https://developer.bestbuy.com/apis
 
-Decision: pending
+## 7. License follow-up (accessed 2026-11-15)
+
+A second pass read the license and terms pages for options 2 and 3, and checked whether scraping is an option.
+
+### eBay Browse API license
+
+The API License Agreement page is dated Sept 3, 2025 [15]. Four clauses conflict with how LootLens works:
+
+- §8.1.3: displayed listing data "may not be more than six (6) hours older" than on eBay. Our daily cron is too slow.
+- §3.1.2 and §8.1.2: copies must be deleted when no longer needed, or when the listing is no longer public. We cannot keep an eBay price history.
+- §8.1.2: eBay content "may not be co-mingled or combined with non-eBay Content" and must be "visually isolated". eBay rows cannot sit in the comparison table or win the "Cheapest" badge.
+- Account deletion notifications are required before the first production call. The opt-out is only for apps "not persisting any eBay data" [16]. We would need a notification endpoint.
+
+Stock per size is only an estimate (`estimatedAvailabilities` on getItem), not a count [17]. A compliant eBay feature would be a separate "On eBay" panel. It would show the latest price only, refresh at least every 6 hours, and stay out of the cheapest badge and the price history.
+
+### Affiliate program terms
+
+- Amazon Associates: the site "must not have price tracking and/or price alerting functionality". Product data may be cached "for up to 24 hours" [18].
+- Walmart (on Impact): "You may NOT ... include in your Affiliate Website any price tracking and/or price alerting functionality" [19].
+- Target and adidas run on Impact. Their rules on price tracking, feeds and coupons are in private contract terms, shown only after a brand approves you. Not verified.
+- Impact reviews new partners in 2 business days to 72 hours. Each brand then approves on its own schedule. It has a Catalogs API (price, stock, size) and a Promo Codes API, available after brand approval [20][21].
+
+Amazon and Walmart forbid the core features (price history and price-drop alerts), even with an approved affiliate account.
+
+### Scraping
+
+Scraping is ruled out:
+
+- AGENTS.md section 3: "Store sites are never scraped."
+- Store terms forbid it:
+  - Amazon excludes "data mining, robots, or similar data gathering and extraction tools".
+  - Target bans "scraping" and building "a database by systematically downloading or storing Site content" [22].
+  - Meta requires "express written permission" for automated collection [23].
+- The host forbids it. The Vercel Acceptable Use Policy lists "Scrape, proxy, act as a VPN" under things customers must not do [24].
+- It is unreliable. Store sites use bot managers, and several blocked plain requests during this research. Some bot managers serve different prices to bots.
+- Contract claims stay open even where federal computer-access law does not apply. hiQ v. LinkedIn ended with anti-scraping terms held enforceable and a consent judgment against hiQ. This is a summary, not legal advice.
+
+## 8. Decision
+
+Decision (2026-11-15): option 1, the demo fallback for all stores.
+
+- Every listing is `source: "demo"` and shows the Demo data badge.
+- Refresh and cron use the current values outside demo mode, and the deterministic demo source in demo mode.
+- #12 (price source adapter) is cut for this sprint. `getListingUpdates` stays the seam for a real source later.
+- No store site is scraped.
+
+Later, outside this sprint:
+
+1. Apply to Impact for Target and adidas, then read their contract terms before building an adapter.
+2. Consider an eBay "On eBay" panel that follows the license rules above, after the production deploy exists for the deletion endpoint.
+3. Keep Amazon and Walmart as plain links. Their affiliate terms forbid price tracking and alerts.
+
+### Added sources (accessed 2026-11-15)
+
+15. eBay API License Agreement: https://developer.ebay.com/develop/apis/api-license-agreement
+16. eBay marketplace account deletion: https://developer.ebay.com/develop/guides-v2/marketplace-user-account-deletion
+17. eBay Browse API OpenAPI spec: https://developer.ebay.com/api-docs/master/buy/browse/openapi/3/buy_browse_v1_oas3.json
+18. Amazon Associates program policies: https://affiliate-program.amazon.com/help/operating/policies
+19. Walmart affiliate terms: https://affiliates.walmart.com/terms
+20. Impact partner sign-up: https://help.impact.com/partner/what-would-you-like-to-learn-about/getting-started/sign-up-as-a-partner-on-impactcom
+21. Impact Catalogs API: https://integrations.impact.com/partner-api-reference/reference/catalogs/catalogs
+22. Target terms and conditions: https://www.target.com/c/terms-conditions/-/N-4sr7l
+23. Meta automated data collection terms: https://www.facebook.com/legal/automated_data_collection_terms
+24. Vercel Acceptable Use Policy: https://vercel.com/legal/acceptable-use-policy
