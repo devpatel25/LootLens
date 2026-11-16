@@ -1,6 +1,9 @@
 import { cheapestListing, stockInSize } from "@/lib/pricing";
 import type { AlertKind, Listing, Store } from "@/lib/types";
 
+/** Matches the Watch.lowStockAt column default. */
+export const DEFAULT_LOW_STOCK = 3;
+
 export type WatchRule = { targetPrice: number | null; baselinePrice: number; lowStockAt: number };
 export type WatchNow = { price: number | null; stock: number };
 

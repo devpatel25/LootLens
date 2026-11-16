@@ -1,8 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
-import { listingsInclude } from "@/lib/dto";
 import { ok, route, unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import { refreshItems, refreshSource } from "@/lib/refresh";
+import { applyRefresh, refreshSource } from "@/lib/refresh";
+
+const PAGE = 50;
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
@@ -16,12 +17,36 @@ function authorized(req: Request): boolean {
 export const GET = route(async (req: Request) => {
   if (!authorized(req)) return unauthorized();
 
-  const items = await prisma.item.findMany({ include: listingsInclude, orderBy: { id: "asc" } });
-  const refreshed = await refreshItems(items, refreshSource());
+  // Codes first, so they expire even if item refreshes are slow or fail.
   const { count: codesExpired } = await prisma.code.updateMany({
     where: { status: "LIVE", expiresAt: { lt: new Date() } },
     data: { status: "DEAD" },
   });
-  return ok({ ...refreshed, codesExpired });
-});
 
+  // ponytail: sequential pages of 50; ends at the function max duration. Upgrade path: a queue with one job per item.
+  const source = refreshSource();
+  let items = 0;
+  let alertsCreated = 0;
+  let failed = 0;
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await prisma.item.findMany({
+      select: { id: true },
+      orderBy: { id: "asc" },
+      take: PAGE,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+    for (const { id } of page) {
+      try {
+        alertsCreated += (await applyRefresh(id, source)).alertsCreated;
+        items++;
+      } catch (e) {
+        console.error("cron refresh failed for item", id, e);
+        failed++;
+      }
+    }
+    if (page.length < PAGE) break;
+    cursor = page[page.length - 1].id;
+  }
+  return ok({ items, alertsCreated, codesExpired, failed });
+});
