@@ -74,6 +74,14 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                           Fictional
                         </span>
                       )}
+                      {store?.trust.lowTrust && (
+                        <span className={`${tag} border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100`}>
+                          <svg aria-hidden="true" viewBox="0 0 16 16" className="mr-1 size-3 fill-current">
+                            <path d="M8 1 15 14H1L8 1Zm-.75 5v4h1.5V6h-1.5Zm0 5v1.5h1.5V11h-1.5Z" />
+                          </svg>
+                          Low-trust
+                        </span>
+                      )}
                       {cheapest && (
                         <span className={`${tag} border-emerald-700 bg-emerald-700 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950`}>
                           Cheapest
@@ -99,22 +107,16 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                         <span className={store.isHttps ? "text-zinc-700 dark:text-zinc-300" : "font-medium text-red-800 dark:text-red-300"}>
                           {store.isHttps ? "HTTPS" : "No HTTPS"}
                         </span>
-                        <span className="text-zinc-700 dark:text-zinc-300">{store.photoReviewCount} photo reviews</span>
+                        <span className="text-zinc-700 dark:text-zinc-300">
+                          {store.photoReviewCount} {store.photoReviewCount === 1 ? "photo review" : "photo reviews"}
+                        </span>
                         {store.trust.lowTrust && (
-                          <>
-                            <span className={`${tag} w-fit border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100`}>
-                              <svg aria-hidden="true" viewBox="0 0 16 16" className="mr-1 size-3 fill-current">
-                                <path d="M8 1 15 14H1L8 1Zm-.75 5v4h1.5V6h-1.5Zm0 5v1.5h1.5V11h-1.5Z" />
-                              </svg>
-                              Low-trust
-                            </span>
-                            <span className="text-xs text-red-900 dark:text-red-200">
-                              {(() => {
-                                const t = trustReasonsSentence(store.trust.reasons);
-                                return t.charAt(0).toUpperCase() + t.slice(1);
-                              })()}
-                            </span>
-                          </>
+                          <span className="text-xs text-red-900 dark:text-red-200">
+                            {(() => {
+                              const t = trustReasonsSentence(store.trust.reasons);
+                              return t.charAt(0).toUpperCase() + t.slice(1);
+                            })()}
+                          </span>
                         )}
                       </div>
                     )}
