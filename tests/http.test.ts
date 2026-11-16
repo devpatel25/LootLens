@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { notFound } from "next/navigation";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { fail, isStaleUser, ok, parse, requireUserId } from "@/lib/http";
+import { fail, isStaleUser, ok, parse, requireUserId, route } from "@/lib/http";
 import { signInAs } from "./helpers/auth";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
@@ -89,5 +90,22 @@ describe("isStaleUser", () => {
     expect(isStaleUser(new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "x" }))).toBe(false);
     expect(isStaleUser(new Error("boom"))).toBe(false);
     expect(isStaleUser(undefined)).toBe(false);
+  });
+});
+
+describe("route", () => {
+  it("lets a Next control-flow error through instead of returning a 500", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(route(async () => notFound())()).rejects.toMatchObject({ digest: expect.stringContaining("NEXT_HTTP_ERROR_FALLBACK") });
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+  it("turns other errors into a JSON 500", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await route(async () => {
+      throw new Error("boom");
+    })();
+    expect(res.status).toBe(500);
+    log.mockRestore();
   });
 });
