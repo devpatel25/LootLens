@@ -43,6 +43,7 @@ export type Listing = {
   price: number;
   condition: ListingCondition;
   url: string;
+  /** Units in stock per size. A size key that is missing means 0 in stock. */
   stockBySize: Record<string, number>;
   updatedAt: string;
   source: DataSource;
@@ -77,7 +78,11 @@ export type Code = {
  * firstOrderOnly unless settings.firstOrderEligible. A pct value is a percent and a
  * flat value is USD; the discount is capped at the price. Cashback is the store's
  * highest ratePct offer applied to price minus discount.
- * Amounts are unrounded. total = price - code.discount - cashback.amount. */
+ * Amounts are unrounded. total = price - code.discount - cashback.amount.
+ * Code choice: the applicable code with the largest discount, one code per listing,
+ * no stacking. Discounts compare as unrounded amounts. On a tie the code that comes first
+ * in the codes list the backend reads wins.
+ */
 export type BestDeal = {
   listingId: string;
   price: number;
@@ -92,11 +97,24 @@ export type ItemComparison = {
   /** Only stores referenced by some listing. Join listings to stores by storeId. */
   stores: Store[];
   listings: Listing[];
+  /**
+   * Lowest price among listings in stock for item.selectedSize, or null when none.
+   * Used and resale listings count, and so do low-trust stores. Tie: new condition
+   * first, then store name A to Z. WishlistItem.cheapest is the overall cheapest by
+   * this same rule.
+   */
   cheapestListingId: string | null;
+  /** Same rule as cheapestListingId, over stores with trust.lowTrust === false only. */
   cheapestTrustedListingId: string | null;
   /** One entry per listing (including out of stock), in listings order. */
   bestDeals: BestDeal[];
-  /** Lowest total among listings in stock for item.selectedSize, or null. */
+  /**
+   * Lowest total among listings in stock for item.selectedSize, or null. Total is
+   * price minus best applicable code minus cashback on the post-code price. Totals
+   * compare as unrounded amounts. Tie: new condition first, then store name A to Z. It may pick
+   * a low-trust listing: the UI warns instead of hiding it, and finds the trusted
+   * alternative in bestDeals through cheapestTrustedListingId.
+   */
   bestDeal: BestDeal | null;
 };
 
@@ -122,17 +140,31 @@ export type Watch = {
 
 export type AlertKind = "price_drop" | "low_size" | "out_of_stock";
 
-/** Detail: price_drop { from, to }, low_size { qty }, out_of_stock { qty: 0 }. */
+/**
+ * POST /api/watches success data: the new Watch plus alreadyMet. alreadyMet is true when
+ * the current cheapest in-stock price for the saved size is already at or below
+ * targetPrice at creation. Alerts stay crossing-only, so no alert fires for this; the UI
+ * uses the flag to say the item is already at the target.
+ */
+export type CreatedWatch = Watch & { alreadyMet: boolean };
+
+/**
+ * size is the saved size the alert is about. It stays on the alert after its watch is
+ * deleted (watchId null). low_size qty is summed across stores, so there is no store name.
+ */
 export type Alert = {
   id: string;
   watchId: string | null;
   itemId: string;
   itemName: string;
-  kind: AlertKind;
-  detail: { from?: number; to?: number; qty?: number };
+  size: string;
   read: boolean;
   createdAt: string;
-};
+} & (
+  | { kind: "price_drop"; detail: { from: number; to: number } }
+  | { kind: "low_size"; detail: { qty: number } }
+  | { kind: "out_of_stock"; detail: { qty: 0 } }
+);
 
 /** GET /api/alerts */
 export type AlertsResponse = {

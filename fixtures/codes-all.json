@@ -40,7 +40,7 @@
     "storeId": "store-adidas",
     "storeName": "Adidas",
     "code": "SAVE30",
-    "label": "$30 off orders over $150",
+    "label": "$30 off orders of $150 or more",
     "type": "flat",
     "value": 30,
     "minSpend": 150,
@@ -83,7 +83,7 @@
     "firstOrderOnly": false,
     "expiresAt": null,
     "status": "live",
-    "lastCheckedAt": "2026-10-28T10:00:00.000Z",
+    "lastCheckedAt": "2026-10-28T16:00:00.000Z",
     "cashback": {
       "provider": "DemoCash",
       "ratePct": 5
