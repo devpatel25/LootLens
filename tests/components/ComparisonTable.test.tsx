@@ -145,6 +145,31 @@ describe("ComparisonTable (edge cases)", () => {
   });
 });
 
+describe("Dev's review (#31)", () => {
+  it("labels a fictional store whose name merely contains the word", () => {
+    const c = demo();
+    c.stores = c.stores.map((st) => (st.fictional ? { ...st, name: "Nonfictional Books" } : st));
+    render(<ComparisonTable comparison={c} />);
+    expect(within(row(/Nonfictional Books/)).getByText("Fictional")).toBeTruthy();
+  });
+
+  it("marks a fictional store in its outbound link text too", () => {
+    const c = demo();
+    c.stores = c.stores.map((st) => (st.fictional ? { ...st, name: "KickSwap" } : st));
+    render(<ComparisonTable comparison={c} />);
+    expect(within(row(/KickSwap/)).getByRole("link", { name: /View at KickSwap \(fictional\)/ })).toBeTruthy();
+  });
+
+  it("the empty state heading sits under Compare stores (h3)", () => {
+    const c = demo();
+    c.listings = [];
+    c.cheapestListingId = null;
+    render(<ItemDetailView comparison={c} />);
+    expect(screen.getByRole("heading", { level: 2, name: "Compare stores" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 3, name: "No store prices yet" })).toBeTruthy();
+  });
+});
+
 describe("ItemDetailView", () => {
   it("shows the item name, saved size, and the comparison", () => {
     render(<ItemDetailView comparison={demo()} />);
