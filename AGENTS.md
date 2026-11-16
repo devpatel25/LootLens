@@ -72,8 +72,9 @@ prisma/                 schema.prisma, migrations/, seed.ts
 prisma.config.ts        Prisma CLI config (env loading, seed command)
 fixtures/               demo JSON in API shapes, for UI work and tests
 tests/                  Vitest unit + integration (helpers/ for db reset)
-e2e/                    Playwright
-docs/                   architecture, API, schema, sprints, retros, reviews
+e2e/                    Playwright (a11y.spec.ts: axe WCAG 2.2 A/AA on every screen)
+scripts/smoke.mjs       production smoke test (npm run smoke)
+docs/                   architecture, API, schema, a11y audit, demo script, sprints, retros, reviews
 ```
 
 Put new code in this map. If the map has to change, update this section in the same PR.
@@ -147,6 +148,7 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
   - Route handlers: integration tests covering 401, 400, cross-user 404 for read and mutate, and the success shape.
   - UI: component tests for all four states (loading, empty, error, populated) and one Playwright flow per user story. Every data route gets a `loading.tsx` and an `error.tsx`.
 - Query UI tests by role and accessible name (`getByRole("columnheader", { name: "Price" })`), the same way a user finds things. Use `getByText` only for plain text that has no role, scoped with `within(row)`.
+- New screens and states get a case in `e2e/a11y.spec.ts`; it must report no WCAG A or AA violations.
 - `npm run lint`, `npm run typecheck`, `npm test`, and `npm run test:e2e` all pass before a PR asks for review.
 
 ## 5. Scrum workflow

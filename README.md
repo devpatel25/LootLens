@@ -108,3 +108,4 @@ All prices, stock, and codes in this repo are demo data until a real data source
 | `npm run db:test:migrate` | Apply migrations to the test database from `.env.test` |
 | `npm run db:seed` | Load demo data |
 | `npm run db:generate` | Generate the Prisma client |
+| `SMOKE_URL=https://... npm run smoke` | After a deploy: check the live site answers as expected (health, sign-in page, signed-out redirect and 401, cron and demo locked) |
