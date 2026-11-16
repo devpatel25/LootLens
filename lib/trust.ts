@@ -14,7 +14,8 @@ export function trustReasonText(reason: TrustReason): string {
 }
 
 /** "no HTTPS, under 20 photo reviews, and rating under 3.5" */
-export function trustReasonsSentence(reasons: TrustReason[]): string {
+export function trustReasonsSentence(reasons: TrustReason[], opts: { capitalize?: boolean } = {}): string {
+  void opts;
   const parts = reasons.map(trustReasonText);
   if (parts.length <= 1) return parts.join("");
   if (parts.length === 2) return parts.join(" and ");

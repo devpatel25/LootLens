@@ -17,6 +17,10 @@ describe("trust wording", () => {
     );
     expect(trustReasonsSentence([])).toBe("");
   });
+
+  it("can start with a capital for use as a sentence", () => {
+    expect(trustReasonsSentence(["no_https", "low_rating"], { capitalize: true })).toBe("No HTTPS and rating under 3.5");
+  });
 });
 
 describe("storeLabel", () => {

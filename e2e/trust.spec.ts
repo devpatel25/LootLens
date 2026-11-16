@@ -15,7 +15,7 @@ test("a low-trust cheapest store gets a warning and a trusted alternative", asyn
   await expect(kick.getByText("Cheapest")).toBeVisible();
   const note = page.getByRole("note", { name: "Trust warning" });
   await expect(note).toContainText("The cheapest store shown, KickSwap (fictional demo store), looks low-trust");
-  await expect(note).toContainText("Cheapest trusted alternative: $39.00 at Target.");
+  await expect(note).toContainText("Cheapest trusted store shown: $39.00 at Target.");
 });
 
 test("a trusted cheapest store shows no warning, and trust signs show on every row", async ({ page, request }) => {

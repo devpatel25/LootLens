@@ -59,12 +59,21 @@ describe("trust signs in the comparison table", () => {
   });
 });
 
+describe("unknown store (Dev's review)", () => {
+  it("says the trust is unknown instead of looking as safe as a trusted store", () => {
+    const c = demo();
+    c.listings = c.listings.map((l) => (l.id === "lst-walmart" ? { ...l, storeId: "store-missing" } : l));
+    render(<ComparisonTable comparison={c} />);
+    expect(within(row(/Unknown store/)).getByText("Trust unknown")).toBeTruthy();
+  });
+});
+
 describe("cheapest trusted alternative", () => {
   it("warns when the cheapest store is low-trust and names the cheapest trusted one", () => {
     render(<ItemDetailView comparison={cheapestIsLowTrust()} />);
     const note = screen.getByRole("note", { name: "Trust warning" });
     expect(note.textContent).toContain("The cheapest store shown, KickSwap (fictional demo store), looks low-trust: no HTTPS, under 20 photo reviews, and rating under 3.5.");
-    expect(note.textContent).toContain("Cheapest trusted alternative: $60.00 at Facebook Marketplace.");
+    expect(note.textContent).toContain("Cheapest trusted store shown: $60.00 at Facebook Marketplace.");
   });
 
   it("says so when no trusted store has the size", () => {
@@ -87,7 +96,7 @@ describe("cheapest trusted alternative", () => {
     render(<ItemDetailView comparison={c} />);
     const note = screen.getByRole("note", { name: "Trust warning" }).textContent;
     expect(note).toContain("The cheapest store shown, KickSwap (fictional), looks low-trust");
-    expect(note).toContain("Cheapest trusted alternative: $60.00 at SwapShop (fictional).");
+    expect(note).toContain("Cheapest trusted store shown: $60.00 at SwapShop (fictional).");
   });
 
   it("labels a fictional cheapest store as fictional in the summary line", () => {
