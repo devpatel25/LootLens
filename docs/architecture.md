@@ -43,7 +43,7 @@ flowchart LR
 
 ## How a screen is built
 
-1. **The request.** `proxy.ts` checks for a session cookie. Signed-out page visits go to `/signin?callbackUrl=...`; signed-out API calls get a JSON 401.
+1. **The request.** `proxy.ts` verifies the signed session token (a JWT from Auth.js). Signed-out page visits go to `/signin?callbackUrl=...`; signed-out API calls get a JSON 401; a signed-in visit to `/signin` goes on to its `callbackUrl`. A few paths are public: `/signin`, `/api/auth`, `/api/health`, `/api/cron` (it checks its own secret), `/api-docs`, and `/openapi.json`. The rules live in `routeDecision` in `lib/authConfig.ts`.
 2. **The page loads its data on the server.** For example, the Wishlist page calls `loadWishlist(userId)`. The user id always comes from the session (`requirePageUserId()` in `lib/currentUser.ts`), never from the URL or the request body.
 3. **The same loader serves the API.** `GET /api/items` calls the same `loadWishlist`. Pages and the API therefore always show the same data in the same shape (the types in `lib/types.ts`).
 4. **Prices and rules come from `lib/`.** The cheapest listing, the best total after codes and cashback, code freshness, trust flags, and alert rules are plain functions in `lib/pricing.ts` and `lib/alerts.ts`. Screens only display their results.
@@ -77,11 +77,11 @@ flowchart LR
 | Where | Database | How the app gets there |
 |---|---|---|
 | Your laptop | Docker PostgreSQL on port 5433 (`npm run db:up`) | `npm run dev` |
-| GitHub Actions CI | PostgreSQL service container | lint, typecheck, unit tests, Playwright on every PR |
-| Vercel preview | A Neon branch per preview | every pushed branch |
-| Production | Neon `main` | merges to `main` |
+| GitHub Actions CI | PostgreSQL service container | lint, typecheck, unit tests, and Playwright on every PR, with throwaway env values |
+| Vercel preview (planned, #5) | A Neon branch per preview | every pushed branch |
+| Production (planned, #5) | Neon `main` | merges to `main` |
 
-Secrets live in `.env.local`, GitHub Actions secrets, and Vercel environment variables, never in the repo. The full rules are in `AGENTS.md` section 1.
+Real secrets live in `.env.local` and Vercel environment variables, never in the repo. The full rules are in `AGENTS.md` section 1.
 
 ## Testing
 

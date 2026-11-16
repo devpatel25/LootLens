@@ -8,17 +8,25 @@ LootLens should work for people who use a keyboard, a screen reader, voice contr
 
 `e2e/a11y.spec.ts` and `e2e/a11y-anon.spec.ts` run [axe](https://github.com/dequelabs/axe-core) through Playwright against WCAG 2.2 levels A and AA (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`). A test fails on any violation.
 
-| Screen | 1280px light | 375px light | 1280px dark |
+Each case waits for the screen's real content (for example the Save settings button), not its loading state, before scanning. Screens are checked with the seeded demo data unless the row says otherwise.
+
+| Screen and state | 1280px light | 375px light | 1280px dark |
 |---|---|---|---|
 | Sign in (`/signin`, and with an error message) | pass | n/a | pass |
-| Wishlist | pass | pass | pass |
+| Wishlist with items | pass | pass | pass |
 | Add item sheet, showing field errors | pass | pass | pass |
-| Item Detail, Adidas Samba OG (trusted cheapest) | pass | pass | pass |
+| Item Detail, Adidas Samba OG (trusted cheapest, no code applies) | pass | pass | pass |
 | Item Detail, Denim jacket (low-trust cheapest, warning shown) | pass | pass | pass |
+| Item Detail, Mechanical keyboard (Best Deal with a code) | pass | pass | pass |
+| Item Detail with an active watch | pass | pass | pass |
+| Item not found | pass | pass | pass |
 | Codes, default list | pass | pass | pass |
 | Codes, Show dead codes | pass | pass | pass |
-| Alerts | pass | pass | pass |
+| Alerts with no alerts | pass | pass | pass |
+| Alerts with a price-drop alert and an active watch | pass | pass | pass |
 | Settings | pass | pass | pass |
+
+Not scanned automatically: the error screens (they only appear when something fails) and the delete-confirm dialogs. Both use the same `ErrorState` and dialog components that are covered by component tests for roles, names, and focus.
 
 **Found and fixed:** `label-content-name-mismatch` (serious) on every signed-in screen. The header link's visible text included the logo letter "L", which its accessible name "LootLens home" did not contain (WCAG 2.5.3, Label in Name). Voice-control users say what they see, so "click L LootLens" would not match. The logo mark is now an icon, so the visible text is "LootLens".
 
@@ -42,10 +50,10 @@ LootLens should work for people who use a keyboard, a screen reader, voice contr
 
 ## 3. Known limits and follow-ups
 
-These are not WCAG failures, but they are worth knowing:
+These are not WCAG failures, but they are worth knowing. Each one is filed as a follow-up issue (linked in the PR for #18).
 
-1. **Some actions need JavaScript.** Sign-in works without it, but Sign out (inside the account menu), the Settings form, Mark dead/alive, Refresh now, and the watch form need JavaScript to run. The project rule in `AGENTS.md` asks forms to work before JS loads; turning these into server actions is a follow-up.
-2. **The price table is wide.** On a phone it scrolls sideways inside its box. A stacked card layout for phones would be easier to read.
+1. **Signed-in screens need JavaScript.** They stream their data behind `<Suspense>`, and streamed content stays hidden until JavaScript runs. The sign-in page is server-rendered and works without it.
+2. **The price table is wide.** On a phone it scrolls sideways inside its own box. A stacked card layout for phones would be easier to read.
 3. **Screen reader testing.** The checks above use the accessibility tree (Testing Library and Playwright roles, axe). A pass with VoiceOver on iOS and NVDA on Windows is still worth doing before the demo.
 
 ## How to run the checks

@@ -1,6 +1,8 @@
 // Production smoke test: run after a deploy to check the live site answers the way it should.
 //   SMOKE_URL=https://your-app.vercel.app npm run smoke
 // It only reads public or signed-out responses. It never signs in and never changes data.
+// A preview behind Vercel deployment protection answers with a login page; run it against an open URL.
+// It does not prove DEMO_MODE is off in production: check that in the Vercel project settings.
 
 const base = (process.env.SMOKE_URL ?? process.argv[2] ?? "").replace(/\/+$/, "");
 if (!/^https?:\/\//.test(base)) {
@@ -8,11 +10,14 @@ if (!/^https?:\/\//.test(base)) {
   process.exit(2);
 }
 
+// Every request gives up after 10 seconds, so a hung deploy fails the run instead of hanging it.
+const get = (path, init = {}) => fetch(`${base}${path}`, { ...init, signal: AbortSignal.timeout(10_000) });
+
 const checks = [
   {
     name: "health endpoint answers ok",
     run: async () => {
-      const res = await fetch(`${base}/api/health`);
+      const res = await get("/api/health");
       const body = await res.json();
       return res.status === 200 && body.status === "ok" ? null : `got ${res.status} ${JSON.stringify(body)}`;
     },
@@ -20,7 +25,7 @@ const checks = [
   {
     name: "sign-in page loads",
     run: async () => {
-      const res = await fetch(`${base}/signin`);
+      const res = await get("/signin");
       const html = await res.text();
       return res.status === 200 && html.includes("Sign in to LootLens") && html.includes("Continue with Google")
         ? null
@@ -30,7 +35,7 @@ const checks = [
   {
     name: "signed-out page visit is sent to sign-in",
     run: async () => {
-      const res = await fetch(`${base}/wishlist`, { redirect: "manual" });
+      const res = await get("/wishlist", { redirect: "manual" });
       const to = res.headers.get("location") ?? "";
       return res.status >= 300 && res.status < 400 && to.includes("/signin") ? null : `got ${res.status} to "${to}"`;
     },
@@ -38,7 +43,7 @@ const checks = [
   {
     name: "signed-out API call gets a JSON 401",
     run: async () => {
-      const res = await fetch(`${base}/api/items`);
+      const res = await get("/api/items");
       const body = await res.json().catch(() => null);
       return res.status === 401 && body?.error?.code === "unauthorized" ? null : `got ${res.status} ${JSON.stringify(body)}`;
     },
@@ -46,16 +51,18 @@ const checks = [
   {
     name: "cron endpoint refuses a call without the secret",
     run: async () => {
-      const res = await fetch(`${base}/api/cron/refresh`);
+      const res = await get("/api/cron/refresh");
       return res.status === 401 ? null : `got ${res.status}, expected 401`;
     },
   },
   {
-    name: "demo actions are off in production",
+    name: "demo simulate is locked for signed-out callers",
     run: async () => {
-      const res = await fetch(`${base}/api/demo/simulate`, { method: "POST" });
-      // Signed out, the proxy answers 401 first; a 200 would mean demo actions are reachable.
-      return res.status !== 200 ? null : "got 200, demo simulate must not be reachable";
+      const res = await get("/api/demo/simulate", { method: "POST" });
+      // The proxy answers 401 before the demo gate runs, so this shows the endpoint is not open to the
+      // public. Whether DEMO_MODE is off in production is a Vercel settings check, not something a
+      // signed-out request can see.
+      return res.status === 401 ? null : `got ${res.status}, expected 401`;
     },
   },
 ];
