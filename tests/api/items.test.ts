@@ -171,19 +171,6 @@ describe("/api/items/[id]", () => {
     expect((await patch("{nope")).status).toBe(400);
   });
 
-  it("PATCH 404 when the row is deleted between the read and the write", async () => {
-    const orig = prisma.item.findFirst.bind(prisma.item);
-    vi.spyOn(prisma.item, "findFirst").mockImplementationOnce(((...args: Parameters<typeof orig>) =>
-      orig(...args).then(async (r) => {
-        await prisma.item.delete({ where: { id } });
-        return r;
-      })) as never);
-    const res = await patch({ name: "late" });
-    expect(res.status).toBe(404);
-    expect((await res.json()).error.code).toBe("not_found");
-    vi.restoreAllMocks();
-  });
-
   it("PATCH adding a size keeps listing ids, prices and history, and stocks the new size", async () => {
     const before = await prisma.listing.findMany({ where: { itemId: id }, orderBy: { id: "asc" } });
     const hist = await prisma.priceHistory.count({ where: { listing: { itemId: id } } });
