@@ -42,6 +42,8 @@ lib/
   authActions.ts        server actions: signInWithGoogle, signOutAction
   signin.ts             safeCallbackUrl, signInUrl, keepSignInPage, signInErrorMessage (client-safe)
   paths.ts              isUnder: the one "this path or below" rule (proxy, callbackUrl, nav)
+  storeLabel.ts         needsFictionalLabel, storeLabel: fictional stores are labelled from store.fictional
+  currentUser.ts        requirePageUserId(returnTo): session user id for server pages (else sign-in, keeping returnTo)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
   settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)

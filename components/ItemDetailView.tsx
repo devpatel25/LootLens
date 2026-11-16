@@ -2,12 +2,14 @@ import Link from "next/link";
 import ComparisonTable from "@/components/ComparisonTable";
 import DemoDataBadge from "@/components/DemoDataBadge";
 import { formatUsd } from "@/lib/format";
+import { storeLabel } from "@/lib/storeLabel";
 import type { ItemComparison } from "@/lib/types";
 
 export default function ItemDetailView({ comparison }: { comparison: ItemComparison }) {
   const { item, listings, stores, cheapestListingId } = comparison;
   const cheapest = listings.find((l) => l.id === cheapestListingId);
-  const cheapestStore = cheapest && stores.find((s) => s.id === cheapest.storeId);
+  const storeById = new Map(stores.map((s) => [s.id, s]));
+  const cheapestStore = cheapest && storeById.get(cheapest.storeId);
   const anyDemo = listings.some((l) => l.source === "demo");
 
   return (
@@ -26,7 +28,7 @@ export default function ItemDetailView({ comparison }: { comparison: ItemCompari
         <p className="text-sm text-zinc-600 dark:text-zinc-300">Saved size: {item.selectedSize}</p>
         {cheapest && cheapestStore && (
           <p className="text-sm">
-            Cheapest of the stores shown: {formatUsd(cheapest.price)} at {cheapestStore.name}
+            Cheapest of the stores shown: {formatUsd(cheapest.price)} at {storeLabel(cheapestStore)}
           </p>
         )}
       </div>

@@ -1,6 +1,7 @@
 import EmptyState from "@/components/EmptyState";
 import { formatUsd } from "@/lib/format";
 import { sortForComparison, stockInSize } from "@/lib/pricing";
+import { needsFictionalLabel, storeLabel } from "@/lib/storeLabel";
 import type { ItemComparison, ListingCondition } from "@/lib/types";
 
 const CONDITION: Record<ListingCondition, { label: string; className: string }> = {
@@ -19,9 +20,10 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
   const size = item.selectedSize;
 
   if (listings.length === 0) {
-    return <EmptyState title="No store prices yet" message="Prices for this item show here once a store lists it." />;
+    return <EmptyState headingLevel={3} title="No store prices yet" message="Prices for this item show here once a store lists it." />;
   }
 
+  const storeById = new Map(stores.map((s) => [s.id, s]));
   const captionId = `comparison-${item.id}`;
   const caption = `Prices for ${item.name} at every store`;
 
@@ -54,7 +56,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
           </thead>
           <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
             {sortForComparison(listings, stores).map((listing) => {
-              const store = stores.find((s) => s.id === listing.storeId);
+              const store = storeById.get(listing.storeId);
               const name = store?.name ?? "Unknown store";
               const stock = stockInSize(listing, size);
               const cheapest = listing.id === cheapestListingId;
@@ -64,7 +66,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                   <th scope="row" className="px-4 py-3 font-medium">
                     <span className="flex flex-wrap items-center gap-2">
                       {name}
-                      {store?.fictional && !/fictional/i.test(name) && (
+                      {store && needsFictionalLabel(store) && (
                         <span className={`${tag} border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100`}>
                           Fictional
                         </span>
@@ -95,7 +97,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                       rel="noopener noreferrer"
                       className="font-medium text-emerald-800 underline underline-offset-2 hover:text-emerald-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200"
                     >
-                      View at {name}
+                      View at {store ? storeLabel(store) : name}
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   </td>
