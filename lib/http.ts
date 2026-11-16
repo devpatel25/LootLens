@@ -37,7 +37,7 @@ export function isMissingRow(e: unknown): boolean {
 }
 
 /** The foreign key a P2003 failed on, from the driver adapter's error detail. */
-function fkName(e: Prisma.PrismaClientKnownRequestError): string {
+export function fkName(e: Prisma.PrismaClientKnownRequestError): string {
   const meta = e.meta as { driverAdapterError?: { cause?: { constraint?: { index?: string } } } } | undefined;
   return meta?.driverAdapterError?.cause?.constraint?.index ?? "";
 }
