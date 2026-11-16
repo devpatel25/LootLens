@@ -13,7 +13,9 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
   const [hours, setHours] = useState<FreshnessHours>(settings.freshnessHours);
   const [firstOrder, setFirstOrder] = useState(settings.firstOrderEligible);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  // seq gives each announcement a fresh node, so saving twice is announced twice.
+  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
+  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
   const [error, setError] = useState<string | null>(null);
 
   async function save(e: FormEvent) {
@@ -98,7 +100,7 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
           {busy ? "Saving…" : "Save settings"}
         </button>
         <p role="status" aria-live="polite" className="text-sm text-emerald-800 dark:text-emerald-300">
-          {message}
+          <span key={seq}>{message}</span>
         </p>
       </div>
     </form>

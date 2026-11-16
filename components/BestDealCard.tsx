@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatUsd } from "@/lib/format";
-import { storeLabel } from "@/lib/trust";
+import { storeLabel } from "@/lib/storeLabel";
 import type { ItemComparison } from "@/lib/types";
 
 /** A discount amount: the minus sign is hidden from screen readers, which say "minus" instead. */
