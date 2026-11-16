@@ -36,7 +36,10 @@ export default function UserMenu({ name, email, signOutAction }: UserMenuProps) 
       className="relative"
       // Keyboard users who Tab past the last item leave the menu; close it so it does not float over the page.
       onBlur={(e) => {
-        if (open && !rootRef.current?.contains(e.relatedTarget as Node | null)) setOpen(false);
+        // relatedTarget is null when a click lands on a non-focusable spot or the window loses focus, and
+        // Safari does not focus buttons on click; only close when focus really moved to another element.
+        const next = e.relatedTarget as Node | null;
+        if (open && next && !rootRef.current?.contains(next)) setOpen(false);
       }}
       onKeyDown={(e) => {
         if (e.key === "Escape" && open) {

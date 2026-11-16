@@ -50,6 +50,14 @@ describe("UserMenu (review)", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 
+  it("stays open when the blur has no new focus target (Safari click, window switch)", () => {
+    render(<UserMenu {...props} />);
+    const toggle = screen.getByRole("button", { name: /Account menu/ });
+    fireEvent.click(toggle);
+    fireEvent.blur(toggle, { relatedTarget: null });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("stays open while focus moves inside it", () => {
     render(<UserMenu {...props} />);
     const toggle = screen.getByRole("button", { name: /Account menu/ });

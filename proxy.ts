@@ -12,7 +12,8 @@ export default auth((req) => {
     return Response.json({ error: { code: "unauthorized", message: "Sign in required" } }, { status: 401 });
   }
   if (d === "redirect") return NextResponse.redirect(new URL(signInUrl(req.nextUrl.pathname, req.nextUrl.search), req.nextUrl));
-  if (d === "leave-signin") {
+  // Only page visits are sent on. A sign-in POST (server action) from a stale tab must reach /signin itself.
+  if (d === "leave-signin" && (req.method === "GET" || req.method === "HEAD")) {
     return NextResponse.redirect(new URL(safeCallbackUrl(req.nextUrl.searchParams.get("callbackUrl") ?? undefined), req.nextUrl));
   }
 });

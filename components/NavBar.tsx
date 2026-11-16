@@ -44,7 +44,7 @@ export function isCurrent(pathname: string, item: Pick<NavItem, "href" | "also">
   return [item.href, ...(item.also ?? [])].some((base) => isUnder(pathname, base));
 }
 
-/** The Main nav. `pathname` null renders it with nothing marked current (Suspense fallback). */
+/** The Main nav. `pathname` null renders it with nothing marked current. */
 export default function NavBar({ pathname }: { pathname: string | null }) {
   return (
 
