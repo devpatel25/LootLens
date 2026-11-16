@@ -52,13 +52,15 @@ describe("openapi.json", () => {
 });
 
 // Fixtures hold the unwrapped payload, so each one maps to a component schema by hand.
-const FIXTURES: Record<string, string> = {
-  "alerts.json": "AlertsResponse",
-  "codes-all.json": "Code",
-  "codes.json": "Code",
-  "comparison.json": "ItemComparison",
-  "settings.json": "Settings",
-  "wishlist.json": "WishlistItem",
+const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
+const list = (name: string) => ({ type: "array", items: ref(name) });
+const FIXTURES: Record<string, Schema> = {
+  "alerts.json": ref("AlertsResponse"),
+  "codes-all.json": list("Code"),
+  "codes.json": list("Code"),
+  "comparison.json": ref("ItemComparison"),
+  "settings.json": ref("Settings"),
+  "wishlist.json": list("WishlistItem"),
 };
 
 type Schema = {
@@ -113,8 +115,36 @@ describe("fixtures match the spec", () => {
     expect(files.sort()).toEqual(Object.keys(FIXTURES).sort());
   });
 
-  it.each(Object.entries(FIXTURES))("%s fits %s", (file, name) => {
-    expect(check({ $ref: `#/components/schemas/${name}` }, read(file))).toEqual([]);
+  it.each(Object.entries(FIXTURES))("%s fits its schema", (file, schema) => {
+    expect(check(schema, read(file))).toEqual([]);
+  });
+
+  it("catches a removed field and a junk key inside an array fixture", () => {
+    const data = structuredClone(read("codes.json"));
+    delete data[0].storeName;
+    data[0].bogus = 1;
+    const errors = check(FIXTURES["codes.json"], data);
+    expect(errors).toContain("$[0].storeName missing");
+    expect(errors).toContain("$[0].bogus not in schema");
+  });
+
+  it("rejects an array where the schema is not an array", () => {
+    expect(check(ref("Code"), [])).toEqual(["$ is an array but the schema is not"]);
+  });
+
+  it("catches a wrong scalar type and a value outside an enum", () => {
+    const data = structuredClone(read("codes.json"));
+    data[0].status = "LIVE";
+    data[0].storeName = 5;
+    const errors = check(FIXTURES["codes.json"], data);
+    expect(errors.join("\n")).toContain("$[0].status");
+    expect(errors.join("\n")).toContain("$[0].storeName");
+  });
+
+  it("lets null through only where the schema allows it", () => {
+    expect(check({ type: "string" }, null)).toEqual(["$ is null"]);
+    expect(check({}, null)).toEqual(["$ is null"]);
+    expect(check({ type: ["string", "null"] }, null)).toEqual([]);
   });
 
   it("catches a nested required field that is removed", () => {
