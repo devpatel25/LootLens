@@ -37,8 +37,8 @@ Each user story was split into a backend issue (Dev) and a screen issue (Kunal),
 | #34 | Store trust signs and the cheapest trusted alternative | #17 |
 | #35 | Best Deal total, cashback chips, code settings | #16 |
 | #36 | Price watches, alerts, unread badge, Refresh now | #15 |
-| (this release PR) | Accessibility checks and audit, architecture doc, production smoke test, demo script | #18 |
-| (this PR) | This contribution log and the submission checklist | #19 |
+| #42 | Accessibility checks and audit, architecture doc, production smoke test, demo script | #18 |
+| #43 | This contribution log and the submission checklist | #19 |
 
 The frontend pull requests are stacked: each one builds on the one before (#30, then #31, #32, #33, #34, #35, #36), on top of Dev's #25 to #29. They merge in that order.
 
@@ -49,7 +49,7 @@ The frontend pull requests are stacked: each one builds on the one before (#30, 
 | Kunal Ghanwat | #22 (approved), #23 (approved), #24, #25 (changes requested), #26 (approved), #27, #28, #29 (changes requested) |
 | Dev Patel | #30, #31, #32 (inline reviews; fixes pushed and replied to) |
 
-The course asks for at least 5 visible reviews by each partner. Kunal has 8. Dev has 3 so far, with #33 to #36 and the release PRs still to review.
+The course asks for at least 5 visible reviews by each partner. Kunal has 8. Dev has 3 so far, with #33 to #36, #42, and #43 still to review.
 
 ## AGENTS.md
 
@@ -70,7 +70,7 @@ The course asks for at least 5 visible reviews by each partner. Kunal has 8. Dev
 | Sprint 1 planning notes, written jointly | `docs/sprints/sprint-1-plan.md` exists; the goal, capacity, and decisions sections still say "to fill in" | Both |
 | Sprint 2 planning notes | Not written yet | Both |
 | Sprint retros with partner feedback | Not written yet | Both |
-| At least 5 visible PR reviews each | Kunal 8; Dev 3 so far | Dev to review #33 to #36 |
+| At least 5 visible PR reviews each | Kunal 8; Dev 3 so far | Dev to review #33 to #36, #42, #43 |
 | Both partners contributed to AGENTS.md | Done (see above) | |
 | Each partner's 300-word reflection | Not submitted yet | Each person |
 | `docs/contributions.md` | This file | Kunal |
