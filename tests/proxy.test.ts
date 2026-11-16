@@ -19,6 +19,8 @@ describe("routeDecision signed out", () => {
     ["/api-docsx", "redirect"],
     ["/api/healthz", "unauthorized"],
     ["/api/cronjob", "unauthorized"],
+    ["/api/cron", "unauthorized"],
+    ["/api/cron/other", "unauthorized"],
     ["/signinx", "redirect"],
     ["/apix", "redirect"],
   ])("%s -> %s", (path, want) => {

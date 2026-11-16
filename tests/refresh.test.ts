@@ -3,6 +3,7 @@ import { POST as REFRESH } from "@/app/api/items/[id]/refresh/route";
 import * as refresh from "@/lib/refresh";
 import { demoSource } from "@/lib/demoSource";
 import { applyRefresh, currentSource, REFRESH_COOLDOWN_MS, type ListingUpdate } from "@/lib/refresh";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { ctx, req } from "./helpers/api";
@@ -51,6 +52,7 @@ describe("applyRefresh with fixed updates", () => {
     const alert = await prisma.alert.findFirstOrThrow({ where: { userId: a } });
     expect(alert.kind).toBe("PRICE_DROP");
     expect(alert.detail).toEqual({ from: 60, to: 50 });
+    expect(alert.size).toBe("9");
   });
 
   it("two concurrent applies create exactly one alert", async () => {
@@ -77,6 +79,7 @@ describe("applyRefresh with fixed updates", () => {
     const alert = await prisma.alert.findFirstOrThrow({ where: { userId: a } });
     expect(alert.kind).toBe("OUT_OF_STOCK");
     expect(alert.detail).toEqual({ qty: 0 });
+    expect(alert.size).toBe("9");
   });
 
   it("a deleted watch creates no alert and old alerts keep their row with watchId null", async () => {
@@ -88,6 +91,7 @@ describe("applyRefresh with fixed updates", () => {
     const alerts = await prisma.alert.findMany({ where: { userId: a } });
     expect(alerts).toHaveLength(1);
     expect(alerts[0].watchId).toBeNull();
+    expect(alerts[0].size).toBe("9");
   });
 
   it("ignores inactive watches", async () => {
@@ -122,6 +126,38 @@ describe("applyRefresh stock alerts", () => {
     expect(w).toMatchObject({ priceCondMet: true, stockCondMet: true });
     expect((await apply(itemId, setStock(1))).alertsCreated).toBe(0);
     expect(await alertCount()).toBe(0);
+  });
+});
+
+describe("applyRefresh with a watch deleted mid-refresh", () => {
+  it("skips the deleted watch's alert and keeps the item's updates and the other watches' alerts", async () => {
+    await prisma.listing.updateMany({ where: { itemId, id: { not: fbm } }, data: { stockBySize: { "8": 0, "9": 0, "10": 0 } } });
+    await prisma.listing.update({ where: { id: fbm }, data: { stockBySize: { "8": 0, "9": 5, "10": 0 } } });
+    const gone = await watch({ targetPrice: 1, lowStockAt: 3, stockCondMet: true });
+    await prisma.watch.create({
+      data: { userId: b, itemId, size: "9", targetPrice: 1, lowStockAt: 3, baselinePrice: 60, stockCondMet: true },
+    });
+    // Delete the watch right after the refresh has read its watches, before it raises alerts.
+    type Tx = Prisma.TransactionClient;
+    const real = prisma.$transaction.bind(prisma) as unknown as (fn: (tx: Tx) => Promise<unknown>, opts: unknown) => Promise<unknown>;
+    const spy = vi.spyOn(prisma, "$transaction").mockImplementation(((fn: (tx: Tx) => Promise<unknown>, opts: unknown) =>
+      real((tx) => {
+        const findMany = async (args?: Prisma.WatchFindManyArgs) => {
+          const rows = await tx.watch.findMany(args);
+          await prisma.watch.delete({ where: { id: gone.id } });
+          return rows;
+        };
+        return fn(new Proxy(tx, { get: (t, k) => (k === "watch" ? { ...t.watch, findMany, updateMany: t.watch.updateMany.bind(t.watch) } : Reflect.get(t, k)) }));
+      }, opts)) as unknown as typeof prisma.$transaction);
+    try {
+      const r = await apply(itemId, [{ listingId: fbm, price: 59, stockBySize: { "8": 0, "9": 0, "10": 0 } }]);
+      expect(r.alertsCreated).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(Number((await prisma.listing.findUniqueOrThrow({ where: { id: fbm } })).price)).toBe(59);
+    expect(await prisma.alert.count({ where: { userId: b, kind: "OUT_OF_STOCK" } })).toBe(1);
+    expect(await prisma.alert.count({ where: { userId: a } })).toBe(0);
   });
 });
 
@@ -205,7 +241,9 @@ describe("POST /api/items/[id]/refresh", () => {
     expect(Date.now() - row.lastRefreshedAt!.getTime()).toBeLessThan(REFRESH_COOLDOWN_MS);
     const again = await post();
     expect(again.status).toBe(429);
-    expect((await again.json()).error.retryAfterSeconds).toBeGreaterThan(0);
+    const retry = (await again.json()).error.retryAfterSeconds;
+    expect(retry).toBeGreaterThan(0);
+    expect(again.headers.get("Retry-After")).toBe(String(retry));
   });
 
   it("outside demo mode nothing changes and no alert is created", async () => {

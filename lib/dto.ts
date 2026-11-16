@@ -1,6 +1,6 @@
 import type { Alert as DbAlert, Prisma, Code as DbCode, Item as DbItem, Listing as DbListing, Store as DbStore, UserSettings, Watch as DbWatch } from "@/lib/generated/prisma/client";
 import { bestCashback, trustFlags } from "@/lib/pricing";
-import type { Alert, AlertKind, CashbackOffer, Code, FreshnessHours, Item, Listing, Settings, Store, Watch } from "@/lib/types";
+import type { Alert, CashbackOffer, Code, FreshnessHours, Item, Listing, Settings, Store, Watch } from "@/lib/types";
 
 const iso = (d: Date) => d.toISOString();
 
@@ -92,6 +92,14 @@ export function toWatch(w: DbWatch): Watch {
   };
 }
 
+/** Kind and detail of an alert row, with the detail shaped per kind. */
+function alertKindDetail(a: DbAlert): Alert extends infer U ? (U extends Alert ? Pick<U, "kind" | "detail"> : never) : never {
+  const d = a.detail as { from?: number; to?: number; qty?: number };
+  if (a.kind === "PRICE_DROP") return { kind: "price_drop", detail: { from: d.from as number, to: d.to as number } };
+  if (a.kind === "LOW_SIZE") return { kind: "low_size", detail: { qty: d.qty as number } };
+  return { kind: "out_of_stock", detail: { qty: 0 } };
+}
+
 /** The row must be loaded with include: { item: true }. */
 export function toAlert(a: DbAlert & { item: DbItem }): Alert {
   return {
@@ -99,10 +107,10 @@ export function toAlert(a: DbAlert & { item: DbItem }): Alert {
     watchId: a.watchId,
     itemId: a.itemId,
     itemName: a.item.name,
-    kind: a.kind.toLowerCase() as AlertKind,
-    detail: a.detail as Alert["detail"],
+    size: a.size,
     read: a.read,
     createdAt: iso(a.createdAt),
+    ...alertKindDetail(a),
   };
 }
 

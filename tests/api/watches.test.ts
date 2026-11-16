@@ -57,9 +57,31 @@ describe("POST /api/watches", () => {
     const { data } = await res.json();
     expect(data).toEqual({
       id: expect.any(String), itemId: samba, size: "9", targetPrice: 55, lowStockAt: 3, baselinePrice: 60, active: true,
-      createdAt: expect.any(String),
+      createdAt: expect.any(String), alreadyMet: false,
     });
     expect(data).not.toHaveProperty("userId");
+  });
+
+  describe("alreadyMet", () => {
+    // Cheapest in-stock size 9 is 60.
+    it.each([
+      ["target above the current price", { targetPrice: 70 }, true],
+      ["target equal to the current price", { targetPrice: 60 }, true],
+      ["target below the current price", { targetPrice: 55 }, false],
+      ["any drop (no target)", {}, false],
+      ["any drop (null target)", { targetPrice: null }, false],
+    ])("%s", async (_n, extra, expected) => {
+      const res = await post({ itemId: samba, size: "9", ...extra });
+      expect(res.status).toBe(201);
+      expect((await res.json()).data.alreadyMet).toBe(expected);
+    });
+
+    it("false when nothing is in stock for the size (the watch is refused)", async () => {
+      await prisma.listing.updateMany({ where: { itemId: samba }, data: { stockBySize: { "8": 0, "9": 0, "10": 0 } } });
+      const res = await post({ itemId: samba, size: "9", targetPrice: 70 });
+      expect(res.status).toBe(400);
+      expect((await res.json()).data).toBeUndefined();
+    });
   });
 
   it("starts the cond flags from the current state", async () => {
@@ -132,6 +154,27 @@ describe("POST /api/watches at the cap", () => {
     expect(res.map((r) => r.status).sort()).toEqual([201, 409]);
     expect(await prisma.watch.count({ where: { userId: a } })).toBe(MAX_WATCHES_PER_USER);
   });
+
+  it("does not deadlock with a refresh that holds the item and inserts an alert", async () => {
+    // The refresh shape: lock the item, then insert an alert (its user FK takes a key-share lock on the user).
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    let locked!: () => void;
+    const lockedItem = new Promise<void>((r) => (locked = r));
+    const refresh = prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Item" WHERE id = ${samba} FOR UPDATE`;
+      locked();
+      await held;
+      await tx.alert.create({ data: { userId: a, itemId: samba, size: "9", kind: "PRICE_DROP", detail: {} } });
+    });
+    await lockedItem;
+    const creating = post({ itemId: samba, size: "9" }); // takes the user lock, then waits for the item lock
+    await new Promise((r) => setTimeout(r, 300));
+    release();
+    const [res] = await Promise.all([creating, refresh]);
+    expect(res.status).toBe(201);
+    expect(await prisma.alert.count({ where: { userId: a } })).toBe(1);
+  });
 });
 
 describe("GET /api/watches", () => {
@@ -165,9 +208,11 @@ describe("DELETE /api/watches/[id]", () => {
 
   it("deletes the caller's watch and keeps its alerts with watchId null", async () => {
     const { data } = await (await post({ itemId: samba, size: "9" })).json();
-    await prisma.alert.create({ data: { userId: a, itemId: samba, watchId: data.id, kind: "LOW_SIZE", detail: { qty: 1 } } });
+    await prisma.alert.create({ data: { userId: a, itemId: samba, watchId: data.id, size: "9", kind: "LOW_SIZE", detail: { qty: 1 } } });
     expect((await del(data.id)).status).toBe(200);
     expect(await prisma.watch.count()).toBe(0);
-    expect((await prisma.alert.findFirstOrThrow()).watchId).toBeNull();
+    const kept = await prisma.alert.findFirstOrThrow();
+    expect(kept.watchId).toBeNull();
+    expect(kept.size).toBe("9");
   });
 });

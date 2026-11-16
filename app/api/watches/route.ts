@@ -5,6 +5,7 @@ import { fail, fkName, itemNotFound, ok, parse, requireUserId, route } from "@/l
 import { Prisma } from "@/lib/generated/prisma/client";
 import { moneySchema } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
+import type { CreatedWatch } from "@/lib/types";
 
 const watchSchema = z.object({
   itemId: z.string().min(1).max(64),
@@ -29,7 +30,9 @@ export const POST = route(async (req: Request) => {
   try {
     return await prisma.$transaction(async (tx) => {
       // Locks serialise concurrent creates: the user row for the cap, the item row for its listings.
-      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+      // NO KEY UPDATE still excludes other creates but not the key-share lock an Alert insert takes on the user,
+      // so a refresh holding the item cannot deadlock with this transaction.
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR NO KEY UPDATE`;
       const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Item" WHERE id = ${body.itemId} AND "userId" = ${userId} FOR UPDATE`;
       if (locked.length === 0) return itemNotFound();
       const item = await tx.item.findFirst({ where: { id: body.itemId, userId }, include: listingsInclude });
@@ -55,7 +58,10 @@ export const POST = route(async (req: Request) => {
       const row = await tx.watch.create({
         data: { userId, itemId: item.id, size: body.size, targetPrice, lowStockAt, baselinePrice: price, priceCondMet, stockCondMet },
       });
-      return ok(toWatch(row), 201);
+      // "Any drop" (no target) is never already met.
+      const alreadyMet = targetPrice !== null && price <= targetPrice;
+      const created: CreatedWatch = { ...toWatch(row), alreadyMet };
+      return ok(created, 201);
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003" && fkName(e) === "Watch_itemId_fkey") {
