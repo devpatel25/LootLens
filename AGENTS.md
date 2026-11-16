@@ -56,7 +56,7 @@ Take `userId` from `auth()` only. Request bodies, query strings, and route param
 | Local dev | Neon `dev` branch or local Docker PG | `prisma migrate dev` | `.env.local` (gitignored), `DEMO_MODE=true` |
 | CI | Postgres service container | `prisma migrate deploy` before tests | GitHub Actions env, throwaway values, `DEMO_MODE=true` |
 | PR preview | Neon branch per preview | `prisma migrate deploy` in Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
-| Production | Neon `main` | `prisma migrate deploy` in Vercel build | Vercel Production scope, no demo |
+| Production | Neon `production` (default branch) | `prisma migrate deploy` in Vercel build | Vercel Production scope, no demo |
 
 Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-guard.ts`) first. It is fail-closed:
 
