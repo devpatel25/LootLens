@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GET } from "@/app/api/cron/refresh/route";
+import { GET, maxDuration } from "@/app/api/cron/refresh/route";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { resetDb } from "../helpers/db";
@@ -18,6 +18,10 @@ beforeEach(async () => {
 });
 
 describe("GET /api/cron/refresh", () => {
+  it("declares its max duration within the Hobby limit", () => {
+    expect(maxDuration).toBe(60);
+  });
+
   it("401 without a header", async () => {
     expect((await call()).status).toBe(401);
   });
