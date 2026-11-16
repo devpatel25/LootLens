@@ -38,6 +38,18 @@ describe("trust signs in the comparison table", () => {
     expect(within(kick).getByText("4 photo reviews")).toBeTruthy();
   });
 
+  it("says 1 photo review, not 1 photo reviews", () => {
+    const c = demo();
+    c.stores = c.stores.map((st) => (st.id === "store-adidas" ? { ...st, photoReviewCount: 1 } : st));
+    render(<ComparisonTable comparison={c} />);
+    expect(within(row(/Adidas Official/)).getByText("1 photo review")).toBeTruthy();
+  });
+
+  it("shows the Low-trust label next to the store name, visible without scrolling the table", () => {
+    render(<ComparisonTable comparison={demo()} />);
+    expect(within(within(row(/KickSwap/)).getByRole("rowheader")).getByText("Low-trust")).toBeTruthy();
+  });
+
   it("puts a text Low-trust label and the reasons on stores that fail trustFlags, and only there", () => {
     render(<ComparisonTable comparison={demo()} />);
     const kick = row(/KickSwap/);
@@ -65,6 +77,17 @@ describe("cheapest trusted alternative", () => {
   it("shows no warning when the cheapest store is trusted", () => {
     render(<ItemDetailView comparison={demo()} />);
     expect(screen.queryByRole("note", { name: "Trust warning" })).toBeNull();
+  });
+
+  it("labels fictional stores in the warning and in the trusted alternative", () => {
+    const c = cheapestIsLowTrust();
+    c.stores = c.stores.map((st) =>
+      st.fictional ? { ...st, name: "KickSwap" } : st.id === "store-fbm" ? { ...st, name: "SwapShop", fictional: true } : st,
+    );
+    render(<ItemDetailView comparison={c} />);
+    const note = screen.getByRole("note", { name: "Trust warning" }).textContent;
+    expect(note).toContain("The cheapest store shown, KickSwap (fictional), looks low-trust");
+    expect(note).toContain("Cheapest trusted alternative: $60.00 at SwapShop (fictional).");
   });
 
   it("labels a fictional cheapest store as fictional in the summary line", () => {
