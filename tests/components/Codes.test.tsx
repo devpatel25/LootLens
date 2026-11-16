@@ -157,7 +157,7 @@ describe("CodesView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mark SAMBA40 dead" }));
     expect(listed()).toEqual(["Code WELCOME50", "Code SAVE30"]);
     const [url, init] = vi.mocked(fetch).mock.calls[0];
-    expect(url).toBe("/api/codes/code-samba40");
+    expect(url).toBe("/api/codes/code-adidas-40");
     expect(init?.method).toBe("PATCH");
     expect(JSON.parse(String(init?.body))).toEqual({ status: "dead" });
     await act(async () => finish(json(200, { data: {} })));
