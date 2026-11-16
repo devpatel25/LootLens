@@ -63,8 +63,8 @@ npm run test:e2e               # Playwright, builds and serves on port 3100
 |---|---|---|---|
 | Local dev | Neon `dev` branch or local Docker PostgreSQL | `prisma migrate dev` | `.env.local`, `DEMO_MODE=true` |
 | CI | PostgreSQL service container | `prisma migrate deploy` before tests | GitHub Actions env, throwaway values, `DEMO_MODE=true` |
-| PR preview | Neon branch per preview | `prisma migrate deploy` in the Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
-| Production | Neon `production` (default branch) | `prisma migrate deploy` in the Vercel build | Vercel Production scope, no demo |
+| PR preview | Neon `preview` branch, shared by all previews | `prisma migrate deploy` in the Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
+| Production | Neon `main` | `prisma migrate deploy` in the Vercel build | Vercel Production scope, no demo |
 
 Seed, reset, simulate, and test truncation call `assertNonProdDb()` first. It passes only when `DB_TARGET` is `local`, `ci`, or `preview`, and the `DATABASE_URL` host differs from `PROD_DB_HOST`. `PROD_DB_HOST` must be set unless the `DATABASE_URL` host is loopback (`localhost`, `127.0.0.1`, `::1`); if it is missing for any other host, the guard throws. Production sets `DB_TARGET=production`.
 
@@ -77,7 +77,7 @@ What exists today:
 - `vercel.json` registers the daily cron for `/api/cron/refresh`.
 - `npm run vercel-build` runs `prisma generate`, then `prisma migrate deploy`, then `next build`.
 
-Planned (set up in #5): Vercel builds with `vercel-build`, each pull request gets a preview with its own Neon branch, and production deploys from `main`. Secrets will live in Vercel env vars, never in the repo. New variables go into `.env.example` with an empty value.
+Vercel builds with `vercel-build` and runs `prisma migrate deploy` first. Production deploys from `main` and uses the Neon `main` branch. Every pull request preview uses one shared Neon `preview` branch (the free plan allows 10 branches per project, too few for one per PR). Secrets live in Vercel env vars, never in the repo. New variables go into `.env.example` with an empty value.
 
 ## Alerts and refresh
 
