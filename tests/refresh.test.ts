@@ -241,7 +241,9 @@ describe("POST /api/items/[id]/refresh", () => {
     expect(Date.now() - row.lastRefreshedAt!.getTime()).toBeLessThan(REFRESH_COOLDOWN_MS);
     const again = await post();
     expect(again.status).toBe(429);
-    expect((await again.json()).error.retryAfterSeconds).toBeGreaterThan(0);
+    const retry = (await again.json()).error.retryAfterSeconds;
+    expect(retry).toBeGreaterThan(0);
+    expect(again.headers.get("Retry-After")).toBe(String(retry));
   });
 
   it("outside demo mode nothing changes and no alert is created", async () => {

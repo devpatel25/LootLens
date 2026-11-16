@@ -7,7 +7,7 @@ export function ok<T>(data: T, status = 200): Response {
   return Response.json({ data }, { status });
 }
 
-export function fail(status: number, code: string, message: string, extra?: { retryAfterSeconds?: number }): Response {
+export function fail(status: number, code: string, message: string, extra?: { retryAfterSeconds?: number }, _headers?: HeadersInit): Response {
   return Response.json({ error: { code, message, ...extra } }, { status });
 }
 
