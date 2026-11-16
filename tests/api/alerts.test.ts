@@ -59,6 +59,22 @@ describe("GET /api/alerts", () => {
   });
 });
 
+describe("GET /api/alerts limit", () => {
+  it("returns at most 200 alerts but counts every unread one", async () => {
+    await prisma.alert.createMany({
+      data: Array.from({ length: 205 }, (_, i) => ({
+        userId: a, itemId: samba, kind: "LOW_SIZE" as const, detail: { qty: 1 }, createdAt: new Date(Date.UTC(2026, 9, 1, 0, 0, i)),
+      })),
+    });
+    await mk(a, jacket, false, "2026-09-01T10:00:00Z");
+    const { data } = await (await GET()).json();
+    expect(data.groups.reduce((n: number, g: { alerts: unknown[] }) => n + g.alerts.length, 0)).toBe(200);
+    expect(data.groups.find((g: { itemId: string }) => g.itemId === samba).unread).toBe(205);
+    expect(data.groups.find((g: { itemId: string }) => g.itemId === jacket)?.unread ?? 1).toBe(1);
+    expect(data.unreadCount).toBe(206);
+  });
+});
+
 describe("PATCH /api/alerts/[id]", () => {
   const patch = (id: string, body: unknown) => PATCH(req(`/api/alerts/${id}`, "PATCH", body), ctx(id));
 

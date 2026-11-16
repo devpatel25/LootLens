@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as REFRESH } from "@/app/api/items/[id]/refresh/route";
 import * as refresh from "@/lib/refresh";
-import { applyListingUpdates, REFRESH_COOLDOWN_MS } from "@/lib/refresh";
+import { demoSource } from "@/lib/demoSource";
+import { applyRefresh, currentSource, REFRESH_COOLDOWN_MS, type ListingUpdate } from "@/lib/refresh";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { ctx, req } from "./helpers/api";
@@ -11,7 +12,7 @@ import { resetDb } from "./helpers/db";
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/refresh", async (orig) => {
   const actual = await orig<typeof import("@/lib/refresh")>();
-  return { ...actual, applyListingUpdates: vi.fn(actual.applyListingUpdates) };
+  return { ...actual, applyRefresh: vi.fn(actual.applyRefresh) };
 });
 
 let a: string;
@@ -32,6 +33,8 @@ beforeEach(async () => {
   signInAs(a);
 });
 
+const apply = (id: string, updates: ListingUpdate[]) => applyRefresh(id, () => updates);
+
 const watch = (data: Record<string, unknown> = {}) =>
   prisma.watch.create({ data: { userId: a, itemId, size: "9", targetPrice: 55, lowStockAt: 0, baselinePrice: 60, ...data } });
 
@@ -39,11 +42,12 @@ describe("applyListingUpdates", () => {
   it("updates listings, records history and alerts once for the same updates applied twice", async () => {
     await watch();
     const before = await prisma.priceHistory.count({ where: { listingId: fbm } });
-    expect((await applyListingUpdates(itemId, setPrice(50))).alertsCreated).toBe(1);
-    expect((await applyListingUpdates(itemId, setPrice(50))).alertsCreated).toBe(0);
+    expect((await apply(itemId, setPrice(50))).alertsCreated).toBe(1);
+    expect((await apply(itemId, setPrice(50))).alertsCreated).toBe(0);
     expect(await alertCount()).toBe(1);
     expect(Number((await prisma.listing.findUniqueOrThrow({ where: { id: fbm } })).price)).toBe(50);
-    expect(await prisma.priceHistory.count({ where: { listingId: fbm } })).toBe(before + 2);
+    // The second call changes nothing, so it records nothing.
+    expect(await prisma.priceHistory.count({ where: { listingId: fbm } })).toBe(before + 1);
     const alert = await prisma.alert.findFirstOrThrow({ where: { userId: a } });
     expect(alert.kind).toBe("PRICE_DROP");
     expect(alert.detail).toEqual({ from: 60, to: 50 });
@@ -51,17 +55,17 @@ describe("applyListingUpdates", () => {
 
   it("two concurrent applies create exactly one alert", async () => {
     await watch();
-    const r = await Promise.all([applyListingUpdates(itemId, setPrice(50)), applyListingUpdates(itemId, setPrice(50))]);
+    const r = await Promise.all([apply(itemId, setPrice(50)), apply(itemId, setPrice(50))]);
     expect(r.reduce((n, x) => n + x.alertsCreated, 0)).toBe(1);
     expect(await alertCount()).toBe(1);
   });
 
   it("alerts again after the price recovers above target and drops again", async () => {
     await watch();
-    await applyListingUpdates(itemId, setPrice(50));
-    await applyListingUpdates(itemId, setPrice(70));
+    await apply(itemId, setPrice(50));
+    await apply(itemId, setPrice(70));
     expect(await alertCount()).toBe(1);
-    await applyListingUpdates(itemId, setPrice(50));
+    await apply(itemId, setPrice(50));
     expect(await alertCount()).toBe(2);
   });
 
@@ -69,7 +73,7 @@ describe("applyListingUpdates", () => {
     await watch({ targetPrice: 1, lowStockAt: 3 });
     const listings = await prisma.listing.findMany({ where: { itemId } });
     const zero = listings.map((l) => ({ listingId: l.id, price: Number(l.price), stockBySize: { "8": 0, "9": 0, "10": 0 } }));
-    expect((await applyListingUpdates(itemId, zero)).alertsCreated).toBe(1);
+    expect((await apply(itemId, zero)).alertsCreated).toBe(1);
     const alert = await prisma.alert.findFirstOrThrow({ where: { userId: a } });
     expect(alert.kind).toBe("OUT_OF_STOCK");
     expect(alert.detail).toEqual({ qty: 0 });
@@ -77,10 +81,10 @@ describe("applyListingUpdates", () => {
 
   it("a deleted watch creates no alert and old alerts keep their row with watchId null", async () => {
     const w = await watch();
-    await applyListingUpdates(itemId, setPrice(50));
+    await apply(itemId, setPrice(50));
     await prisma.watch.delete({ where: { id: w.id } });
-    await applyListingUpdates(itemId, setPrice(70));
-    await applyListingUpdates(itemId, setPrice(50));
+    await apply(itemId, setPrice(70));
+    await apply(itemId, setPrice(50));
     const alerts = await prisma.alert.findMany({ where: { userId: a } });
     expect(alerts).toHaveLength(1);
     expect(alerts[0].watchId).toBeNull();
@@ -88,7 +92,7 @@ describe("applyListingUpdates", () => {
 
   it("ignores inactive watches", async () => {
     await watch({ active: false });
-    expect((await applyListingUpdates(itemId, setPrice(50))).alertsCreated).toBe(0);
+    expect((await apply(itemId, setPrice(50))).alertsCreated).toBe(0);
   });
 });
 
@@ -101,10 +105,10 @@ describe("applyListingUpdates stock alerts", () => {
 
   it("5 -> 2 -> 0 gives low_size, then out_of_stock, then nothing on a repeat", async () => {
     await watch({ targetPrice: 1, lowStockAt: 3 });
-    expect((await applyListingUpdates(itemId, setStock(5))).alertsCreated).toBe(0);
-    expect((await applyListingUpdates(itemId, setStock(2))).alertsCreated).toBe(1);
-    expect((await applyListingUpdates(itemId, setStock(0))).alertsCreated).toBe(1);
-    expect((await applyListingUpdates(itemId, setStock(0))).alertsCreated).toBe(0);
+    expect((await apply(itemId, setStock(5))).alertsCreated).toBe(0);
+    expect((await apply(itemId, setStock(2))).alertsCreated).toBe(1);
+    expect((await apply(itemId, setStock(0))).alertsCreated).toBe(1);
+    expect((await apply(itemId, setStock(0))).alertsCreated).toBe(0);
     const kinds = (await prisma.alert.findMany({ where: { userId: a }, orderBy: { createdAt: "asc" } })).map((x) => x.kind);
     expect(kinds).toEqual(["LOW_SIZE", "OUT_OF_STOCK"]);
   });
@@ -116,8 +120,51 @@ describe("applyListingUpdates stock alerts", () => {
     expect(res.status).toBe(201);
     const w = await prisma.watch.findFirstOrThrow({ where: { userId: a } });
     expect(w).toMatchObject({ priceCondMet: true, stockCondMet: true });
-    expect((await applyListingUpdates(itemId, setStock(1))).alertsCreated).toBe(0);
+    expect((await apply(itemId, setStock(1))).alertsCreated).toBe(0);
     expect(await alertCount()).toBe(0);
+  });
+});
+
+describe("applyRefresh", () => {
+  const history = () => prisma.priceHistory.count();
+
+  it("records history only for listings whose price changed", async () => {
+    const h0 = await history();
+    await applyRefresh(itemId, currentSource);
+    expect(await history()).toBe(h0);
+    await applyRefresh(itemId, demoSource);
+    expect(await history()).toBe(h0 + 5);
+  });
+
+  it("a sell-out does not reset the price flag, so a restock at the same price is quiet", async () => {
+    await prisma.listing.updateMany({ where: { itemId, id: { not: fbm } }, data: { stockBySize: { "8": 0, "9": 0, "10": 0 } } });
+    await prisma.listing.update({ where: { id: fbm }, data: { price: 75, stockBySize: { "8": 0, "9": 5, "10": 0 } } });
+    await watch({ targetPrice: 80, lowStockAt: 0, baselinePrice: 90, priceCondMet: true });
+    const stock = (n: number) => [{ listingId: fbm, price: 75, stockBySize: { "8": 0, "9": n, "10": 0 } }];
+    await apply(itemId, stock(0));
+    await apply(itemId, stock(5));
+    expect(await alertCount({ kind: "PRICE_DROP" })).toBe(0);
+    expect((await prisma.watch.findFirstOrThrow()).priceCondMet).toBe(true);
+  });
+
+  it("concurrent refreshes around a sell-out give one out_of_stock alert and apply the source to the latest state each time", async () => {
+    const kb = await prisma.item.findFirstOrThrow({ where: { userId: a, name: "Mechanical keyboard" } });
+    await prisma.listing.updateMany({ where: { itemId: kb.id }, data: { stockBySize: { "One size": 0 } } });
+    const amazon = await prisma.listing.findFirstOrThrow({ where: { itemId: kb.id, storeId: "store-amazon" } });
+    await prisma.listing.update({ where: { id: amazon.id }, data: { stockBySize: { "One size": 1 } } });
+    await prisma.watch.create({
+      data: { userId: a, itemId: kb.id, size: "One size", targetPrice: 1, lowStockAt: 3, baselinePrice: 79.99, stockCondMet: true },
+    });
+    const { POST } = await import("@/app/api/demo/simulate/route");
+    const { GET } = await import("@/app/api/cron/refresh/route");
+    vi.stubEnv("CRON_SECRET", "s");
+    vi.stubEnv("DEMO_MODE", "true");
+    await Promise.all([
+      POST(req("/api/demo/simulate", "POST", { itemId: kb.id })),
+      GET(new Request("http://localhost/api/cron/refresh", { headers: { authorization: "Bearer s" } })),
+    ]);
+    expect(await alertCount({ kind: "OUT_OF_STOCK" })).toBe(1);
+    expect(Number((await prisma.listing.findUniqueOrThrow({ where: { id: amazon.id } })).price)).toBe(64.79);
   });
 });
 
@@ -171,7 +218,7 @@ describe("POST /api/items/[id]/refresh", () => {
     const prev = new Date(Date.now() - 2 * REFRESH_COOLDOWN_MS);
     await prisma.item.update({ where: { id: itemId }, data: { lastRefreshedAt: prev } });
     vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.mocked(refresh.applyListingUpdates).mockRejectedValueOnce(new Error("boom"));
+    vi.mocked(refresh.applyRefresh).mockRejectedValueOnce(new Error("boom"));
     expect((await post()).status).toBe(500);
     expect((await prisma.item.findUniqueOrThrow({ where: { id: itemId } })).lastRefreshedAt).toEqual(prev);
     expect((await post()).status).toBe(200);

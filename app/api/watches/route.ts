@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { currentForSize, evaluateWatch } from "@/lib/alerts";
+import { currentForSize, DEFAULT_LOW_STOCK, evaluateWatch } from "@/lib/alerts";
 import { listingsInclude, toListingsAndStores, toWatch } from "@/lib/dto";
 import { fail, fkName, itemNotFound, ok, parse, requireUserId, route } from "@/lib/http";
 import { Prisma } from "@/lib/generated/prisma/client";
@@ -45,11 +45,12 @@ export const POST = route(async (req: Request) => {
   }
   // Start from the current state, so an alert fires only on a later crossing.
   const targetPrice = body.targetPrice ?? null;
-  const { priceCondMet, stockCondMet } = evaluateWatch({ targetPrice, baselinePrice: price, lowStockAt: body.lowStockAt ?? 3 }, now);
+  const lowStockAt = body.lowStockAt ?? DEFAULT_LOW_STOCK;
+  const { priceCondMet, stockCondMet } = evaluateWatch({ targetPrice, baselinePrice: price, lowStockAt }, now);
   const flags = { priceCondMet, stockCondMet };
   try {
     const row = await prisma.watch.create({
-      data: { userId, itemId: item.id, size: body.size, targetPrice, lowStockAt: body.lowStockAt, baselinePrice: price, ...flags },
+      data: { userId, itemId: item.id, size: body.size, targetPrice, lowStockAt, baselinePrice: price, ...flags },
     });
     return ok(toWatch(row), 201);
   } catch (e) {

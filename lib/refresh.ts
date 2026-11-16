@@ -1,8 +1,8 @@
 import { alertKindForStock, currentForSize, evaluateWatch } from "@/lib/alerts";
+import { demoEnabled } from "@/lib/demoGate";
 import { demoSource } from "@/lib/demoSource";
 import { toListingsAndStores } from "@/lib/dto";
-import type { Prisma } from "@/lib/generated/prisma/client";
-import type { Listing, Store } from "@/lib/types";
+import type { Listing } from "@/lib/types";
 import { prisma } from "@/lib/prisma";
 
 export const MAX_WATCHES_PER_USER = 10;
@@ -17,30 +17,31 @@ export function currentSource(listings: Listing[]): ListingUpdate[] {
 }
 
 /**
- * Applies new prices and stock, then raises alerts for the item's active watches.
+ * Under a lock on the item row: reads the listings, asks the source for updates from that state, applies them,
+ * then raises alerts for the item's active watches. Concurrent refreshes of one item run one after the other,
+ * each on the latest state.
  * Dedupe: an alert is created only by the call that flips a watch's cond flag from false to true.
- * `before` is the item's listings as the caller loaded them; without it they are read under a lock on the item.
  */
-export async function applyListingUpdates(
+export async function applyRefresh(
   itemId: string,
-  updates: ListingUpdate[],
-  before?: { listings: Listing[]; stores: Store[] },
+  source: (listings: Listing[]) => ListingUpdate[],
 ): Promise<{ alertsCreated: number }> {
-  const sorted = [...updates].sort((a, b) => a.listingId.localeCompare(b.listingId)); // stable lock order
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Item" WHERE id = ${itemId} FOR UPDATE`;
     const load = async () => {
       const rows = await tx.listing.findMany({ where: { itemId }, include: { store: true }, orderBy: { id: "asc" } });
       return toListingsAndStores(rows);
     };
-    // Serialises concurrent appliers so the snapshot is the state they actually replace.
-    if (!before) await tx.$queryRaw`SELECT id FROM "Item" WHERE id = ${itemId} FOR UPDATE`;
-    const snapshot = before ?? (await load());
-    const recorded: { listingId: string; price: number }[] = [];
-    for (const u of sorted) {
+    const snapshot = await load();
+    const oldPrice = new Map(snapshot.listings.map((l) => [l.id, l.price]));
+    const updates = [...source(snapshot.listings)].sort((a, b) => a.listingId.localeCompare(b.listingId));
+
+    const changed: { listingId: string; price: number }[] = [];
+    for (const u of updates) {
       const r = await tx.listing.updateMany({ where: { id: u.listingId, itemId }, data: { price: u.price, stockBySize: u.stockBySize } });
-      if (r.count === 1) recorded.push({ listingId: u.listingId, price: u.price });
+      if (r.count === 1 && oldPrice.get(u.listingId) !== u.price) changed.push({ listingId: u.listingId, price: u.price });
     }
-    await tx.priceHistory.createMany({ data: recorded });
+    await tx.priceHistory.createMany({ data: changed });
     const after = await load();
     const watches = await tx.watch.findMany({ where: { itemId, active: true }, orderBy: { id: "asc" } });
 
@@ -57,7 +58,8 @@ export async function applyListingUpdates(
         const r = await tx.watch.updateMany({ where: { id: w.id, [field]: !cond }, data: { [field]: cond } });
         return cond && r.count === 1;
       };
-      if (await flip("priceCondMet", met.priceCondMet)) {
+      // No price while the size is sold out: keep the flag, so a restock at the same price stays quiet.
+      if (now.price !== null && (await flip("priceCondMet", met.priceCondMet))) {
         // When the size was out of stock before, `from` falls back to the baseline price.
         await tx.alert.create({ data: { ...base, kind: "PRICE_DROP", detail: { from: prev.price ?? w.baselinePrice.toNumber(), to: now.price } } });
         alertsCreated++;
@@ -77,22 +79,16 @@ export async function applyListingUpdates(
   }, { timeout: 15000 });
 }
 
-/** Demo prices are invented, so they run only in demo mode. */
-export const refreshSource = (): ((listings: Listing[]) => ListingUpdate[]) =>
-  process.env.DEMO_MODE === "true" ? demoSource : currentSource;
+/** Demo prices are invented, so they run only in demo mode on a non-production database. */
+export const refreshSource = (): ((listings: Listing[]) => ListingUpdate[]) => (demoEnabled() ? demoSource : currentSource);
 
-type ItemWithListings = Prisma.ItemGetPayload<{ include: { listings: { include: { store: true } } } }>;
-
-/** Applies the source to each item in turn and totals the alerts. */
+/** Refreshes the items in turn and totals the alerts. */
 // ponytail: sequential, one transaction per item; batch or fan out beyond a few hundred items
 export async function refreshItems(
-  items: ItemWithListings[],
+  itemIds: string[],
   source: (listings: Listing[]) => ListingUpdate[],
 ): Promise<{ items: number; alertsCreated: number }> {
   let alertsCreated = 0;
-  for (const item of items) {
-    const snapshot = toListingsAndStores(item.listings);
-    alertsCreated += (await applyListingUpdates(item.id, source(snapshot.listings), snapshot)).alertsCreated;
-  }
-  return { items: items.length, alertsCreated };
+  for (const id of itemIds) alertsCreated += (await applyRefresh(id, source)).alertsCreated;
+  return { items: itemIds.length, alertsCreated };
 }
