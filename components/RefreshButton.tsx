@@ -11,11 +11,11 @@ function waitText(seconds?: number): string {
   return seconds < 60 ? `${seconds} seconds` : `${Math.ceil(seconds / 60)} minutes`;
 }
 
-/** POST /api/items/[id]/refresh, then router.refresh() so the server re-renders the comparison. */
 /** What the shopper would notice: each listing's price and stock. */
 const snapshot = (ls: Listing[] | undefined) =>
   JSON.stringify((ls ?? []).map((l) => [l.id, l.price, l.stockBySize]).sort());
 
+/** POST /api/items/[id]/refresh, then router.refresh() so the server re-renders the comparison. */
 export default function RefreshButton({ itemId, listings }: { itemId: string; listings: Listing[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);

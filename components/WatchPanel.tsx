@@ -186,6 +186,7 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
             if (!(e instanceof ApiClientError && e.status === 404)) throw e;
           }
           setConfirming(false);
+          setFormError(null);
           setMessage("Watch deleted.");
           router.refresh();
           announceAlertsChanged();
