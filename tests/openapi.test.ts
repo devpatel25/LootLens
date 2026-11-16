@@ -61,20 +61,28 @@ const FIXTURES: Record<string, string> = {
   "wishlist.json": "WishlistItem",
 };
 
-type Schema = { $ref?: string; allOf?: Schema[]; properties?: Record<string, unknown>; required?: string[] };
+type Schema = {
+  $ref?: string;
+  allOf?: Schema[];
+  oneOf?: Schema[];
+  type?: string | string[];
+  items?: Schema;
+  properties?: Record<string, Schema>;
+  required?: string[];
+};
 const schemas = (spec.components.schemas as unknown) as Record<string, Schema>;
+const read = (file: string) => JSON.parse(readFileSync(join(process.cwd(), "fixtures", file), "utf8"));
 
-/** Properties and required names of a schema, following allOf and $ref. */
-function shape(s: Schema): { props: Set<string>; required: Set<string> } {
-  const out = { props: new Set<string>(), required: new Set<string>() };
-  const walk = (n: Schema) => {
-    if (n.$ref) walk(schemas[n.$ref.split("/").pop()!]);
-    n.allOf?.forEach(walk);
-    Object.keys(n.properties ?? {}).forEach((k) => out.props.add(k));
-    n.required?.forEach((k) => out.required.add(k));
-  };
-  walk(s);
-  return out;
+/** Problems found when value does not fit schema. Top level only for now. */
+function check(schema: Schema, value: unknown, at = "$"): string[] {
+  const s = schema.$ref ? schemas[schema.$ref.split("/").pop()!] : schema;
+  const data = (Array.isArray(value) ? value[0] : value) as Record<string, unknown>;
+  const props = new Set(Object.keys(s.properties ?? {}));
+  const required = s.required ?? [];
+  return [
+    ...Object.keys(data).filter((k) => !props.has(k)).map((k) => `${at}.${k} not in schema`),
+    ...required.filter((k) => !(k in data)).map((k) => `${at}.${k} missing`),
+  ];
 }
 
 describe("fixtures match the spec", () => {
@@ -84,10 +92,18 @@ describe("fixtures match the spec", () => {
   });
 
   it.each(Object.entries(FIXTURES))("%s fits %s", (file, name) => {
-    const raw = JSON.parse(readFileSync(join(process.cwd(), "fixtures", file), "utf8"));
-    const data: Record<string, unknown> = Array.isArray(raw) ? raw[0] : raw;
-    const { props, required } = shape(schemas[name]);
-    expect([...Object.keys(data)].filter((k) => !props.has(k))).toEqual([]);
-    expect([...required].filter((k) => !(k in data))).toEqual([]);
+    expect(check({ $ref: `#/components/schemas/${name}` }, read(file))).toEqual([]);
+  });
+
+  it("catches a nested required field that is removed", () => {
+    const data = structuredClone(read("comparison.json"));
+    delete data.stores[0].trust;
+    expect(check({ $ref: "#/components/schemas/ItemComparison" }, data)).toContain("$.stores[0].trust missing");
+  });
+
+  it("catches a nested key that is not in the schema", () => {
+    const data = structuredClone(read("comparison.json"));
+    data.listings[0].extra = 1;
+    expect(check({ $ref: "#/components/schemas/ItemComparison" }, data)).toContain("$.listings[0].extra not in schema");
   });
 });
