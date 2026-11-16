@@ -11,5 +11,6 @@ test("signed-out visit shows the sign-in page with one Google button", async ({ 
 
 test("sign-in page explains a failed sign-in", async ({ page }) => {
   await page.goto("/signin?error=AccessDenied");
-  await expect(page.getByRole("alert")).toContainText("Google sign-in was cancelled or denied. Try again.");
+  // Next.js adds its own empty role="alert" route announcer, so match ours by text.
+  await expect(page.getByRole("alert").filter({ hasText: "Google sign-in was cancelled or denied. Try again." })).toBeVisible();
 });
