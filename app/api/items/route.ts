@@ -1,31 +1,14 @@
-import { listingsInclude, toItem, toListingsAndStores } from "@/lib/dto";
+import { toItem } from "@/lib/dto";
 import { generateDemoListings } from "@/lib/demoListings";
 import { ok, parse, requireUserId, route } from "@/lib/http";
 import { itemSchema } from "@/lib/itemSchema";
-import { cheapestListing, storeName } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
-import type { WishlistItem } from "@/lib/types";
+import { loadWishlist } from "@/lib/wishlist";
 
 export const GET = route(async () => {
   const userId = await requireUserId();
   if (userId instanceof Response) return userId;
-
-  const rows = await prisma.item.findMany({
-    where: { userId },
-    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-    include: listingsInclude,
-  });
-  const data: WishlistItem[] = rows.map((row) => {
-    const { listings, stores } = toListingsAndStores(row.listings);
-    const best = cheapestListing(listings, stores, row.selectedSize);
-    return {
-      ...toItem(row),
-      cheapest: best
-        ? { listingId: best.id, storeName: storeName(stores, best), price: best.price }
-        : null,
-    };
-  });
-  return ok(data);
+  return ok(await loadWishlist(userId));
 });
 
 export const POST = route(async (req: Request) => {

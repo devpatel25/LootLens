@@ -45,6 +45,11 @@ lib/
   format.ts             formatUsd (display only)
   storeLabel.ts         needsFictionalLabel, storeLabel: fictional stores are labelled from store.fictional
   currentUser.ts        requirePageUserId(returnTo): session user id for server pages (else sign-in, keeping returnTo)
+  wishlist.ts           loadWishlist, hasDemoListings (GET /api/items and the Wishlist page share these)
+  apiClient.ts          apiFetch for client components, ApiClientError, friendlyMessage
+  itemForm.ts           item form values <-> API body, validated with itemSchema
+  useModalDialog.ts     <dialog> as a modal: Escape, data-autofocus, focus back to the opener
+  format.ts             formatUsd (display only)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
   settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)
@@ -108,8 +113,8 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 - **Session reads.** `cacheComponents` is on, so any server component that calls `auth()` sits inside `<Suspense>` and calls `await connection()` first. Never import `lib/auth` in a client file; pass the data or a server action down as props. Session redirects belong in `routeDecision` (`lib/authConfig.ts`, used by `proxy.ts`), which keeps the return address: signed-out visits go to `/signin?callbackUrl=...`, and signed-in visits to `/signin` go on to that address.
 - **Blocking segments.** `app/(app)/layout.tsx` and `/signin` set `export const instant = false`, so they render on the server before sending. That puts the nav (which reads the URL with `usePathname`) with the current tab marked, and the whole sign-in form, in the first HTML. Anywhere else, a client component that reads the URL sits inside `<Suspense>`, or the build fails on dynamic routes such as `/items/[id]`.
 - **States.** Every data screen shows all four states with the shared components: `loading.tsx` uses `LoadingState`, `error.tsx` uses `ErrorState` with `retry`, an empty list uses `EmptyState` with a next step, and populated data shows `DemoDataBadge` while any of it is demo. Never render a raw error message.
-- **Forms and mutations.** Signed-in screens stream their data behind `<Suspense>`, and streamed content stays hidden until JavaScript runs, so those screens need JavaScript. Their forms and buttons call the matching API route, then `router.refresh()`; do not keep a second copy of server data in client state. The sign-in page is the exception: it is server-rendered and its `<form action>` server action works before JavaScript loads.
-- **Sheets and menus.** Escape closes them and focus goes back to the button that opened them. A menu toggle has `aria-expanded` and `aria-controls`. A sheet is a labelled dialog that keeps focus inside while open.
+- **Forms and mutations.** Signed-in screens stream their data behind `<Suspense>`, and streamed content stays hidden until JavaScript runs, so those screens need JavaScript. Their forms and buttons call the matching API route through `lib/apiClient.ts`, then `router.refresh()`; do not keep a second copy of server data in client state. The sign-in page is the exception: it is server-rendered and its `<form action>` server action works before JavaScript loads.
+- **Sheets and menus.** Escape closes them and focus goes back to the button that opened them. A menu toggle has `aria-expanded` and `aria-controls`. A sheet is a native `<dialog>` opened with `useModalDialog`, labelled by its heading; mark the field that should get focus with `data-autofocus` (React's `autoFocus` does not reach `showModal`).
 - **Styling.** Tailwind only, mobile first, then `md:` for the sidebar layout. Pair every colour with a `dark:` value. Use `emerald-700` and darker for brand and focus rings; check AA contrast for any new colour pair.
 - **Tests.** Query by role and accessible name. Next.js renders an empty `role="alert"` route announcer on every page, so in E2E scope alerts by text. Component tests that use `usePathname` or `useRouter` mock `next/navigation` with `vi.mock`.
 - **E2E files.** `e2e/<feature>.spec.ts` runs signed in as `demo@lootlens.test`; `e2e/<feature>-anon.spec.ts` runs signed out. The test DB is reseeded at the start of every run, and all signed-in specs share one user, so a spec that changes data creates its own records and finds them by name.

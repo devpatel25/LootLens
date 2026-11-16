@@ -1,3 +1,5 @@
+import LoadingState from "@/components/LoadingState";
+
 export default function Loading() {
-  return null;
+  return <LoadingState label="Loading wishlist" />;
 }
