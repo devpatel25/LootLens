@@ -63,7 +63,7 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
           action={addButton}
         />
       ) : (
-        <ul aria-label="Wishlist items" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul aria-label="Wishlist items" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
             <WishlistCard key={item.id} item={item} onEdit={() => setSheet({ item })} onDelete={() => setDeleting(item)} />
           ))}

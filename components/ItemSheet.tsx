@@ -80,13 +80,14 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing }: ItemSheetProps) {
   const sizes = parseSizes(values.sizes);
   // PATCH deletes watches and alerts for sizes that leave the list (app/api/items/[id]/route.ts).
   const removedSizes = item ? item.sizes.filter((s) => !sizes.includes(s)) : [];
-  const customCategory = values.category && !CATEGORIES.some((c) => c.value === values.category) ? values.category : null;
+  // From the saved item, so the option stays even after the user picks another category.
+  const customCategory = item && !CATEGORIES.some((c) => c.value === item.category) ? item.category : null;
 
   const set = (f: keyof ItemFormValues) => (e: { target: { value: string } }) => setValues((v) => ({ ...v, [f]: e.target.value }));
-  const aria = (f: keyof ItemFormValues, hint = false) => ({
+  const aria = (f: keyof ItemFormValues, hint = false, extra?: string) => ({
     id: id(f),
     "aria-invalid": errors[f] ? true : undefined,
-    "aria-describedby": errors[f] ? `${id(f)}-error` : hint ? `${id(f)}-hint` : undefined,
+    "aria-describedby": [errors[f] ? `${id(f)}-error` : hint ? `${id(f)}-hint` : null, extra].filter(Boolean).join(" ") || undefined,
   });
 
   async function submit(e: FormEvent) {
@@ -145,10 +146,10 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing }: ItemSheetProps) {
             </select>
           </Field>
           <Field id={id("sizes")} label="Sizes" hint="Separate sizes with commas, for example 8, 9, 10 or S, M, L." error={errors.sizes}>
-            <input {...aria("sizes", true)} className={input} value={values.sizes} onChange={set("sizes")} autoComplete="off" />
+            <input {...aria("sizes", true, removedSizes.length > 0 ? `${uid}-removed` : undefined)} className={input} value={values.sizes} onChange={set("sizes")} autoComplete="off" />
           </Field>
           {removedSizes.length > 0 && (
-            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+            <p id={`${uid}-removed`} aria-live="polite" className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
               Removing size {removedSizes.join(", ")} also deletes its price watches and alerts.
             </p>
           )}

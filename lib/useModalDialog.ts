@@ -30,9 +30,17 @@ export function useModalDialog(onClose: () => void) {
       e.preventDefault();
       onCloseRef.current();
     };
+    // Browsers may close a modal anyway after repeated Escape presses even when cancel is prevented.
+    // If the component still wants to be open (onClose declined, for example mid-save), show it again.
+    const onNativeClose = () => {
+      onCloseRef.current();
+      if (dialog.isConnected && !dialog.open && typeof dialog.showModal === "function") dialog.showModal();
+    };
     dialog.addEventListener("cancel", onCancel);
+    dialog.addEventListener("close", onNativeClose);
     return () => {
       dialog.removeEventListener("cancel", onCancel);
+      dialog.removeEventListener("close", onNativeClose);
       if (typeof dialog.close === "function" && dialog.open) dialog.close();
       if (opener?.isConnected) opener.focus();
     };
