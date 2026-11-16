@@ -1,15 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/cron/refresh/route";
-import * as refresh from "@/lib/refresh";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { resetDb } from "../helpers/db";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/refresh", async (orig) => {
-  const actual = await orig<typeof import("@/lib/refresh")>();
-  return { ...actual, applyRefresh: vi.fn(actual.applyRefresh) };
-});
 
 let a: string;
 const call = (authorization?: string) =>
@@ -53,11 +48,31 @@ describe("GET /api/cron/refresh", () => {
   it("one failing item does not stop the rest", async () => {
     vi.stubEnv("DEMO_MODE", "true");
     vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.mocked(refresh.applyRefresh).mockRejectedValueOnce(new Error("boom"));
+    vi.spyOn(prisma, "$transaction").mockRejectedValueOnce(new Error("boom"));
     const res = await call("Bearer s3cret-value");
     expect(res.status).toBe(200);
     expect((await res.json()).data).toMatchObject({ items: 2, failed: 1, codesExpired: 1 });
     expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-target-expired" } })).status).toBe("DEAD");
+  });
+
+  it("keeps paging when an item vanishes at a page boundary", async () => {
+    await prisma.item.createMany({
+      data: Array.from({ length: 49 }, (_, i) => ({ userId: a, name: `bulk ${i}`, category: "tech", sizes: ["x"], selectedSize: "x", typicalPrice: 10 })),
+    });
+    // Delete the last row of the first page right after it is read: it is the paging anchor.
+    const find = prisma.item.findMany.bind(prisma.item) as (args: unknown) => Promise<{ id: string }[]>;
+    let deleted = false;
+    vi.spyOn(prisma.item, "findMany").mockImplementation((async (args: unknown) => {
+      const rows = await find(args);
+      if (!deleted && rows.length === 50) {
+        deleted = true;
+        await prisma.item.delete({ where: { id: rows[49].id } });
+      }
+      return rows;
+    }) as never);
+    const res = await call("Bearer s3cret-value");
+    expect(res.status).toBe(200);
+    expect((await res.json()).data).toMatchObject({ items: 52, failed: 0 });
   });
 
   it("leaves prices alone when DEMO_MODE is true on a production database target", async () => {

@@ -31,7 +31,7 @@ lib/
   pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
   alerts.ts             pure alert evaluation
   demoSource.ts         pure demo price feed (ListingUpdate[] from listings)
-  refresh.ts            applyListingUpdates (one transaction, deduped alerts), refresh constants
+  refresh.ts            applyRefresh (locked transaction, deduped alerts), refreshItems, refreshSource, currentSource
   demoGate.ts           demoGate(): 404 outside DEMO_MODE, 500 demo_disabled on a non-dev database
   types.ts              shared API response types (the API contract)
   db-guard.ts           assertNonProdDb()

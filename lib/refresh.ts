@@ -5,7 +5,6 @@ import { toListingsAndStores } from "@/lib/dto";
 import type { Listing } from "@/lib/types";
 import { prisma } from "@/lib/prisma";
 
-export const MAX_WATCHES_PER_USER = 10;
 export const REFRESH_COOLDOWN_MS = 5 * 60_000;
 
 export type ListingUpdate = { listingId: string; price: number; stockBySize: Record<string, number> };
@@ -33,13 +32,20 @@ export async function applyRefresh(
       return toListingsAndStores(rows);
     };
     const snapshot = await load();
-    const oldPrice = new Map(snapshot.listings.map((l) => [l.id, l.price]));
-    const updates = [...source(snapshot.listings)].sort((a, b) => a.listingId.localeCompare(b.listingId));
+    const old = new Map(snapshot.listings.map((l) => [l.id, l]));
+    const sameStock = (a: Record<string, number>, b: Record<string, number>) =>
+      Object.keys(a).length === Object.keys(b).length && Object.keys(b).every((k) => a[k] === b[k]);
+    const updates = source(snapshot.listings);
 
     const changed: { listingId: string; price: number }[] = [];
     for (const u of updates) {
-      const r = await tx.listing.updateMany({ where: { id: u.listingId, itemId }, data: { price: u.price, stockBySize: u.stockBySize } });
-      if (r.count === 1 && oldPrice.get(u.listingId) !== u.price) changed.push({ listingId: u.listingId, price: u.price });
+      const was = old.get(u.listingId);
+      if (!was) continue;
+      const priceChanged = was.price !== u.price;
+      // Skip no-op writes so Listing.updatedAt keeps meaning "last changed".
+      if (!priceChanged && sameStock(was.stockBySize, u.stockBySize)) continue;
+      await tx.listing.update({ where: { id: u.listingId }, data: { price: u.price, stockBySize: u.stockBySize } });
+      if (priceChanged) changed.push({ listingId: u.listingId, price: u.price });
     }
     await tx.priceHistory.createMany({ data: changed });
     const after = await load();
@@ -82,13 +88,23 @@ export async function applyRefresh(
 /** Demo prices are invented, so they run only in demo mode on a non-production database. */
 export const refreshSource = (): ((listings: Listing[]) => ListingUpdate[]) => (demoEnabled() ? demoSource : currentSource);
 
-/** Refreshes the items in turn and totals the alerts. */
+/** Refreshes the items in turn. One item failing is logged and counted, and the rest still run. */
 // ponytail: sequential, one transaction per item; batch or fan out beyond a few hundred items
 export async function refreshItems(
   itemIds: string[],
   source: (listings: Listing[]) => ListingUpdate[],
-): Promise<{ items: number; alertsCreated: number }> {
+): Promise<{ items: number; alertsCreated: number; failed: number }> {
+  let items = 0;
   let alertsCreated = 0;
-  for (const id of itemIds) alertsCreated += (await applyRefresh(id, source)).alertsCreated;
-  return { items: itemIds.length, alertsCreated };
+  let failed = 0;
+  for (const id of itemIds) {
+    try {
+      alertsCreated += (await applyRefresh(id, source)).alertsCreated;
+      items++;
+    } catch (e) {
+      console.error("refresh failed for item", id, e);
+      failed++;
+    }
+  }
+  return { items, alertsCreated, failed };
 }

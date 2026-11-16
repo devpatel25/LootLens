@@ -38,7 +38,7 @@ const apply = (id: string, updates: ListingUpdate[]) => applyRefresh(id, () => u
 const watch = (data: Record<string, unknown> = {}) =>
   prisma.watch.create({ data: { userId: a, itemId, size: "9", targetPrice: 55, lowStockAt: 0, baselinePrice: 60, ...data } });
 
-describe("applyListingUpdates", () => {
+describe("applyRefresh with fixed updates", () => {
   it("updates listings, records history and alerts once for the same updates applied twice", async () => {
     await watch();
     const before = await prisma.priceHistory.count({ where: { listingId: fbm } });
@@ -96,7 +96,7 @@ describe("applyListingUpdates", () => {
   });
 });
 
-describe("applyListingUpdates stock alerts", () => {
+describe("applyRefresh stock alerts", () => {
   // All size-9 stock sits on one listing so the total is easy to steer.
   const setStock = (n: number) => [{ listingId: fbm, price: 60, stockBySize: { "8": 0, "9": n, "10": 0 } }];
   beforeEach(async () => {
@@ -125,7 +125,14 @@ describe("applyListingUpdates stock alerts", () => {
   });
 });
 
-describe("applyRefresh", () => {
+describe("applyRefresh sources", () => {
+  it("leaves updatedAt alone for listings that did not change", async () => {
+    const before = await prisma.listing.findMany({ orderBy: { id: "asc" } });
+    await applyRefresh(itemId, currentSource);
+    const after = await prisma.listing.findMany({ orderBy: { id: "asc" } });
+    expect(after.map((l) => l.updatedAt)).toEqual(before.map((l) => l.updatedAt));
+  });
+
   const history = () => prisma.priceHistory.count();
 
   it("records history only for listings whose price changed", async () => {

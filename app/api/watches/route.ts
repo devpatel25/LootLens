@@ -1,11 +1,10 @@
 import { z } from "zod";
-import { currentForSize, DEFAULT_LOW_STOCK, evaluateWatch } from "@/lib/alerts";
+import { currentForSize, DEFAULT_LOW_STOCK, evaluateWatch, MAX_WATCHES_PER_USER } from "@/lib/alerts";
 import { listingsInclude, toListingsAndStores, toWatch } from "@/lib/dto";
 import { fail, fkName, itemNotFound, ok, parse, requireUserId, route } from "@/lib/http";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { moneySchema } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
-import { MAX_WATCHES_PER_USER } from "@/lib/refresh";
 
 const watchSchema = z.object({
   itemId: z.string().min(1).max(64),
@@ -27,32 +26,37 @@ export const POST = route(async (req: Request) => {
   const body = parse(watchSchema, await req.json().catch(() => undefined));
   if (body instanceof Response) return body;
 
-  const item = await prisma.item.findFirst({
-    where: { id: body.itemId, userId },
-    include: listingsInclude,
-  });
-  if (!item) return itemNotFound();
-  if (!item.sizes.includes(body.size)) return fail(400, "bad_request", "size: must be one of the item's sizes");
-
-  const { listings, stores } = toListingsAndStores(item.listings);
-  const now = currentForSize(listings, stores, body.size);
-  const { price } = now;
-  if (price === null) return fail(400, "no_listing", "No store has this size in stock");
-
-  // ponytail: count-then-create can overshoot the cap under a race; add a per-user lock if it matters
-  if ((await prisma.watch.count({ where: { userId } })) >= MAX_WATCHES_PER_USER) {
-    return fail(409, "watch_limit", `At most ${MAX_WATCHES_PER_USER} watches`);
-  }
-  // Start from the current state, so an alert fires only on a later crossing.
-  const targetPrice = body.targetPrice ?? null;
-  const lowStockAt = body.lowStockAt ?? DEFAULT_LOW_STOCK;
-  const { priceCondMet, stockCondMet } = evaluateWatch({ targetPrice, baselinePrice: price, lowStockAt }, now);
-  const flags = { priceCondMet, stockCondMet };
   try {
-    const row = await prisma.watch.create({
-      data: { userId, itemId: item.id, size: body.size, targetPrice, lowStockAt, baselinePrice: price, ...flags },
+    return await prisma.$transaction(async (tx) => {
+      // Locks serialise concurrent creates: the user row for the cap, the item row for its listings.
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+      const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Item" WHERE id = ${body.itemId} AND "userId" = ${userId} FOR UPDATE`;
+      if (locked.length === 0) return itemNotFound();
+      const item = await tx.item.findFirst({ where: { id: body.itemId, userId }, include: listingsInclude });
+      if (!item) return itemNotFound();
+      if (!item.sizes.includes(body.size)) return fail(400, "bad_request", "size: must be one of the item's sizes");
+
+      const { listings, stores } = toListingsAndStores(item.listings);
+      const now = currentForSize(listings, stores, body.size);
+      const { price } = now;
+      if (price === null) return fail(400, "no_listing", "No store has this size in stock");
+
+      // Duplicate first: re-submitting an existing watch is not a cap problem.
+      if (await tx.watch.findUnique({ where: { userId_itemId_size: { userId, itemId: item.id, size: body.size } } })) {
+        return fail(409, "watch_exists", "Already watching this item and size");
+      }
+      if ((await tx.watch.count({ where: { userId } })) >= MAX_WATCHES_PER_USER) {
+        return fail(409, "watch_limit", `At most ${MAX_WATCHES_PER_USER} watches`);
+      }
+      // Start from the current state, so an alert fires only on a later crossing.
+      const targetPrice = body.targetPrice ?? null;
+      const lowStockAt = body.lowStockAt ?? DEFAULT_LOW_STOCK;
+      const { priceCondMet, stockCondMet } = evaluateWatch({ targetPrice, baselinePrice: price, lowStockAt }, now);
+      const row = await tx.watch.create({
+        data: { userId, itemId: item.id, size: body.size, targetPrice, lowStockAt, baselinePrice: price, priceCondMet, stockCondMet },
+      });
+      return ok(toWatch(row), 201);
     });
-    return ok(toWatch(row), 201);
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003" && fkName(e) === "Watch_itemId_fkey") {
       return itemNotFound();

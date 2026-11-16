@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { demoSource } from "@/lib/demoSource";
 import { demoGate } from "@/lib/demoGate";
-import { itemNotFound, ok, parse, requireUserId, route } from "@/lib/http";
+import { fail, itemNotFound, ok, parse, requireUserId, route } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { refreshItems } from "@/lib/refresh";
 
@@ -21,5 +21,6 @@ export const POST = route(async (req: Request) => {
     orderBy: { id: "asc" },
   });
   if (body.itemId && items.length === 0) return itemNotFound();
-  return ok(await refreshItems(items.map((i) => i.id), demoSource));
+  const { failed, ...result } = await refreshItems(items.map((i) => i.id), demoSource);
+  return failed > 0 ? fail(500, "internal", "Something went wrong") : ok(result);
 });

@@ -9,14 +9,16 @@ export const GET = route(async () => {
   const userId = await requireUserId();
   if (userId instanceof Response) return userId;
 
-  const rows = await prisma.alert.findMany({
-    where: { userId },
-    include: { item: true },
-    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-    take: MAX_ALERTS,
-  });
-  // Counted in the database, so they stay right beyond the limit.
-  const unreadRows = await prisma.alert.groupBy({ by: ["itemId"], where: { userId, read: false }, _count: { _all: true } });
+  // Unread counts come from the database, so they stay right beyond the limit.
+  const [rows, unreadRows] = await Promise.all([
+    prisma.alert.findMany({
+      where: { userId },
+      include: { item: true },
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      take: MAX_ALERTS,
+    }),
+    prisma.alert.groupBy({ by: ["itemId"], where: { userId, read: false }, _count: { _all: true } }),
+  ]);
   const unreadByItem = new Map(unreadRows.map((r) => [r.itemId, r._count._all]));
   // Rows are newest first, so groups come out ordered by their newest alert.
   const groups = new Map<string, { itemId: string; itemName: string; unread: number; alerts: Alert[] }>();

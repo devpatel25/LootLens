@@ -81,7 +81,7 @@ Planned (set up in #5): Vercel builds with `vercel-build`, each pull request get
 
 Price and stock alerts are the app's stateful core.
 
-- A daily Vercel Cron job (`vercel.json`, 09:00 UTC) calls `GET /api/cron/refresh` with `Authorization: Bearer $CRON_SECRET`. It refreshes every item, evaluates every watch, and marks expired codes dead.
+- A daily Vercel Cron job (`vercel.json`, 09:00 UTC, daily only because Vercel Hobby allows nothing more often) calls `GET /api/cron/refresh` with `Authorization: Bearer $CRON_SECRET`. It refreshes every item, evaluates every watch, and marks expired codes dead.
 - "Refresh now" on Item Detail calls `POST /api/items/{id}/refresh`. Each item can refresh once every 5 minutes. A refresh inside that window returns 429 with `retryAfterSeconds`.
 - Alerts are deduped and fire on crossings. A watch remembers whether its price and stock conditions already hold, so an alert is created only when a condition flips from not met to met. A price that stays below target does not alert again.
 - The UI may poll for new alerts. It does not poll on a timer yet.
