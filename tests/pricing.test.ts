@@ -245,6 +245,26 @@ describe("bestDeal", () => {
     const l = [listing("u", "s2", 9.27, { condition: "used" }), listing("n", "s1", 10.3)];
     expect(bestDeal(l, st, [], "9", settings, NOW)?.listingId).toBe("n");
   });
+  it("ties a half-cent total with the cent it shows as: new wins", () => {
+    const st = [store("s1", { name: "Alpha" }), store("s2", { name: "Beta" })];
+    // 22.25 - 10% is 20.025, shown as $20.03.
+    const l = [listing("u", "s1", 22.25, { condition: "used" }), listing("n", "s2", 20.03)];
+    expect(bestDeal(l, st, [code({ value: 10 })], "9", settings, NOW)?.listingId).toBe("n");
+  });
+  it("ties a total just under a half cent with the cent it shows as: new wins", () => {
+    const st = [store("s1", { name: "Alpha" }), store("s2", { name: "Beta" })];
+    // 25.15 - 10% is 22.634999999999998 in floats, shown as $22.63.
+    const l = [listing("n", "s1", 25.15), listing("u", "s2", 22.63, { condition: "used" })];
+    expect(bestDeal(l, st, [code({ value: 10 })], "9", settings, NOW)?.listingId).toBe("n");
+  });
+  it("ties a cashback total just under a half cent with the cent it shows as: new wins", () => {
+    const st = [
+      store("s1", { name: "Alpha", cashback: [{ provider: "A", ratePct: 10 }] }),
+      store("s2", { name: "Beta" }),
+    ];
+    const l = [listing("n", "s1", 25.15), listing("u", "s2", 22.63, { condition: "used" })];
+    expect(bestDeal(l, st, [], "9", settings, NOW)?.listingId).toBe("n");
+  });
   it("breaks name ties in a fixed locale, case-insensitively", () => {
     const st = [store("s1", { name: "Zappos" }), store("s2", { name: "eBay" })];
     const l = [listing("z", "s1", 100), listing("e", "s2", 100)];
