@@ -16,8 +16,13 @@ Versions as scaffolded (see `package.json`):
 | TypeScript | 5.9.3 |
 | Vitest | 5.0.5 |
 | Playwright | 1.64.1 |
+| Prisma | 7.10.1 |
+| @prisma/client | 7.10.1 |
+| @prisma/adapter-pg | 7.10.1 |
+| tsx | 4.23.15 |
+| PostgreSQL | 17 |
 
-Prisma + PostgreSQL and Auth.js (Google) are added in issues #2 and #1.
+Auth.js (Google) is added in issue #1.
 
 ## Getting started
 
@@ -30,6 +35,14 @@ cp .env.example .env.local   # fill in values later; nothing is needed for the s
 npm run dev                  # http://localhost:3000
 ```
 
+### Local database
+
+Tests use the `lootlens-pg` Docker container on port 5433 through `.env.test`, in a separate `lootlens_test` database so test resets never touch your dev data. `db:test:migrate` creates `lootlens_test` if it is missing. Test helpers refuse any database whose name does not end in `_test`. Run this once:
+
+```bash
+npm run db:up && npm run db:test:migrate
+```
+
 ## Scripts
 
 | Script | What it does |
@@ -40,6 +53,11 @@ npm run dev                  # http://localhost:3000
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Vitest unit and integration tests |
 | `npm run test:e2e` | Playwright E2E (builds, then runs `next start` on port 3100) |
+| `npm run db:up` | Start (or create) the local PostgreSQL container on port 5433 |
+| `npm run db:migrate` | `prisma migrate dev` against the dev database. Refuses a production target |
+| `npm run db:test:migrate` | Apply migrations to the test database from `.env.test` |
+| `npm run db:seed` | Load demo data |
+| `npm run db:generate` | Generate the Prisma client |
 
 ## Data
 

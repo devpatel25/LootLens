@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
   test: {
     include: ["**/*.test.{ts,tsx}"],
-    exclude: ["node_modules/**", "e2e/**", ".next/**"],
+    exclude: ["node_modules/**", "e2e/**", ".next/**", "lib/generated/**", "**/worktrees/**"],
+    setupFiles: ["tests/setup-env.ts"],
+    fileParallelism: false,
+    unstubEnvs: true,
   },
 });

@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Condition {
+  NEW
+  USED
+  RESALE
+}
+
+enum DataSource {
+  LIVE
+  DEMO
+}
+
+enum CodeType {
+  PCT
+  FLAT
+}
+
+enum CodeStatus {
+  LIVE
+  DEAD
+}
+
+enum AlertKind {
+  PRICE_DROP
+  LOW_SIZE
+  OUT_OF_STOCK
+}
+
+// Auth.js adapter models
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  items         Item[]
+  watches       Watch[]
+  alerts        Alert[]
+  settings      UserSettings?
+  checkedCodes  Code[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// App models
+model Store {
+  id               String    @id
+  name             String
+  domain           String
+  sellerName       String
+  isHttps          Boolean
+  photoReviewCount Int
+  rating           Decimal   @db.Decimal(2, 1)
+  fictional        Boolean   @default(false)
+  cashback         Json      @default("[]")
+  listings         Listing[]
+  codes            Code[]
+}
+
+model Item {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  category        String
+  sizes           String[]
+  selectedSize    String
+  typicalPrice    Decimal   @db.Decimal(10, 2)
+  imageUrl        String?
+  sourceUrl       String?
+  lastRefreshedAt DateTime?
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listings        Listing[]
+  watches         Watch[]
+  alerts          Alert[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Listing {
+  id           String         @id @default(cuid())
+  itemId       String
+  storeId      String
+  url          String
+  price        Decimal        @db.Decimal(10, 2)
+  stockBySize  Json
+  condition    Condition
+  source       DataSource     @default(DEMO)
+  item         Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  store        Store          @relation(fields: [storeId], references: [id])
+  priceHistory PriceHistory[]
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([itemId, storeId, condition])
+  @@index([storeId])
+}
+
+model PriceHistory {
+  id         String   @id @default(cuid())
+  listingId  String
+  price      Decimal  @db.Decimal(10, 2)
+  recordedAt DateTime @default(now())
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, recordedAt])
+}
+
+model Code {
+  id              String     @id @default(cuid())
+  storeId         String
+  code            String
+  label           String
+  type            CodeType
+  value           Decimal    @db.Decimal(10, 2)
+  minSpend        Decimal?   @db.Decimal(10, 2)
+  firstOrderOnly  Boolean    @default(false)
+  expiresAt       DateTime?
+  status          CodeStatus
+  lastCheckedAt   DateTime
+  lastCheckedById String?
+  store           Store      @relation(fields: [storeId], references: [id])
+  lastCheckedBy   User?      @relation(fields: [lastCheckedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([storeId, code])
+  @@index([storeId, status])
+  @@index([lastCheckedById])
+}
+
+// @@unique([userId, itemId, size]) also serves "watches by userId + itemId" lookups.
+model Watch {
+  id           String   @id @default(cuid())
+  userId       String
+  itemId       String
+  size         String
+  targetPrice  Decimal? @db.Decimal(10, 2)
+  lowStockAt   Int      @default(3)
+  baselinePrice Decimal @db.Decimal(10, 2)
+  active       Boolean  @default(true)
+  priceCondMet Boolean  @default(false)
+  stockCondMet Boolean  @default(false)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  alerts       Alert[]
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, itemId, size])
+  @@index([itemId])
+}
+
+model Alert {
+  id        String    @id @default(cuid())
+  userId    String
+  itemId    String
+  watchId   String?
+  size      String
+  kind      AlertKind
+  detail    Json
+  read      Boolean   @default(false)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item      Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  watch     Watch?    @relation(fields: [watchId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now())
+
+  @@index([userId, read, createdAt])
+  @@index([watchId])
+  @@index([itemId])
+}
+
+model UserSettings {
+  id                 String  @id @default(cuid())
+  userId             String  @unique
+  freshnessHours     Int     @default(24)
+  firstOrderEligible Boolean @default(false)
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

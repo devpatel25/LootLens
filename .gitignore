@@ -38,6 +38,7 @@ yarn-error.log*
 # env files (only the empty template is committed)
 .env*
 !.env.example
+!.env.test
 
 # vercel
 .vercel
@@ -48,3 +49,6 @@ next-env.d.ts
 
 # local Codex review scratch files
 .review/
+
+# generated prisma client
+/lib/generated/
