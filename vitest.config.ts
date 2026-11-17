@@ -10,6 +10,7 @@ export default defineConfig({
     exclude: ["node_modules/**", "e2e/**", ".next/**", "lib/generated/**", "**/worktrees/**"],
     setupFiles: ["tests/setup-env.ts"],
     fileParallelism: false,
+    server: { deps: { inline: ["next-auth"] } },
     unstubEnvs: true,
   },
 });

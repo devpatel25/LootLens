@@ -17,6 +17,7 @@
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+e2e/.auth/
 
 # next.js
 /.next/
