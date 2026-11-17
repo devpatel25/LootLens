@@ -3,7 +3,7 @@ import { ok, route, unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { refreshItems, refreshSource } from "@/lib/refresh";
 
-// Vercel Hobby caps a function at 60s (Fluid compute off). A longer run stops there; items not reached wait for the next run.
+// Vercel Hobby caps a function at 60s (Fluid compute off). A longer run stops there. The run pages by id from the lowest id each time, so the same high-id items are skipped again next run. #47 tracks ordering by last refreshed.
 export const maxDuration = 60;
 const PAGE = 50;
 
