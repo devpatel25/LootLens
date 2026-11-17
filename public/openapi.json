@@ -1,0 +1,2349 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LootLens API",
+    "version": "0.1.0",
+    "description": "Route handlers for LootLens. Every success body is `{ data }`, except `/api/health`, which returns `{ status: ok }`. Every error body is `{ error: { code, message } }`. All prices are USD numbers. Listings are labelled `source: demo` or `live`. No store site is scraped. Sign in at /signin in this browser first; Try it out then sends your session cookie automatically."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "sessionCookie": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Items"
+    },
+    {
+      "name": "Codes"
+    },
+    {
+      "name": "Stores"
+    },
+    {
+      "name": "Watches"
+    },
+    {
+      "name": "Alerts"
+    },
+    {
+      "name": "Settings"
+    },
+    {
+      "name": "Cron"
+    },
+    {
+      "name": "Demo"
+    },
+    {
+      "name": "Health"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Liveness check. No session.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items": {
+      "get": {
+        "summary": "List the user's items with the cheapest current listing for the saved size",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Items"
+        ],
+        "responses": {
+          "200": {
+            "description": "Newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WishlistItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add an item. Demo listings are created at 3 to 5 stores.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Items"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Item"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/items/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      ],
+      "get": {
+        "summary": "Get one item",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Items"
+        ],
+        "responses": {
+          "200": {
+            "description": "The item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Item"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an item. Any subset of the create fields. The merged item must still be valid.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "description": "Changing sizes drops watches (and their alerts) on sizes that are gone, and regenerates demo stock for the new sizes.",
+        "tags": [
+          "Items"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Item"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an item with its listings, watches and alerts",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Items"
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/items/{id}/listings": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      ],
+      "get": {
+        "summary": "Price comparison across stores, with best deal and trust picks",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Items"
+        ],
+        "responses": {
+          "200": {
+            "description": "Comparison",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ItemComparison"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/items/{id}/refresh": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      ],
+      "post": {
+        "summary": "Refresh now. One refresh per item every 5 minutes.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "description": "Within the cooldown the response is 429 rate_limited with `retryAfterSeconds`. Another user's item is a 404, never a 429. Outside demo mode prices are left unchanged. A failed refresh gives the cooldown slot back.",
+        "tags": [
+          "Items"
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated comparison and the number of alerts it created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "comparison",
+                        "alertsCreated"
+                      ],
+                      "properties": {
+                        "comparison": {
+                          "$ref": "#/components/schemas/ItemComparison"
+                        },
+                        "alertsCreated": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/stores": {
+      "get": {
+        "summary": "List all stores, A to Z",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Stores"
+        ],
+        "responses": {
+          "200": {
+            "description": "Stores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Store"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/codes": {
+      "get": {
+        "summary": "List promo codes",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "description": "By default only live codes that are fresh (checked less than the user's freshnessHours ago) and not expired. `showDead=true` returns every code, with no freshness filter.",
+        "tags": [
+          "Codes"
+        ],
+        "parameters": [
+          {
+            "name": "storeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "showDead",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newest check first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Code"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/codes/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      ],
+      "patch": {
+        "summary": "Mark a code live or dead. Records lastCheckedAt and lastCheckedById. Any signed-in user may do this.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Codes"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "live",
+                      "dead"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Code"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "summary": "Get the user's settings (defaults if never saved)",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Settings"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update settings. Any subset of fields.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Settings"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "freshnessHours": {
+                    "type": "integer",
+                    "enum": [
+                      6,
+                      12,
+                      24,
+                      48,
+                      72
+                    ]
+                  },
+                  "firstOrderEligible": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Settings"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/watches": {
+      "get": {
+        "summary": "List the user's watches, newest first",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Watches"
+        ],
+        "responses": {
+          "200": {
+            "description": "Watches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Watch"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "summary": "Watch an item in one size",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "description": "The watch starts from the current price and stock, so an alert fires only on a later crossing. Limits: 10 watches per user, one per item and size. A duplicate is checked first, so re-submitting an existing watch gives `watch_exists`, not `watch_limit`. A 400 with code `no_listing` means no store has the size in stock.",
+        "tags": [
+          "Watches"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "itemId",
+                  "size"
+                ],
+                "properties": {
+                  "itemId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "size": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20,
+                    "description": "Must be one of the item's sizes"
+                  },
+                  "targetPrice": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "exclusiveMinimum": 0,
+                    "maximum": 99999.99,
+                    "description": "USD, positive, at most 2 decimal places. Null or omitted means any drop"
+                  },
+                  "lowStockAt": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 50,
+                    "default": 3
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CreatedWatch"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "$ref": "#/components/responses/409"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/watches/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      ],
+      "delete": {
+        "summary": "Delete a watch. No new alerts for it afterwards.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Watches"
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/alerts": {
+      "get": {
+        "summary": "List alerts grouped by item, newest group first. Returns the newest 200 alerts. unread and unreadCount are counted over all alerts.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Alerts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Groups and the unread total",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AlertsResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/alerts/clear": {
+      "post": {
+        "summary": "Delete all read alerts",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Alerts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Count removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "deleted"
+                      ],
+                      "properties": {
+                        "deleted": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/alerts/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      ],
+      "patch": {
+        "summary": "Mark an alert read or unread",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Alerts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "read"
+                ],
+                "properties": {
+                  "read": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Alert"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/cron/refresh": {
+      "get": {
+        "tags": [
+          "Cron"
+        ],
+        "summary": "Expire old codes, then refresh every item one by one. Called by Vercel Cron daily at 09:00 UTC.",
+        "description": "No session. Needs `Authorization: Bearer ${CRON_SECRET}`. The 401 comes from a missing or wrong token, or an unset CRON_SECRET. Outside demo mode prices and stock stay as they are until a real data source lands, so the run only expires codes and re-checks watches.",
+        "security": [
+          {
+            "cronBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Totals for the run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "alertsCreated",
+                        "codesExpired",
+                        "failed"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "integer",
+                          "description": "Items refreshed successfully"
+                        },
+                        "alertsCreated": {
+                          "type": "integer"
+                        },
+                        "codesExpired": {
+                          "type": "integer",
+                          "description": "Live codes past expiresAt, now marked dead"
+                        },
+                        "failed": {
+                          "type": "integer",
+                          "description": "Items whose refresh threw. They are skipped and logged."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/demo/simulate": {
+      "post": {
+        "summary": "Demo only. Simulate price and stock moves on the user's items, then evaluate watches. If any item fails to refresh the response is 500 internal. Returns 404 unless DEMO_MODE=true, and 500 demo_disabled on a non-dev database.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Demo"
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "itemId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "description": "Only this item. Omit for all of the user's items."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Totals, when every item refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "alertsCreated"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "integer"
+                        },
+                        "alertsCreated": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/demo/reset": {
+      "post": {
+        "summary": "Demo only. Reload seed data for the demo user and the seed codes. Returns 404 unless DEMO_MODE=true, and 500 demo_disabled on a non-dev database.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Demo"
+        ],
+        "responses": {
+          "200": {
+            "description": "Demo user id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "demoUserId"
+                      ],
+                      "properties": {
+                        "demoUserId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "authjs.session-token",
+        "description": "Auth.js session cookie from Google sign-in (`__Secure-authjs.session-token` over HTTPS)."
+      },
+      "cronBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "CRON_SECRET"
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Invalid params, query or body. Code `bad_request`, or `no_listing` for a watch on a size nobody has in stock.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "No session (or a bad cron token). Code `unauthorized`.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not found, or not visible to this user. Demo routes return 404 when DEMO_MODE is off. Code `not_found`.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      },
+      "409": {
+        "description": "Conflict. Code `watch_limit` or `watch_exists`.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      },
+      "429": {
+        "description": "Refreshed recently. Code `rate_limited`, with `retryAfterSeconds`.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "description": "Seconds until the next refresh is allowed",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Unhandled error. Code `internal` (`demo_disabled` for demo routes on a non-dev database).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "retryAfterSeconds": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      },
+      "CashbackOffer": {
+        "type": "object",
+        "required": [
+          "provider",
+          "ratePct"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "ratePct": {
+            "type": "number",
+            "description": "5 means 5%"
+          }
+        }
+      },
+      "TrustFlags": {
+        "type": "object",
+        "required": [
+          "lowTrust",
+          "reasons"
+        ],
+        "properties": {
+          "lowTrust": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "no_https",
+                "few_photo_reviews",
+                "low_rating"
+              ]
+            }
+          }
+        }
+      },
+      "Store": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "domain",
+          "sellerName",
+          "isHttps",
+          "photoReviewCount",
+          "rating",
+          "fictional",
+          "cashback",
+          "trust"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "sellerName": {
+            "type": "string"
+          },
+          "isHttps": {
+            "type": "boolean"
+          },
+          "photoReviewCount": {
+            "type": "integer"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "fictional": {
+            "type": "boolean"
+          },
+          "cashback": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CashbackOffer"
+            }
+          },
+          "trust": {
+            "$ref": "#/components/schemas/TrustFlags"
+          }
+        }
+      },
+      "ItemFields": {
+        "type": "object",
+        "description": "Item fields as returned by the API",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "sizes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "selectedSize": {
+            "type": "string"
+          },
+          "typicalPrice": {
+            "type": "number"
+          },
+          "imageUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ItemInput": {
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ItemFields"
+          },
+          {
+            "type": "object",
+            "required": [
+              "name",
+              "category",
+              "sizes",
+              "selectedSize",
+              "typicalPrice"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "category": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "sizes": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 12,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20
+                }
+              },
+              "selectedSize": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20,
+                "description": "Must be one of sizes"
+              },
+              "typicalPrice": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 99999.99,
+                "description": "USD, positive, at most 2 decimal places"
+              },
+              "imageUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri",
+                "description": "http or https"
+              },
+              "sourceUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri",
+                "description": "http or https"
+              }
+            }
+          }
+        ]
+      },
+      "ItemPatch": {
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ItemFields"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "category": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "sizes": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 12,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20
+                }
+              },
+              "selectedSize": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20,
+                "description": "Must be one of sizes"
+              },
+              "typicalPrice": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 99999.99,
+                "description": "USD, positive, at most 2 decimal places"
+              },
+              "imageUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri",
+                "description": "http or https"
+              },
+              "sourceUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri",
+                "description": "http or https"
+              }
+            }
+          }
+        ],
+        "description": "Any subset of ItemInput"
+      },
+      "Item": {
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ItemFields"
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "category",
+              "sizes",
+              "selectedSize",
+              "typicalPrice",
+              "imageUrl",
+              "sourceUrl",
+              "createdAt",
+              "updatedAt"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        ]
+      },
+      "WishlistItem": {
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Item"
+          },
+          {
+            "type": "object",
+            "required": [
+              "cheapest"
+            ],
+            "properties": {
+              "cheapest": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "listingId",
+                      "storeName",
+                      "price"
+                    ],
+                    "properties": {
+                      "listingId": {
+                        "type": "string"
+                      },
+                      "storeName": {
+                        "type": "string"
+                      },
+                      "price": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Cheapest in-stock listing for the saved size"
+              }
+            }
+          }
+        ]
+      },
+      "Listing": {
+        "type": "object",
+        "required": [
+          "id",
+          "itemId",
+          "storeId",
+          "price",
+          "condition",
+          "url",
+          "stockBySize",
+          "updatedAt",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "storeId": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "condition": {
+            "type": "string",
+            "enum": [
+              "new",
+              "used",
+              "resale"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "stockBySize": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "live",
+              "demo"
+            ]
+          }
+        }
+      },
+      "Code": {
+        "type": "object",
+        "required": [
+          "id",
+          "storeId",
+          "storeName",
+          "code",
+          "label",
+          "type",
+          "value",
+          "minSpend",
+          "firstOrderOnly",
+          "expiresAt",
+          "status",
+          "lastCheckedAt",
+          "cashback"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "storeId": {
+            "type": "string"
+          },
+          "storeName": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "pct",
+              "flat"
+            ]
+          },
+          "value": {
+            "type": "number",
+            "description": "Percent for pct, USD for flat"
+          },
+          "minSpend": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "firstOrderOnly": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "live",
+              "dead"
+            ]
+          },
+          "lastCheckedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cashback": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CashbackOffer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The store's highest-rate offer"
+          }
+        }
+      },
+      "BestDeal": {
+        "type": "object",
+        "required": [
+          "listingId",
+          "price",
+          "code",
+          "cashback",
+          "total"
+        ],
+        "description": "total = price - code.discount - cashback.amount. Cashback applies to the price after the code. Amounts are unrounded.",
+        "properties": {
+          "listingId": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "code": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "code",
+                  "discount"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "discount": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cashback": {
+            "oneOf": [
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CashbackOffer"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "amount"
+                    ],
+                    "properties": {
+                      "amount": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "ItemComparison": {
+        "type": "object",
+        "required": [
+          "item",
+          "stores",
+          "listings",
+          "cheapestListingId",
+          "cheapestTrustedListingId",
+          "bestDeals",
+          "bestDeal"
+        ],
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/Item"
+          },
+          "stores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Store"
+            },
+            "description": "Only stores that have a listing"
+          },
+          "listings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Listing"
+            }
+          },
+          "cheapestListingId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cheapestTrustedListingId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bestDeals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BestDeal"
+            },
+            "description": "One per listing, in listings order"
+          },
+          "bestDeal": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BestDeal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lowest total among listings in stock for the saved size"
+          }
+        }
+      },
+      "Settings": {
+        "type": "object",
+        "required": [
+          "freshnessHours",
+          "firstOrderEligible"
+        ],
+        "properties": {
+          "freshnessHours": {
+            "type": "integer",
+            "enum": [
+              6,
+              12,
+              24,
+              48,
+              72
+            ]
+          },
+          "firstOrderEligible": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Watch": {
+        "type": "object",
+        "required": [
+          "id",
+          "itemId",
+          "size",
+          "targetPrice",
+          "lowStockAt",
+          "baselinePrice",
+          "active",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
+          },
+          "targetPrice": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "lowStockAt": {
+            "type": "integer"
+          },
+          "baselinePrice": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatedWatch": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Watch"
+          },
+          {
+            "type": "object",
+            "required": [
+              "alreadyMet"
+            ],
+            "properties": {
+              "alreadyMet": {
+                "type": "boolean",
+                "description": "True when the current cheapest in-stock price for the size is already at or below targetPrice. False for any drop. No alert fires for this, alerts fire only on a later crossing."
+              }
+            }
+          }
+        ]
+      },
+      "Alert": {
+        "description": "One schema per kind. `kind` decides the shape of `detail`.",
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "watchId",
+              "itemId",
+              "itemName",
+              "size",
+              "kind",
+              "detail",
+              "read",
+              "createdAt"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "watchId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Null after the watch is deleted. The alert stays."
+              },
+              "itemId": {
+                "type": "string"
+              },
+              "itemName": {
+                "type": "string"
+              },
+              "size": {
+                "type": "string",
+                "description": "The saved size the alert is about. It stays after the watch is deleted."
+              },
+              "read": {
+                "type": "boolean"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "price_drop"
+                ]
+              },
+              "detail": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "number"
+                  },
+                  "to": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "watchId",
+              "itemId",
+              "itemName",
+              "size",
+              "kind",
+              "detail",
+              "read",
+              "createdAt"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "watchId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Null after the watch is deleted. The alert stays."
+              },
+              "itemId": {
+                "type": "string"
+              },
+              "itemName": {
+                "type": "string"
+              },
+              "size": {
+                "type": "string",
+                "description": "The saved size the alert is about. It stays after the watch is deleted."
+              },
+              "read": {
+                "type": "boolean"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "low_size"
+                ]
+              },
+              "detail": {
+                "type": "object",
+                "required": [
+                  "qty"
+                ],
+                "properties": {
+                  "qty": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Stock summed across stores, so there is no store name"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "watchId",
+              "itemId",
+              "itemName",
+              "size",
+              "kind",
+              "detail",
+              "read",
+              "createdAt"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "watchId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Null after the watch is deleted. The alert stays."
+              },
+              "itemId": {
+                "type": "string"
+              },
+              "itemName": {
+                "type": "string"
+              },
+              "size": {
+                "type": "string",
+                "description": "The saved size the alert is about. It stays after the watch is deleted."
+              },
+              "read": {
+                "type": "boolean"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "out_of_stock"
+                ]
+              },
+              "detail": {
+                "type": "object",
+                "required": [
+                  "qty"
+                ],
+                "properties": {
+                  "qty": {
+                    "type": "integer",
+                    "enum": [
+                      0
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "AlertsResponse": {
+        "type": "object",
+        "required": [
+          "groups",
+          "unreadCount"
+        ],
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "itemId",
+                "itemName",
+                "unread",
+                "alerts"
+              ],
+              "properties": {
+                "itemId": {
+                  "type": "string"
+                },
+                "itemName": {
+                  "type": "string"
+                },
+                "unread": {
+                  "type": "integer"
+                },
+                "alerts": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Alert"
+                  }
+                }
+              }
+            }
+          },
+          "unreadCount": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

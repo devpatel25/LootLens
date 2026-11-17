@@ -14,6 +14,9 @@ describe("routeDecision signed out", () => {
     ["/api/cron/refresh", "next"],
     ["/api/auth/signin", "next"],
     ["/signin", "next"],
+    ["/api-docs", "next"],
+    ["/openapi.json", "next"],
+    ["/api-docsx", "redirect"],
     ["/api/healthz", "unauthorized"],
     ["/api/cronjob", "unauthorized"],
     ["/api/cron", "unauthorized"],
@@ -51,7 +54,7 @@ describe("proxy matcher", () => {
     "excludes %s",
     (p) => expect(matched(p)).toBe(false),
   );
-  it.each(["/items/abc.png", "/robots.txt/x", "/favicon.ico/x", "/sitemap.xml.bak", "/wishlist", "/api/x.json", "/api", "/"])(
+  it.each(["/items/abc.png", "/robots.txt/x", "/favicon.ico/x", "/sitemap.xml.bak", "/wishlist", "/api/x.json", "/api", "/", "/api-docs", "/openapi.json"])(
     "matches %s",
     (p) => expect(matched(p)).toBe(true),
   );
