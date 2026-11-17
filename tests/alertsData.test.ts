@@ -23,7 +23,7 @@ beforeEach(async () => {
   const watch = await prisma.watch.create({
     data: { userId: a, itemId, size: "One size", targetPrice: null, lowStockAt: 3, baselinePrice: 79.99, priceCondMet: false, stockCondMet: false },
   });
-  await prisma.alert.create({ data: { userId: a, itemId, watchId: watch.id, kind: "PRICE_DROP", detail: { from: 79.99, to: 71.99 } } });
+  await prisma.alert.create({ data: { userId: a, itemId, watchId: watch.id, size: "One size", kind: "PRICE_DROP", detail: { from: 79.99, to: 71.99 } } });
 });
 
 describe("loadAlerts", () => {
