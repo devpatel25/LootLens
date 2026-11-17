@@ -64,10 +64,9 @@ describe("POST /api/watches", () => {
   });
 
   describe("alreadyMet", () => {
-    // Cheapest in-stock size 9 is 60.
+    // Cheapest in-stock size 9 is 60. A target at or above it is refused with 400 target_not_below
+    // (tested below), so a created watch is never already met.
     it.each([
-      ["target above the current price", { targetPrice: 70 }, true],
-      ["target equal to the current price", { targetPrice: 60 }, true],
       ["target below the current price", { targetPrice: 55 }, false],
       ["any drop (no target)", {}, false],
       ["any drop (null target)", { targetPrice: null }, false],
