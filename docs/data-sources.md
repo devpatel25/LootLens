@@ -7,7 +7,7 @@ Access date for every claim below: 2026-11-15. "Not verified" means we could not
 - Find a legal source of live prices and promo codes for the PRD stores: Amazon, Walmart, Target, American Eagle, Banana Republic, Adidas, Facebook Marketplace.
 - Only official APIs and affiliate feeds are considered. Store sites are never scraped (AGENTS.md section 3).
 - Paid scraping and unofficial services (SerpApi, Rainforest, Keepa, scraping actors) are excluded because they are scraping or unofficial.
-- The chosen source plugs into `getListingUpdates(item, listings)`. It returns `{ price, stockBySize: Record<size, qty> }` per listing. A deterministic demo fallback runs when the key is missing or the call fails.
+- The chosen source plugs into `refreshSource()` in `lib/refresh.ts`. A source takes the item's listings and returns `{ listingId, price, stockBySize: Record<size, qty> }` per listing. `refreshSource()` returns `demoSource` only when `DEMO_MODE=true` and the non-prod DB check passes, and `currentSource` otherwise. A deterministic demo fallback runs when the key is missing or the call fails.
 - Each listing carries `source: "live" | "demo"`. Anything from the fallback is labelled demo.
 - The user makes the decision. This doc only recommends.
 
@@ -139,7 +139,7 @@ Decision (2026-11-15): option 1, the demo fallback for all stores.
 
 - Every listing is `source: "demo"` and shows the Demo data badge.
 - Refresh and cron use the current values outside demo mode, and the deterministic demo source in demo mode.
-- #12 (price source adapter) is cut for this sprint. `getListingUpdates` stays the seam for a real source later.
+- #12 (price source adapter) is cut for this sprint. `refreshSource()` in `lib/refresh.ts` stays the seam for a real source later.
 - No store site is scraped.
 
 Later, outside this sprint:
