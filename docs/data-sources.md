@@ -26,7 +26,7 @@ Access date for every claim below: 2026-11-15. "Not verified" means we could not
 
 ### Amazon Creators API
 - PA-API 5 is deprecated. Calls to it get HTTP 403 `AccessDeniedException`. The Creators API is the replacement [1]. Exact shutdown dates are not on that page. A third-party blog reports 15 May 2026 [3]. We do not document PA-API 5 as live.
-- The Creators API intro page says access needs an enrolled Associates account and at least 10 qualifying sales in the past 30 days [2]. A student project with no traffic cannot meet that tonight.
+- The Creators API intro page says access needs an enrolled Associates account and at least 10 qualifying sales in the past 30 days [2]. A student project with no traffic cannot meet that.
 - Rate limits, price caching and display rules are not on the pages we could read. Do not rely on the 1 hour or 24 hour figures from blogs.
 
 ### Walmart affiliate API
@@ -57,7 +57,7 @@ Access date for every claim below: 2026-11-15. "Not verified" means we could not
 - Per-size stock: no source above gives verified quantity per size. `stockBySize` stays demo. Low-size alerts stay demo.
 - Promo codes: only affiliate networks carry them, and none is approved. Codes stay seeded demo data.
 - Facebook Marketplace stays demo.
-- Amazon, Walmart, Target, American Eagle, Banana Republic and Adidas all need an approval we do not have today.
+- Amazon, Walmart, Target, American Eagle, Banana Republic and Adidas all need an approval we do not have yet.
 
 ## 5. Recommendation
 
@@ -71,7 +71,7 @@ Weights: no approval wait 35%, PRD store coverage 25%, ToS fit for Postgres plus
 | Walmart affiliate API | 1 | 1 | 1 | 2 | 2 | 1.3 |
 | Amazon Creators API | 0 | 1 | 1 | 2 | 2 | 0.9 |
 
-Honest answer: nothing covers the PRD stores and works tonight.
+Honest answer: no option covers the PRD stores and is usable without an approval wait.
 
 1. Ship the demo fallback as the path for all PRD stores. Every listing is `source: "demo"`. The plan allows cutting #12 to this. It keeps data honesty intact.
 2. If the user wants one real adapter for #12, use the eBay Browse API for used and resale listings only. Read the eBay license for storage rules before saving prices. Keep `stockBySize` demo.
@@ -115,7 +115,7 @@ Stock per size is only an estimate (`estimatedAvailabilities` on getItem), not a
 
 - Amazon Associates: the site "must not have price tracking and/or price alerting functionality". Product data may be cached "for up to 24 hours" [18].
 - Walmart (on Impact): "You may NOT ... include in your Affiliate Website any price tracking and/or price alerting functionality" [19].
-- Target and adidas run on Impact. Their rules on price tracking, feeds and coupons are in private contract terms, shown only after a brand approves you. Not verified.
+- Target and Adidas run on Impact. Their rules on price tracking, feeds and coupons are in private contract terms, shown only after a brand approves you. Not verified.
 - Impact reviews new partners in 2 business days to 72 hours. Each brand then approves on its own schedule. It has a Catalogs API (price, stock, size) and a Promo Codes API, available after brand approval [20][21].
 
 Amazon and Walmart forbid the core features (price history and price-drop alerts), even with an approved affiliate account.
@@ -146,7 +146,7 @@ Decision (2026-11-15): option 1, the demo fallback for all stores.
 
 Later, outside this sprint:
 
-1. Apply to Impact for Target and adidas, then read their contract terms before building an adapter.
+1. Apply to Impact for Target and Adidas, then read their contract terms before building an adapter.
 2. Consider an eBay "On eBay" panel that follows the license rules above, after the production deploy exists for the deletion endpoint.
 3. Keep Amazon and Walmart as plain links. Their affiliate terms forbid price tracking and alerts.
 
