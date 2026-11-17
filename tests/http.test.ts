@@ -24,6 +24,10 @@ describe("fail", () => {
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: { code: "not_found", message: "Nope" } });
   });
+  it("sets the given headers", () => {
+    const res = fail(429, "rate_limited", "Slow down", { retryAfterSeconds: 30 }, { "Retry-After": "30" });
+    expect(res.headers.get("Retry-After")).toBe("30");
+  });
   it("includes retryAfterSeconds when given", async () => {
     const res = fail(429, "rate_limited", "Slow down", { retryAfterSeconds: 30 });
     expect(await res.json()).toEqual({ error: { code: "rate_limited", message: "Slow down", retryAfterSeconds: 30 } });

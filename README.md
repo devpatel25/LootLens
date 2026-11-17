@@ -59,6 +59,10 @@ npm run db:up && npm run db:test:migrate
 | `npm run db:seed` | Load demo data |
 | `npm run db:generate` | Generate the Prisma client |
 
+## Cron
+
+A daily job runs at 09:00 UTC, set in `vercel.json`. Vercel Hobby allows a daily cron only. It calls `GET /api/cron/refresh`, which needs the header `Authorization: Bearer $CRON_SECRET`. It expires codes past their end date, refreshes every item, and creates alerts when a watch condition is crossed. "Refresh now" on an item has a 5-minute cooldown.
+
 ## Data
 
 All prices, stock, and codes in this repo are demo data until a real data source is chosen and integrated. Demo data is labelled as such in the UI.

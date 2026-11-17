@@ -28,12 +28,15 @@ components/             UI components (ComparisonTable, CodeCard, WatchPanel, ..
 lib/
   pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
   alerts.ts             pure alert evaluation
+  demoSource.ts         pure demo price feed (ListingUpdate[] from listings)
+  refresh.ts            applyRefresh (locked transaction, deduped alerts), refreshItems, refreshSource, currentSource
+  demoGate.ts           demoGate(): 404 outside DEMO_MODE, 500 demo_disabled on a non-dev database
   types.ts              shared API response types (the API contract)
   db-guard.ts           assertNonProdDb()
   prisma.ts  auth.ts
   authConfig.ts         edge-safe auth config and routeDecision (no Prisma)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
-  dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings)
+  dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
   settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)
   demoListings.ts       generateDemoListings: seeded demo listings for a new item
   comparison.ts         loadComparison: item, listings, stores, best deals for the comparison route

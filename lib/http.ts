@@ -7,8 +7,8 @@ export function ok<T>(data: T, status = 200): Response {
   return Response.json({ data }, { status });
 }
 
-export function fail(status: number, code: string, message: string, extra?: { retryAfterSeconds?: number }): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status });
+export function fail(status: number, code: string, message: string, extra?: { retryAfterSeconds?: number }, headers?: HeadersInit): Response {
+  return Response.json({ error: { code, message, ...extra } }, { status, headers });
 }
 
 export function unauthorized(): Response {
@@ -37,7 +37,7 @@ export function isMissingRow(e: unknown): boolean {
 }
 
 /** The foreign key a P2003 failed on, from the driver adapter's error detail. */
-function fkName(e: Prisma.PrismaClientKnownRequestError): string {
+export function fkName(e: Prisma.PrismaClientKnownRequestError): string {
   const meta = e.meta as { driverAdapterError?: { cause?: { constraint?: { index?: string } } } } | undefined;
   return meta?.driverAdapterError?.cause?.constraint?.index ?? "";
 }

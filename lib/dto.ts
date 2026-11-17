@@ -1,6 +1,6 @@
-import type { Prisma, Code as DbCode, Item as DbItem, Listing as DbListing, Store as DbStore, UserSettings } from "@/lib/generated/prisma/client";
+import type { Alert as DbAlert, Prisma, Code as DbCode, Item as DbItem, Listing as DbListing, Store as DbStore, UserSettings, Watch as DbWatch } from "@/lib/generated/prisma/client";
 import { bestCashback, trustFlags } from "@/lib/pricing";
-import type { CashbackOffer, Code, FreshnessHours, Item, Listing, Settings, Store } from "@/lib/types";
+import type { Alert, CashbackOffer, Code, FreshnessHours, Item, Listing, Settings, Store, Watch } from "@/lib/types";
 
 const iso = (d: Date) => d.toISOString();
 
@@ -77,6 +77,41 @@ export function toListingsAndStores(rows: (DbListing & { store: DbStore })[]): {
     .map(toStore)
     .sort((a, b) => a.name.localeCompare(b.name));
   return { listings: rows.map(toListing), stores };
+}
+
+export function toWatch(w: DbWatch): Watch {
+  return {
+    id: w.id,
+    itemId: w.itemId,
+    size: w.size,
+    targetPrice: w.targetPrice?.toNumber() ?? null,
+    lowStockAt: w.lowStockAt,
+    baselinePrice: w.baselinePrice.toNumber(),
+    active: w.active,
+    createdAt: iso(w.createdAt),
+  };
+}
+
+/** Kind and detail of an alert row, with the detail shaped per kind. */
+function alertKindDetail(a: DbAlert): Alert extends infer U ? (U extends Alert ? Pick<U, "kind" | "detail"> : never) : never {
+  const d = a.detail as { from?: number; to?: number; qty?: number };
+  if (a.kind === "PRICE_DROP") return { kind: "price_drop", detail: { from: d.from as number, to: d.to as number } };
+  if (a.kind === "LOW_SIZE") return { kind: "low_size", detail: { qty: d.qty as number } };
+  return { kind: "out_of_stock", detail: { qty: 0 } };
+}
+
+/** The row must be loaded with include: { item: true }. */
+export function toAlert(a: DbAlert & { item: DbItem }): Alert {
+  return {
+    id: a.id,
+    watchId: a.watchId,
+    itemId: a.itemId,
+    itemName: a.item.name,
+    size: a.size,
+    read: a.read,
+    createdAt: iso(a.createdAt),
+    ...alertKindDetail(a),
+  };
 }
 
 /** Include for an item's listings in price order, with their stores. Pair with toListingsAndStores. */
