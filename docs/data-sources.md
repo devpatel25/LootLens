@@ -140,6 +140,8 @@ Decision (2026-11-15): option 1, the demo fallback for all stores.
 - Every listing is `source: "demo"` and shows the Demo data badge.
 - Refresh and cron use the current values outside demo mode, and the deterministic demo source in demo mode.
 - #12 (price source adapter) is cut for this sprint. `refreshSource()` in `lib/refresh.ts` stays the seam for a real source later.
+- Production has no `DEMO_MODE` and all stores use demo data, so "Refresh now" and the daily cron never change a price in production. The UI says "Prices checked. Nothing changed."
+- Both partners agreed to this decision.
 - No store site is scraped.
 
 Later, outside this sprint:
