@@ -1,11 +1,13 @@
 import { formatUsd } from "@/lib/format";
 import type { Alert, Watch } from "@/lib/types";
 
+// Pick each kind of the Alert union on its own, so checking kind also narrows detail.
+type AlertBody = Alert extends infer A ? (A extends Alert ? Pick<A, "kind" | "detail"> : never) : never;
+
 /** One plain sentence for an alert. */
-export function alertText(alert: Pick<Alert, "kind" | "detail">): string {
-  const { kind, detail } = alert;
-  if (kind === "price_drop") return `Price dropped from ${formatUsd(detail.from ?? 0)} to ${formatUsd(detail.to ?? 0)}`;
-  if (kind === "low_size") return `Only ${detail.qty ?? 0} left in your size`;
+export function alertText(alert: AlertBody): string {
+  if (alert.kind === "price_drop") return `Price dropped from ${formatUsd(alert.detail.from)} to ${formatUsd(alert.detail.to)}`;
+  if (alert.kind === "low_size") return `Only ${alert.detail.qty} left in your size`;
   return "Out of stock in your size";
 }
 
