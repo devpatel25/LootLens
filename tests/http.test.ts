@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { fail, ok, parse, requireUserId } from "@/lib/http";
+import { notFound } from "next/navigation";
+import { Prisma } from "@/lib/generated/prisma/client";
+import { fail, isStaleUser, ok, parse, requireUserId, route } from "@/lib/http";
 import { signInAs } from "./helpers/auth";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
@@ -63,5 +65,47 @@ describe("parse", () => {
     const body = await res.json();
     expect(body.error.code).toBe("bad_request");
     expect(body.error.message).toBe(`n: ${schema.safeParse({ n: "x" }).error!.issues[0].message}`);
+  });
+});
+
+describe("isStaleUser", () => {
+  const fk = (index: string) =>
+    new Prisma.PrismaClientKnownRequestError("fk", {
+      code: "P2003",
+      clientVersion: "x",
+      meta: { driverAdapterError: { cause: { kind: "ForeignKeyConstraintViolation", constraint: { index } } } },
+    });
+  it("true for a foreign key violation on a user column", () => {
+    expect(isStaleUser(fk("Item_userId_fkey"))).toBe(true);
+    expect(isStaleUser(fk("Code_lastCheckedById_fkey"))).toBe(true);
+    expect(isStaleUser(fk("UserSettings_userId_fkey"))).toBe(true);
+  });
+  it("false for a foreign key violation on another column", () => {
+    expect(isStaleUser(fk("Code_storeId_fkey"))).toBe(false);
+  });
+  it("false for a P2003 with no constraint detail", () => {
+    expect(isStaleUser(new Prisma.PrismaClientKnownRequestError("fk", { code: "P2003", clientVersion: "x" }))).toBe(false);
+  });
+  it("false for other Prisma errors and non-errors", () => {
+    expect(isStaleUser(new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "x" }))).toBe(false);
+    expect(isStaleUser(new Error("boom"))).toBe(false);
+    expect(isStaleUser(undefined)).toBe(false);
+  });
+});
+
+describe("route", () => {
+  it("lets a Next control-flow error through instead of returning a 500", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(route(async () => notFound())()).rejects.toMatchObject({ digest: expect.stringContaining("NEXT_HTTP_ERROR_FALLBACK") });
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+  it("turns other errors into a JSON 500", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await route(async () => {
+      throw new Error("boom");
+    })();
+    expect(res.status).toBe(500);
+    log.mockRestore();
   });
 });

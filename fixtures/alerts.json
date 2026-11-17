@@ -1,0 +1,59 @@
+{
+  "groups": [
+    {
+      "itemId": "item-samba",
+      "itemName": "Adidas Samba OG",
+      "unread": 2,
+      "alerts": [
+        {
+          "id": "alert-1",
+          "watchId": "watch-samba",
+          "itemId": "item-samba",
+          "itemName": "Adidas Samba OG",
+          "size": "9",
+          "kind": "price_drop",
+          "detail": {
+            "from": 84.99,
+            "to": 60
+          },
+          "read": false,
+          "createdAt": "2026-10-29T15:00:00.000Z"
+        },
+        {
+          "id": "alert-2",
+          "watchId": "watch-samba",
+          "itemId": "item-samba",
+          "itemName": "Adidas Samba OG",
+          "size": "9",
+          "kind": "low_size",
+          "detail": {
+            "qty": 1
+          },
+          "read": false,
+          "createdAt": "2026-10-29T14:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "itemId": "item-pegasus",
+      "itemName": "Nike Pegasus 41",
+      "unread": 1,
+      "alerts": [
+        {
+          "id": "alert-3",
+          "watchId": null,
+          "itemId": "item-pegasus",
+          "itemName": "Nike Pegasus 41",
+          "size": "10",
+          "kind": "out_of_stock",
+          "detail": {
+            "qty": 0
+          },
+          "read": false,
+          "createdAt": "2026-10-29T13:00:00.000Z"
+        }
+      ]
+    }
+  ],
+  "unreadCount": 3
+}

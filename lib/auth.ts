@@ -12,7 +12,7 @@ export async function handleCreateUser({ user }: { user: { id?: string } }): Pro
   // @auth/core already catches and logs errors thrown in event handlers (eventsErrorHandler), so this
   // try/catch is an explicit safety net, not load-bearing. Sign-in must not abort here: createUser runs
   // before linkAccount, so a throw would orphan the user.
-  // The settings route also upserts defaults on read (a later PR).
+  // The settings route falls back to defaults on read and upserts only on PATCH.
   try {
     await ensureUserSettings(user.id);
   } catch (e) {
