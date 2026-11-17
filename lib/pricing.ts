@@ -16,8 +16,9 @@ export function sortByPrice(listings: Listing[]): Listing[] {
 
 export const storeName = (stores: Store[], l: Listing) => stores.find((s) => s.id === l.storeId)?.name ?? "";
 
-/** Whole cents, so amounts equal to the cent compare equal despite float error. */
-const cents = (x: number) => Math.round(x * 100);
+const twoDecimals = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
+/** Whole cents as the UI shows them (same Intl rounding as the USD display), so totals that look equal compare equal. */
+export const cents = (x: number) => Math.round(Number(twoDecimals.format(x)) * 100);
 
 /** Tie rule: new condition first, then store name A to Z. Negative when a wins. */
 function tieBreak(a: Listing, b: Listing, stores: Store[]): number {
