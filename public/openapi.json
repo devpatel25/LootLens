@@ -2145,7 +2145,7 @@
             "properties": {
               "alreadyMet": {
                 "type": "boolean",
-                "description": "True when the current cheapest in-stock price for the size is already at or below targetPrice. False for any drop. No alert fires for this, alerts fire only on a later crossing."
+                "description": "Always false today: a targetPrice at or above the current cheapest in-stock price for the size is refused with 400 target_not_below. Kept in the contract in case that rule changes."
               }
             }
           }

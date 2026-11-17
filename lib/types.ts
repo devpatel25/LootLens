@@ -152,10 +152,9 @@ export type Watch = {
 export type AlertKind = "price_drop" | "low_size" | "out_of_stock";
 
 /**
- * POST /api/watches success data: the new Watch plus alreadyMet. alreadyMet is true when
- * the current cheapest in-stock price for the saved size is already at or below
- * targetPrice at creation. Alerts stay crossing-only, so no alert fires for this; the UI
- * uses the flag to say the item is already at the target.
+ * POST /api/watches success data: the new Watch plus alreadyMet. A target at or above the
+ * current cheapest in-stock price for the saved size is refused with 400 target_not_below,
+ * so alreadyMet is always false today. It stays in the contract in case that rule changes.
  */
 export type CreatedWatch = Watch & { alreadyMet: boolean };
 
