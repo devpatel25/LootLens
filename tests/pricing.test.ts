@@ -7,6 +7,7 @@ import {
   bestCashback,
   bestDeal,
   bestTotal,
+  cents,
   cheapestListing,
   cheapestTrustedListing,
   isExpired,
@@ -195,6 +196,31 @@ describe("bestTotal", () => {
       NOW,
     );
     expect(r.code?.id).toBe("pct");
+  });
+  it("picks the code with the lower total to the cent, not the larger discount", () => {
+    // 10.35 - 10% is 9.315 (shows $9.32); 10.35 - 1.04 is 9.309999999999999 ($9.31). Both discounts show $1.04.
+    const r = bestTotal(
+      listing("l", "s1", 10.35),
+      store("s1"),
+      [code({ id: "pct", value: 10 }), code({ id: "flat", type: "flat", value: 1.04 })],
+      settings,
+      NOW,
+    );
+    expect(r.code?.id).toBe("flat");
+    expect(cents(r.total)).toBe(931);
+  });
+  it("picks the code with the lower total after cashback when discounts tie to the cent", () => {
+    // price 10.07, 10% cashback: pct total 8.1567 ($8.16), flat 1.01 total 8.154 ($8.15). Both discounts show $1.01.
+    const st = store("s1", { cashback: [{ provider: "A", ratePct: 10 }] });
+    const r = bestTotal(
+      listing("l", "s1", 10.07),
+      st,
+      [code({ id: "pct", value: 10 }), code({ id: "flat", type: "flat", value: 1.01 })],
+      settings,
+      NOW,
+    );
+    expect(r.code?.id).toBe("flat");
+    expect(cents(r.total)).toBe(815);
   });
   it("uses the highest cashback offer, first on tie", () => {
     const st = store("s1", {
