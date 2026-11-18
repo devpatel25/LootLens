@@ -116,14 +116,15 @@ describe("formValuesFromItem", () => {
 
 describe("editing: only what changed is sent", () => {
   const original: Item = {
-    id: "i1", name: "Samba", category: "shoes", sizes: ["42,5", "43"], selectedSize: "42,5", typicalPrice: 100,
+    id: "i1", name: "Samba", category: "shoes", sizes: ["42.5", "43"], selectedSize: "42.5", typicalPrice: 100,
     imageUrl: null, sourceUrl: null, createdAt: "", updatedAt: "",
   };
 
-  it("keeps sizes that contain a comma when the sizes field was not touched", () => {
-    const values = { ...formValuesFromItem(original), name: "Samba OG" };
-    const r = toItemBody(values, original);
-    expect(r.ok && r.body.sizes).toEqual(["42,5", "43"]);
+  it("asks to retype sizes saved with a comma before #67, instead of splitting them silently", () => {
+    const legacy = { ...original, sizes: ["42,5", "43"], selectedSize: "42,5" };
+    const values = { ...formValuesFromItem(legacy), name: "Samba OG" };
+    const r = toItemBody(values, legacy);
+    expect(!r.ok && r.errors.sizes).toBe("A size can't contain a comma. Retype the sizes with commas only between them.");
   });
 
   it("sends only the fields whose text changed, so another tab's size change is not undone", () => {

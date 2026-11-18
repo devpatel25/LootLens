@@ -169,6 +169,21 @@ describe("WishlistView", () => {
     expect(JSON.parse(String(init?.body))).toEqual({ name: "Samba renamed" });
   });
 
+  it("Edit asks to retype sizes saved with a comma, and sends nothing", async () => {
+    const legacy = items().map((i) => (i.name === "Adidas Samba OG" ? { ...i, sizes: ["42,5", "43"], selectedSize: "43" } : i));
+    render(<WishlistView items={legacy} anyDemo />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Adidas Samba OG" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit item" });
+    fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Samba renamed" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    const sizes = within(dialog).getByLabelText("Sizes");
+    await waitFor(() => expect(sizes.getAttribute("aria-invalid")).toBe("true"));
+    expect(document.getElementById(sizes.getAttribute("aria-describedby")!)?.textContent).toBe(
+      "A size can't contain a comma. Retype the sizes with commas only between them.",
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("before saving new sizes, stops if another tab changed the sizes, so its size and watch are not removed", async () => {
     // GET returns the item as it is now: another tab added size 11.
     vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { ...samba(), sizes: ["8", "9", "10", "11"] } }));
