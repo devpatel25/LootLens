@@ -100,7 +100,8 @@ describe("low-trust with no reasons listed", () => {
   it("the table row shows no empty reasons line", () => {
     render(<ComparisonTable comparison={noReasons()} />);
     const trustCell = within(row(/KickSwap/)).getAllByRole("cell").find((td) => td.textContent?.includes("photo review"))!;
-    expect(trustCell.querySelectorAll("span")).toHaveLength(2);
+    // Only the HTTPS line and the photo-review count: no reasons line, empty or otherwise.
+    expect([...trustCell.querySelectorAll("span")].map((el) => el.textContent)).toEqual(["No HTTPS", "4 photo reviews"]);
   });
 });
 
