@@ -1,20 +1,10 @@
 import EmptyState from "@/components/EmptyState";
+import { CONDITION_TAG, chip } from "@/components/styles";
 import { formatUsd } from "@/lib/format";
 import { sortForComparison, stockInSize } from "@/lib/pricing";
 import { needsFictionalLabel, storeLabel } from "@/lib/storeLabel";
 import { trustReasonsSentence } from "@/lib/trust";
-import type { ItemComparison, ListingCondition } from "@/lib/types";
-
-const CONDITION: Record<ListingCondition, { label: string; className: string }> = {
-  new: { label: "New", className: "border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300" },
-  used: { label: "Used", className: "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100" },
-  resale: {
-    label: "Resale",
-    className: "border-violet-300 bg-violet-50 text-violet-900 dark:border-violet-700 dark:bg-violet-950 dark:text-violet-100",
-  },
-};
-
-const tag = "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold";
+import type { ItemComparison } from "@/lib/types";
 
 export default function ComparisonTable({ comparison }: { comparison: ItemComparison }) {
   const { item, stores, listings, cheapestListingId } = comparison;
@@ -63,19 +53,19 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
               const name = store?.name ?? "Unknown store";
               const stock = stockInSize(listing, size);
               const cheapest = listing.id === cheapestListingId;
-              const condition = CONDITION[listing.condition];
+              const condition = CONDITION_TAG[listing.condition];
               return (
                 <tr key={listing.id} className={cheapest ? "bg-emerald-50/60 dark:bg-emerald-950/40" : undefined}>
                   <th scope="row" className="px-4 py-3 font-medium">
                     <span className="flex flex-wrap items-center gap-2">
                       {name}
                       {store && needsFictionalLabel(store) && (
-                        <span className={`${tag} border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100`}>
+                        <span className={`${chip} border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100`}>
                           Fictional
                         </span>
                       )}
                       {store?.trust.lowTrust && (
-                        <span className={`${tag} border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100`}>
+                        <span className={`${chip} border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100`}>
                           <svg aria-hidden="true" viewBox="0 0 16 16" className="mr-1 size-3 fill-current">
                             <path d="M8 1 15 14H1L8 1Zm-.75 5v4h1.5V6h-1.5Zm0 5v1.5h1.5V11h-1.5Z" />
                           </svg>
@@ -83,7 +73,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                         </span>
                       )}
                       {cheapest && (
-                        <span className={`${tag} border-emerald-700 bg-emerald-700 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950`}>
+                        <span className={`${chip} border-emerald-700 bg-emerald-700 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950`}>
                           Cheapest
                         </span>
                       )}
@@ -91,7 +81,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                   </th>
                   <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{store?.sellerName ?? "Unknown seller"}</td>
                   <td className="px-4 py-3">
-                    <span className={`${tag} ${condition.className}`}>{condition.label}</span>
+                    <span className={`${chip} ${condition.className}`}>{condition.label}</span>
                   </td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatUsd(listing.price)}</td>
                   <td className="px-4 py-3">

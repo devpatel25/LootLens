@@ -175,7 +175,7 @@ describe("ItemDetailView", () => {
     render(<ItemDetailView comparison={demo()} />);
     expect(screen.getByRole("heading", { level: 1, name: "Adidas Samba OG" })).toBeTruthy();
     expect(screen.getByText("Saved size: 9")).toBeTruthy();
-    expect(screen.getByRole("table")).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Prices for Adidas Samba OG at every store" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Back to wishlist" }).getAttribute("href")).toBe("/wishlist");
   });
 

@@ -87,6 +87,17 @@ describe("GET /api/items/[id]/listings", () => {
     expect(ae(await compare(id)).code).toMatchObject({ code: "WELCOME15" });
   });
 
+  it("bestTrustedDeal skips low-trust stores (Denim: KickSwap is cheapest, Target is the trusted best total)", async () => {
+    const d = await compare(await idOf("Denim jacket"));
+    const byId = (id: string) => d.listings.find((l: { id: string }) => l.id === id);
+    expect(byId(d.bestTrustedDeal.listingId).storeId).toBe("store-target");
+  });
+
+  it("bestTrustedDeal equals bestDeal when the best store is trusted (Samba)", async () => {
+    const d = await compare(await idOf("Adidas Samba OG"));
+    expect(d.bestTrustedDeal).toEqual(d.bestDeal);
+  });
+
   it("zero stock in the size gives null cheapest and null bestDeal", async () => {
     const id = await idOf("Denim jacket");
     await prisma.listing.updateMany({ where: { itemId: id }, data: { stockBySize: { S: 1, M: 0, L: 1 } } });

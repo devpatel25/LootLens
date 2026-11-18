@@ -1998,7 +1998,8 @@
           "cheapestListingId",
           "cheapestTrustedListingId",
           "bestDeals",
-          "bestDeal"
+          "bestDeal",
+          "bestTrustedDeal"
         ],
         "properties": {
           "item": {
@@ -2046,6 +2047,17 @@
               }
             ],
             "description": "Lowest total among listings in stock for the saved size"
+          },
+          "bestTrustedDeal": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BestDeal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lowest total among in-stock listings for the saved size at stores that pass trustFlags, or null"
           }
         }
       },

@@ -90,6 +90,7 @@ describe("contract fixtures", () => {
     expect(keys(comparison)).toEqual([
       "bestDeal",
       "bestDeals",
+      "bestTrustedDeal",
       "cheapestListingId",
       "cheapestTrustedListingId",
       "item",

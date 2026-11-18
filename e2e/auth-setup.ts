@@ -23,6 +23,21 @@ async function main(): Promise<void> {
     httpOnly: true, secure: false, sameSite: "Lax",
   };
   writeFileSync("e2e/.auth/user.json", JSON.stringify({ cookies: [cookie], origins: [] }));
+
+  // A second signed-in user whose settings tests can change without affecting specs that use the demo
+  // shopper in parallel (settings are per user; codes are shared, so this user sees the same codes).
+  const other = await prisma.user.upsert({
+    where: { email: "settings@lootlens.test" },
+    update: {},
+    create: { email: "settings@lootlens.test", name: "Settings Tester" },
+  });
+  await prisma.userSettings.deleteMany({ where: { userId: other.id } });
+  const otherValue = await encode({
+    token: { sub: other.id, email: "settings@lootlens.test", name: "Settings Tester" },
+    secret: process.env.AUTH_SECRET!,
+    salt: name,
+  });
+  writeFileSync("e2e/.auth/settings-user.json", JSON.stringify({ cookies: [{ ...cookie, value: otherValue }], origins: [] }));
   await prisma.$disconnect();
 }
 

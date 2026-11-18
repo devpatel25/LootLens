@@ -1,3 +1,5 @@
+import type { ListingCondition } from "@/lib/types";
+
 /**
  * Shared Tailwind class strings, so a focus or contrast fix is made once. Colour variants are added at the
  * call site (for example a red text colour on a destructive button).
@@ -13,3 +15,13 @@ export const field =
 
 /** Base for text chips and tags; add border, background, and text colours at the call site. */
 export const chip = "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold";
+
+/** Condition chip label and colours, one map for every screen (table, Best Deal card, wishlist card). */
+export const CONDITION_TAG: Record<ListingCondition, { label: string; className: string }> = {
+  new: { label: "New", className: "border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300" },
+  used: { label: "Used", className: "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100" },
+  resale: {
+    label: "Resale",
+    className: "border-violet-300 bg-violet-50 text-violet-900 dark:border-violet-700 dark:bg-violet-950 dark:text-violet-100",
+  },
+};
