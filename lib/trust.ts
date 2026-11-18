@@ -20,6 +20,3 @@ export function trustReasonsSentence(reasons: TrustReason[], opts: { capitalize?
   const text = list.format(reasons.map(trustReasonText));
   return opts.capitalize && text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
 }
-
-/** Kept here too for trust wording callers; the rule lives in lib/storeLabel.ts. */
-export { storeLabel } from "@/lib/storeLabel";

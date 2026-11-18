@@ -89,7 +89,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                       )}
                     </span>
                   </th>
-                  <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{store?.sellerName ?? ""}</td>
+                  <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{store?.sellerName ?? "Unknown seller"}</td>
                   <td className="px-4 py-3">
                     <span className={`${tag} ${condition.className}`}>{condition.label}</span>
                   </td>
@@ -112,7 +112,7 @@ export default function ComparisonTable({ comparison }: { comparison: ItemCompar
                         <span className="text-zinc-700 dark:text-zinc-300">
                           {store.photoReviewCount} {store.photoReviewCount === 1 ? "photo review" : "photo reviews"}
                         </span>
-                        {store.trust.lowTrust && (
+                        {store.trust.lowTrust && store.trust.reasons.length > 0 && (
                           <span className="text-xs text-red-900 dark:text-red-200">
                             {trustReasonsSentence(store.trust.reasons, { capitalize: true })}
                           </span>
