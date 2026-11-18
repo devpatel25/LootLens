@@ -41,7 +41,8 @@ lib/
   authConfig.ts         edge-safe auth config and routeDecision (no Prisma)
   authActions.ts        server actions: signInWithGoogle, signOutAction
   signin.ts             safeCallbackUrl, signInUrl, keepSignInPage, signInErrorMessage (client-safe)
-  paths.ts              isUnder: the one "this path or below" rule (proxy, callbackUrl, nav)
+  paths.ts              isUnder: the one "this path or below" rule (proxy, callbackUrl, nav); itemPagePath
+  format.ts             formatUsd (display only)
   storeLabel.ts         needsFictionalLabel, storeLabel: fictional stores are labelled from store.fictional
   currentUser.ts        requirePageUserId(returnTo): session user id for server pages (else sign-in, keeping returnTo)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser

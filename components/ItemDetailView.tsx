@@ -8,9 +8,9 @@ import type { ItemComparison } from "@/lib/types";
 export default function ItemDetailView({ comparison }: { comparison: ItemComparison }) {
   const { item, listings, stores, cheapestListingId } = comparison;
   const cheapest = listings.find((l) => l.id === cheapestListingId);
-  const storeById = new Map(stores.map((s) => [s.id, s]));
-  const cheapestStore = cheapest && storeById.get(cheapest.storeId);
-  const anyDemo = listings.some((l) => l.source === "demo");
+  const cheapestStore = cheapest && stores.find((s) => s.id === cheapest.storeId);
+  // Demo unless the page really shows live prices: with no listings, nothing here is live (AGENTS.md section 3).
+  const anyDemo = listings.length === 0 || listings.some((l) => l.source === "demo");
 
   return (
     <div className="flex min-w-0 flex-col gap-6">

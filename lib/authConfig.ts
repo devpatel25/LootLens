@@ -28,5 +28,3 @@ export const authConfig = {
   callbacks,
 } satisfies NextAuthConfig;
 
-// Server code also imports signInUrl from here; it lives in lib/signin.ts so client links can use it.
-export { signInUrl } from "@/lib/signin";
