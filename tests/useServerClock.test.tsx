@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useServerClock } from "@/lib/useNow";
 
@@ -28,9 +29,18 @@ describe("useServerClock", () => {
   it("does not trust a large gap: uses the device clock and refreshes once", () => {
     const { result, rerender } = renderHook(({ s }) => useServerClock(s), { initialProps: { s: iso(DEVICE.getTime() - minutes(60)) } });
     expect(result.current.current().getTime()).toBe(DEVICE.getTime());
+    // The screen keeps the page's own time until the refresh lands (or the next tick), so it still matches the
+    // server HTML and a fast device clock cannot hide live codes in the meantime.
+    expect(result.current.now.getTime()).toBe(DEVICE.getTime() - minutes(60));
     expect(router.refresh).toHaveBeenCalledTimes(1);
     rerender({ s: iso(DEVICE.getTime() - minutes(60)) });
     expect(router.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("in StrictMode (effects run twice in dev) still asks once and does not trust the old page's gap", () => {
+    const { result } = renderHook(() => useServerClock(iso(DEVICE.getTime() - minutes(60))), { wrapper: StrictMode });
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+    expect(result.current.current().getTime()).toBe(DEVICE.getTime());
   });
 
   it("trusts the server time that the refresh brings back, even when the device clock is far off", () => {

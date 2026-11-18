@@ -315,6 +315,14 @@ describe("CodesView", () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Mark dead SAMBA40" })));
   });
 
+  it("a failed Mark dead on a code not checked recently returns focus to Mark dead, not to Still works", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(500, { error: { code: "internal", message: "x" } }));
+    view(all(), true);
+    fireEvent.click(screen.getByRole("button", { name: "Mark dead STALE15" }));
+    await screen.findByRole("alert");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Mark dead STALE15" })));
+  });
+
   it("a code with a quote or backslash in it still gets focus back after a failed mark, without crashing", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(json(500, { error: { code: "internal", message: "x" } }));
     const odd = live().map((c) => (c.code === "SAMBA40" ? { ...c, code: 'SAM"BA\\40' } : c));
