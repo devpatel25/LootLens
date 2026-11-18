@@ -1633,14 +1633,16 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 20
+                  "maxLength": 20,
+                  "pattern": "^[^,]*$"
                 }
               },
               "selectedSize": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 20,
-                "description": "Must be one of sizes"
+                "description": "Must be one of sizes. No commas, since the app splits sizes on commas.",
+                "pattern": "^[^,]*$"
               },
               "typicalPrice": {
                 "type": "number",
@@ -1695,14 +1697,16 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 20
+                  "maxLength": 20,
+                  "pattern": "^[^,]*$"
                 }
               },
               "selectedSize": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 20,
-                "description": "Must be one of sizes"
+                "description": "Must be one of sizes. No commas, since the app splits sizes on commas.",
+                "pattern": "^[^,]*$"
               },
               "typicalPrice": {
                 "type": "number",
