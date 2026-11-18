@@ -93,6 +93,19 @@ describe("CodeCard", () => {
     expect(within(c).queryByText(/Ends in/)).toBeNull();
   });
 
+  it("a dead code past its end date cannot be marked alive (it would stamp an ended code as working)", () => {
+    const ended = { ...all().find((c) => c.code === "OLD25")!, expiresAt: "2026-10-01T00:00:00.000Z" };
+    renderCard(ended, "dead");
+    expect(screen.queryByRole("button", { name: "Mark alive OLD25" })).toBeNull();
+  });
+
+  it("a code not checked recently can be confirmed with Still works, or marked dead", () => {
+    const { onMark } = renderCard(all().find((c) => c.code === "STALE15")!, "stale");
+    fireEvent.click(screen.getByRole("button", { name: "Still works STALE15" }));
+    expect(onMark).toHaveBeenCalledWith("live");
+    expect(screen.getByRole("button", { name: "Mark dead STALE15" })).toBeTruthy();
+  });
+
   it("tags stale and expired codes; an expired code cannot be marked", () => {
     renderCard(all().find((c) => c.code === "STALE15")!, "stale");
     expect(within(card("STALE15")).getByText("Not checked recently")).toBeTruthy();
@@ -270,7 +283,10 @@ describe("CodesView", () => {
     // The device thinks it is 20 hours later than the server does.
     vi.useFakeTimers({ now: new Date("2026-10-30T12:00:00.000Z"), toFake: ["Date", "setInterval", "clearInterval"] });
     try {
-      view(live());
+      const { rerender } = view(live());
+      // A 20-hour gap is not trusted until the page has asked the server again; the refresh brings a fresh time.
+      expect(router.refresh).toHaveBeenCalledTimes(1);
+      rerender(<CodesView codes={live()} showDead={false} freshnessHours={24} now="2026-10-29T16:00:01.000Z" />);
       act(() => vi.advanceTimersByTime(60_000));
       expect(listed()).toHaveLength(3);
       expect(within(card("SAMBA40")).getByText("checked 3h ago")).toBeTruthy();
@@ -293,6 +309,16 @@ describe("CodesView", () => {
     fireEvent.click(button);
     await screen.findByRole("alert");
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Mark dead SAMBA40" })));
+  });
+
+  it("a code with a quote or backslash in it still gets focus back after a failed mark, without crashing", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(500, { error: { code: "internal", message: "x" } }));
+    const odd = live().map((c) => (c.code === "SAMBA40" ? { ...c, code: 'SAM"BA\\40' } : c));
+    view(odd);
+    const name = 'Mark dead SAM"BA\\40';
+    fireEvent.click(screen.getByRole("button", { name }));
+    await screen.findByRole("alert");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name })));
   });
 
   it("announces a copy", async () => {
