@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { currentForSize, DEFAULT_LOW_STOCK, evaluateWatch, MAX_LOW_STOCK, MAX_WATCHES_PER_USER } from "@/lib/alerts";
+import { currentForSize, DEFAULT_LOW_STOCK, evaluateWatch, MAX_LOW_STOCK, MAX_WATCHES_PER_USER, targetNotBelow } from "@/lib/alerts";
 import { listingsInclude, toListingsAndStores, toWatch } from "@/lib/dto";
 import { fail, fkName, itemNotFound, ok, parse, requireUserId, route } from "@/lib/http";
 import { Prisma } from "@/lib/generated/prisma/client";
@@ -51,7 +51,7 @@ export const POST = route(async (req: Request) => {
       // After the duplicate check, so a stale tab re-submitting an existing watch gets watch_exists.
       // A target at or above today's price would be met at creation and stay silent until the price rose and
       // fell again, so it is refused here, not only in the form.
-      if (body.targetPrice != null && body.targetPrice >= price) {
+      if (targetNotBelow(body.targetPrice, price)) {
         return fail(400, "target_not_below", "targetPrice: must be below the current cheapest price");
       }
       if ((await tx.watch.count({ where: { userId } })) >= MAX_WATCHES_PER_USER) {

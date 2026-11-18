@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import ItemDetailView from "@/components/ItemDetailView";
 import RefreshButton from "@/components/RefreshButton";
 import WatchPanel from "@/components/WatchPanel";
-import { loadWatchFor } from "@/lib/alertsData";
+import { loadItemWatches } from "@/lib/alertsData";
 import { loadComparison } from "@/lib/comparison";
 import { requirePageUserId } from "@/lib/currentUser";
 import { idParams } from "@/lib/itemSchema";
@@ -17,10 +17,11 @@ export default async function ItemPage({ params }: PageProps<"/items/[id]">) {
   const userId = await requirePageUserId(itemPagePath(raw.id));
   const parsed = idParams.safeParse(raw);
   if (!parsed.success) notFound();
-  const comparison = await loadComparison(parsed.data.id, userId);
+  // Both at once: the watches do not need the comparison, only the item id.
+  const [comparison, watches] = await Promise.all([loadComparison(parsed.data.id, userId), loadItemWatches(userId, parsed.data.id)]);
   if (!comparison) notFound();
   const { item, listings, cheapestListingId } = comparison;
-  const watch = await loadWatchFor(userId, item.id, item.selectedSize);
+  const watch = watches.find((w) => w.size === item.selectedSize) ?? null;
   const cheapestPrice = listings.find((l) => l.id === cheapestListingId)?.price ?? null;
   return (
     <ItemDetailView

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { apiFetch, friendlyMessage } from "@/lib/apiClient";
 import type { FreshnessHours, Settings } from "@/lib/types";
+import { useAnnouncement } from "@/lib/useAnnouncement";
 
 const WINDOWS: FreshnessHours[] = [6, 12, 24, 48, 72];
 
@@ -14,9 +15,7 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
   const [firstOrder, setFirstOrder] = useState(settings.firstOrderEligible);
   const [busy, setBusy] = useState(false);
   const saveRef = useRef<HTMLButtonElement>(null);
-  // seq gives each announcement a fresh node, so saving twice is announced twice.
-  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
-  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
+  const [{ message, seq }, setMessage] = useAnnouncement();
   const [error, setError] = useState<string | null>(null);
 
   async function save(e: FormEvent) {

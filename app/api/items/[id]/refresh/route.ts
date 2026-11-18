@@ -43,6 +43,7 @@ export const POST = route(async (_req: Request, ctx: RouteContext<"/api/items/[i
     throw e;
   }
   const comparison = await loadComparison(item.id, userId);
-  const data: RefreshResult | null = comparison ? { comparison, alertsCreated, listingsChanged, pricesChanged } : null;
-  return data ? ok(data) : itemNotFound();
+  if (!comparison) return itemNotFound();
+  const data: RefreshResult = { comparison, alertsCreated, listingsChanged, pricesChanged };
+  return ok(data);
 });

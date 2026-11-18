@@ -32,6 +32,5 @@ export const POLL_MS = 60_000;
 
 /** Tell the rest of the page that alerts may have changed. */
 export function announceAlertsChanged(unreadCount?: number): void {
-  void unreadCount;
-  window.dispatchEvent(new Event(ALERTS_CHANGED));
+  window.dispatchEvent(new CustomEvent(ALERTS_CHANGED, { detail: unreadCount === undefined ? undefined : { unreadCount } }));
 }

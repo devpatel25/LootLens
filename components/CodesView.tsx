@@ -10,6 +10,7 @@ import { field, smallButton } from "@/components/styles";
 import { CODES_ARE_DEMO, codeState } from "@/lib/codeStatus";
 import type { Code } from "@/lib/types";
 import { useServerClock } from "@/lib/useNow";
+import { useAnnouncement } from "@/lib/useAnnouncement";
 
 export type CodesViewProps = { codes: Code[]; showDead: boolean; freshnessHours: number; now: string };
 
@@ -29,9 +30,7 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
   const [store, setStore] = useState("");
   const [marks, setMarks] = useState<Record<string, Mark>>({});
   const [pending, setPending] = useState<Set<string>>(new Set());
-  // seq gives each announcement a fresh node, so screen readers repeat a message that did not change.
-  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
-  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
+  const [{ message, seq }, setMessage] = useAnnouncement();
   const [error, setError] = useState<string | null>(null);
   const [focusList, setFocusList] = useState(0);
   // After a failed mark, focus goes back to the button that was pressed, so keyboard users do not lose their place.

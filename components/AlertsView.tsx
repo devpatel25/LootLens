@@ -13,6 +13,8 @@ import { alertText, announceAlertsChanged, POLL_MS, watchSummary } from "@/lib/a
 import { ago } from "@/lib/format";
 import type { AlertsResponse } from "@/lib/types";
 import { useNow } from "@/lib/useNow";
+import { useVisiblePoll } from "@/lib/useVisiblePoll";
+import { useAnnouncement } from "@/lib/useAnnouncement";
 
 export type AlertsViewProps = { data: AlertsResponse; watches: WatchWithItem[]; now: string; anyDemo: boolean };
 
@@ -24,28 +26,18 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
   const [busy, setBusy] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<WatchWithItem | null>(null);
   const [opener, setOpener] = useState<HTMLElement | null>(null);
-  // seq gives each announcement a fresh node, so a repeated message is announced again.
-  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
-  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
+  const [{ message, seq }, setMessage] = useAnnouncement();
   const [error, setError] = useState<string | null>(null);
   // From the database count, so the button shows even when the read alerts are older than the 200 loaded.
   const anyRead = data.readCount > 0;
 
+  // Re-read from the server every 60s while the tab is visible, and catch up when it is shown again.
+  useVisiblePoll(() => router.refresh(), POLL_MS);
+  // The nav badge takes its count from this page's data, so it neither re-reads after an action nor polls
+  // on its own while this page is open.
   useEffect(() => {
-    // Skip while the tab is hidden, and catch up as soon as it is shown again.
-    const tick = () => {
-      if (document.visibilityState !== "hidden") router.refresh();
-    };
-    const onVisible = () => {
-      if (document.visibilityState === "visible") router.refresh();
-    };
-    const t = setInterval(tick, POLL_MS);
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [router]);
+    announceAlertsChanged(data.unreadCount);
+  }, [data.unreadCount]);
 
   async function run(key: string, action: () => Promise<string | void>) {
     setBusy(key);
@@ -54,7 +46,6 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
       const done = await action();
       if (done) setMessage(done);
       router.refresh();
-      announceAlertsChanged();
     } catch (e) {
       setError(friendlyMessage(e));
     } finally {
@@ -171,6 +162,7 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
                 <button
                   type="button"
                   className={`${smallButton} text-red-800 dark:text-red-300`}
+                  disabled={busy !== null}
                   aria-label={`Delete watch for ${w.itemName}`}
                   onClick={(e) => {
                     setOpener(e.currentTarget);
@@ -203,7 +195,6 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
           setDeleting(null);
           setMessage(`Deleted the watch for ${name}.`);
           router.refresh();
-          announceAlertsChanged();
         }}
       />
     </div>

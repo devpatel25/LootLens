@@ -20,7 +20,7 @@ export function currentSource(listings: Listing[]): ListingUpdate[] {
  * then raises alerts for the item's active watches. Concurrent refreshes of one item run one after the other,
  * each on the latest state.
  * Dedupe: an alert is created only by the call that flips a watch's cond flag from false to true.
- * Returns how many alerts it created and how many listings changed (price or stock).
+ * Returns how many alerts it created, how many listings changed (price or stock), and how many prices changed.
  */
 export async function applyRefresh(
   itemId: string,
@@ -86,7 +86,7 @@ export async function applyRefresh(
         alertsCreated++;
       }
     }
-    return { alertsCreated, listingsChanged, pricesChanged: 0 };
+    return { alertsCreated, listingsChanged, pricesChanged: changed.length };
   }, { timeout: 15000 });
 }
 

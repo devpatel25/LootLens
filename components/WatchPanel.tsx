@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
-import { DEFAULT_LOW_STOCK, MAX_LOW_STOCK, MAX_WATCHES_PER_USER } from "@/lib/alerts";
+import { DEFAULT_LOW_STOCK, MAX_LOW_STOCK, MAX_WATCHES_PER_USER, targetNotBelow } from "@/lib/alerts";
 import { announceAlertsChanged, watchSummary } from "@/lib/alertText";
 import { formatUsd } from "@/lib/format";
 import { moneySchema } from "@/lib/itemSchema";
 import type { Item, Watch } from "@/lib/types";
+import { useAnnouncement } from "@/lib/useAnnouncement";
 
 export type WatchPanelProps = { item: Item; watch: Watch | null; cheapestPrice: number | null };
 
@@ -26,9 +27,7 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
   const [lowStock, setLowStock] = useState(String(DEFAULT_LOW_STOCK));
   const [errors, setErrors] = useState<{ target?: string; lowStock?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
-  // seq gives each announcement a fresh node, so a repeated message is announced again.
-  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
-  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
+  const [{ message, seq }, setMessage] = useAnnouncement();
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [opener, setOpener] = useState<HTMLElement | null>(null);
@@ -50,7 +49,7 @@ export default function WatchPanel({ item, watch, cheapestPrice }: WatchPanelPro
     if (mode === "target") {
       const n = target.trim() === "" ? Number.NaN : Number(target);
       if (!moneySchema.safeParse(n).success) next.target = "Enter a target price like 49.99.";
-      else if (cheapestPrice !== null && n >= cheapestPrice) next.target = `Pick a target below today's cheapest price, ${formatUsd(cheapestPrice)}.`;
+      else if (cheapestPrice !== null && targetNotBelow(n, cheapestPrice)) next.target = `Pick a target below today's cheapest price, ${formatUsd(cheapestPrice)}.`;
       else targetPrice = n;
     }
     const low = /^\d+$/.test(lowStock.trim()) ? Number(lowStock) : Number.NaN;

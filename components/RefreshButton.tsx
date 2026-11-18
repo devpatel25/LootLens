@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
 import { announceAlertsChanged } from "@/lib/alertText";
 import type { RefreshResult } from "@/lib/types";
+import { useAnnouncement } from "@/lib/useAnnouncement";
 
 function waitText(seconds?: number): string {
   if (!seconds) return "a few minutes";
@@ -17,9 +18,7 @@ function waitText(seconds?: number): string {
 export default function RefreshButton({ itemId }: { itemId: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  // seq gives each announcement a fresh node, so a repeated message is announced again.
-  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
-  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
+  const [{ message, seq }, setMessage] = useAnnouncement();
   const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
@@ -28,9 +27,13 @@ export default function RefreshButton({ itemId }: { itemId: string }) {
     setError(null);
     try {
       // The server counts what this refresh changed, so the message never compares against stale props.
-      const { alertsCreated, listingsChanged } = await apiFetch<RefreshResult>(`/api/items/${itemId}/refresh`, { method: "POST" });
+      const { alertsCreated, listingsChanged, pricesChanged } = await apiFetch<RefreshResult>(`/api/items/${itemId}/refresh`, {
+        method: "POST",
+      });
       const alerts = alertsCreated > 0 ? ` ${alertsCreated} new ${alertsCreated === 1 ? "alert" : "alerts"}.` : "";
-      setMessage(listingsChanged > 0 ? `Prices updated.${alerts}` : alerts ? `Prices checked.${alerts}` : "Prices checked. Nothing changed.");
+      // "Prices updated" only when a price moved; a stock-only change says so (AGENTS.md section 3).
+      const changed = pricesChanged > 0 ? "Prices updated." : listingsChanged > 0 ? "Prices checked. Stock updated." : "Prices checked.";
+      setMessage(changed === "Prices checked." && !alerts ? "Prices checked. Nothing changed." : `${changed}${alerts}`);
       router.refresh();
       announceAlertsChanged();
     } catch (e) {

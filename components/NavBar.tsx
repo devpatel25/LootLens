@@ -67,7 +67,7 @@ export default function NavBar({ pathname }: { pathname: string | null }) {
               <Link
                 href={item.href}
                 aria-current={current ? "page" : undefined}
-                aria-describedby={item.badge && pathname !== null ? "nav-alerts-unread" : undefined}
+                aria-describedby={item.badge && unread > 0 ? "nav-alerts-unread" : undefined}
                 className={[
                   "relative flex flex-col items-center gap-1 px-2 py-2 text-xs font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-700",
                   "md:flex-row md:gap-3 md:rounded-lg md:px-3 md:text-sm",
