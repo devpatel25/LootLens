@@ -76,9 +76,14 @@ export function bestTotal(
 ): BestDeal {
   const { price } = listing;
   const offer = bestCashback(store.cashback);
-  const cashbackOn = (afterCode: number) => (offer ? { ...offer, amount: (afterCode * offer.ratePct) / 100 } : null);
+  const priced = (discount: number) => {
+    const afterCode = price - discount;
+    const cashback = offer ? { ...offer, amount: (afterCode * offer.ratePct) / 100 } : null;
+    return { cashback, total: afterCode - (cashback?.amount ?? 0) };
+  };
   // Pick the applicable code with the lowest total to the cent; the first listed wins a tie.
   let code: BestDeal["code"] = null;
+  let best = priced(0);
   let bestCents = Infinity;
   for (const c of codes) {
     if (
@@ -91,17 +96,15 @@ export function bestTotal(
       continue;
     }
     const discount = Math.min(price, c.type === "pct" ? (price * c.value) / 100 : c.value);
-    const afterCode = price - discount;
-    const totalCents = cents(afterCode - (cashbackOn(afterCode)?.amount ?? 0));
-    if (totalCents < bestCents) {
-      bestCents = totalCents;
+    const candidate = priced(discount);
+    if (cents(candidate.total) < bestCents) {
+      bestCents = cents(candidate.total);
+      best = candidate;
       code = { id: c.id, code: c.code, discount };
     }
   }
-  const afterCode = price - (code?.discount ?? 0);
-  const cashback = cashbackOn(afterCode);
 
-  return { listingId: listing.id, price, code, cashback, total: afterCode - (cashback?.amount ?? 0) };
+  return { listingId: listing.id, price, code, cashback: best.cashback, total: best.total };
 }
 
 /** Lowest total among listings in stock for the size whose store exists. */
