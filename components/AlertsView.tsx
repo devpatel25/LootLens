@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DemoDataBadge from "@/components/DemoDataBadge";
 import EmptyState from "@/components/EmptyState";
@@ -33,9 +33,13 @@ export default function AlertsView({ data, watches, now: serverNow, anyDemo }: A
 
   // Re-read from the server every 60s while the tab is visible, and catch up when it is shown again.
   useVisiblePoll(() => router.refresh(), POLL_MS);
-  // The nav badge takes its count from this page's data, so it neither re-reads after an action nor polls
-  // on its own while this page is open.
+  // When this page's data brings a new unread count (after an action or a poll), the nav badge takes it from
+  // here instead of re-reading. Nothing is sent on mount or for the same count: a page that Next keeps alive
+  // and shows again re-runs this effect with its old data, and must not send that old count.
+  const sentCount = useRef(data.unreadCount);
   useEffect(() => {
+    if (data.unreadCount === sentCount.current) return;
+    sentCount.current = data.unreadCount;
     announceAlertsChanged(data.unreadCount);
   }, [data.unreadCount]);
 

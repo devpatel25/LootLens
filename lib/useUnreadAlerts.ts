@@ -9,8 +9,9 @@ import { useVisiblePoll } from "@/lib/useVisiblePoll";
 /**
  * Unread alert count for the nav badge. Reads GET /api/alerts/unread (count only) on mount, every 60s while
  * the tab is visible, and on ALERTS_CHANGED. An ALERTS_CHANGED that carries the count (the Alerts page sends
- * its own) is used as it is, and the next poll is skipped, since that page already polls. A 401 here does not
- * leave the page: it is a background call.
+ * one when its data brings a new count) is used as it is, and the next poll is skipped, since that count is
+ * fresh. Only one poll is skipped, so a change made elsewhere shows within two poll periods at most. A 401
+ * here does not leave the page: it is a background call.
  */
 export function useUnreadAlerts(enabled: boolean): number {
   const [count, setCount] = useState(0);
