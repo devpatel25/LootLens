@@ -7,6 +7,7 @@ import {
   EMPTY_FORM,
   formValuesFromItem,
   itemPatch,
+  sameSizes,
   sizesFrom,
   toItemBody,
   type ItemFormErrors,
@@ -110,6 +111,16 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetP
     const json = item ? itemPatch(item, values, r.body) : r.body;
     setBusy(true);
     try {
+      // A sizes change replaces the whole list. If another tab changed the sizes since this sheet opened,
+      // saving would remove that tab's size and its watch, so stop and ask for a reload instead.
+      if (item && "sizes" in json) {
+        const now = await apiFetch<Item>(`/api/items/${item.id}`);
+        if (!sameSizes(now.sizes, item.sizes)) {
+          setFormError(friendlyMessage(new ApiClientError("sizes changed", 409, "conflict")));
+          setBusy(false);
+          return;
+        }
+      }
       await apiFetch(item ? `/api/items/${item.id}` : "/api/items", { method: item ? "PATCH" : "POST", json });
       onSaved(r.body.name);
     } catch (err) {

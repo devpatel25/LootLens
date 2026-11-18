@@ -14,7 +14,10 @@ export class ApiClientError extends Error {
 
 type ErrorBody = { error?: { code?: string; message?: string; retryAfterSeconds?: number } };
 
-/** Calls a LootLens API route from the browser. Returns `data` or throws ApiClientError. */
+/**
+ * Calls a LootLens API route from the browser. Returns `data` or throws ApiClientError. On a 401 it also sends
+ * the browser to sign in again, unless `background` is set (polls), so a background call never drops a form.
+ */
 export async function apiFetch<T>(url: string, init: { method?: string; json?: unknown; background?: boolean } = {}): Promise<T> {
   const res = await fetch(url, {
     method: init.method ?? "GET",
@@ -24,7 +27,7 @@ export async function apiFetch<T>(url: string, init: { method?: string; json?: u
   const body: unknown = await res.json().catch(() => undefined);
   if (!res.ok) {
     // The session ended, or its user was removed by a demo reset: sign in again and come back here.
-    if (res.status === 401) signInAgain();
+    if (res.status === 401 && !init.background) signInAgain();
     const e = (body as ErrorBody | undefined)?.error;
     throw new ApiClientError(e?.message ?? `Request failed (${res.status})`, res.status, e?.code ?? "unknown", e?.retryAfterSeconds);
   }

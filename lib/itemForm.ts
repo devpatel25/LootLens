@@ -49,6 +49,7 @@ const BY_CODE: Partial<Record<keyof ItemFormValues, Partial<Record<string, strin
 function priceMessage(raw: string): string | null {
   if (!raw) return MESSAGES.typicalPrice;
   if (/^\d+\.\d{3,}$/.test(raw)) return "Use at most 2 decimal places, like 49.99.";
+  if (/^-\d/.test(raw)) return "Enter a price above $0.";
   if (!/^\d+(\.\d{1,2})?$/.test(raw)) return "Enter numbers only, like 49.99, with no $ or commas.";
   const n = Number(raw);
   if (n <= 0) return "Enter a price above $0.";
@@ -78,6 +79,11 @@ export function formValuesFromItem(item: Item): ItemFormValues {
  */
 export function sizesFrom(values: ItemFormValues, original?: Item): string[] {
   return original && values.sizes === formValuesFromItem(original).sizes ? original.sizes : parseSizes(values.sizes);
+}
+
+/** Same sizes, in any order. */
+export function sameSizes(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((s) => b.includes(s));
 }
 
 /**

@@ -31,8 +31,9 @@ export async function loadWishlist(userId: string): Promise<WishlistItem[]> {
 }
 
 /**
- * True when anything the Wishlist cards show is demo data: a demo price, or a card with no price at all
- * (its "no store has your size" comes from listings that are not live). Same rule as Item Detail.
+ * True when anything the Wishlist cards show may be demo data: a demo price, or a card with no price at all
+ * (its "no store has your size" comes from the listings' stock). Like Item Detail it errs toward the badge:
+ * a card with only live listings, none in the saved size, also counts.
  */
 export function wishlistShowsDemo(items: WishlistItem[]): boolean {
   return items.some((i) => !i.cheapest || i.cheapest.source === "demo");
