@@ -77,13 +77,13 @@ describe("CodeCard", () => {
   it("live code offers Mark dead; dead code offers Mark alive with a Dead tag", () => {
     const { onMark } = renderCard(samba());
     fireEvent.click(screen.getByRole("button", { name: "Mark dead SAMBA40" }));
-    expect(onMark).toHaveBeenCalledWith("dead");
+    expect(onMark).toHaveBeenCalledWith("dead", "Mark dead SAMBA40");
     cleanup();
     const dead = all().find((c) => c.code === "OLD25")!;
     const r = renderCard(dead, "dead");
     expect(within(card("OLD25")).getByText("Dead")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Mark alive OLD25" }));
-    expect(r.onMark).toHaveBeenCalledWith("live");
+    expect(r.onMark).toHaveBeenCalledWith("live", "Mark alive OLD25");
   });
 
   it("a dead code whose end date has passed says Ended, not Ends in", () => {
@@ -102,7 +102,7 @@ describe("CodeCard", () => {
   it("a code not checked recently can be confirmed with Still works, or marked dead", () => {
     const { onMark } = renderCard(all().find((c) => c.code === "STALE15")!, "stale");
     fireEvent.click(screen.getByRole("button", { name: "Still works STALE15" }));
-    expect(onMark).toHaveBeenCalledWith("live");
+    expect(onMark).toHaveBeenCalledWith("live", "Still works STALE15");
     expect(screen.getByRole("button", { name: "Mark dead STALE15" })).toBeTruthy();
   });
 
