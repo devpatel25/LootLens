@@ -9,6 +9,7 @@ import ItemDetailView from "@/components/ItemDetailView";
 import SettingsForm from "@/components/SettingsForm";
 import comparisonFixture from "@/fixtures/comparison.json";
 import codesFixture from "@/fixtures/codes.json";
+import { CONDITION_TAG } from "@/components/styles";
 import type { Code, ItemComparison } from "@/lib/types";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
@@ -123,6 +124,30 @@ describe("BestDealCard", () => {
     expect(within(card()).getByText("Low-trust")).toBeTruthy();
     expect(within(card()).getByText(/no HTTPS, under 20 photo reviews, and rating under 3\.5/)).toBeTruthy();
     expect(within(card()).getByText("Best trusted total of the stores shown: $60.00 at Facebook Marketplace")).toBeTruthy();
+  });
+
+  it("does not claim no trusted stock when the best trusted deal's listing is missing", () => {
+    const c = demo();
+    c.bestDeal = { listingId: "lst-kickswap", price: 118, code: null, cashback: null, total: 118 };
+    c.bestTrustedDeal = { listingId: "lst-gone", price: 60, code: null, cashback: null, total: 60 };
+    render(<BestDealCard comparison={c} />);
+    expect(within(card()).getByText("The best trusted deal could not be shown. Refresh the page to try again.")).toBeTruthy();
+    expect(within(card()).queryByText(/No trusted store shown has size/)).toBeNull();
+  });
+
+  it("ends the low-trust sentence when no reasons are listed", () => {
+    const c = demo();
+    c.bestDeal = { listingId: "lst-kickswap", price: 118, code: null, cashback: null, total: 118 };
+    c.stores = c.stores.map((s) => (s.trust.lowTrust ? { ...s, trust: { lowTrust: true, reasons: [] } } : s));
+    render(<BestDealCard comparison={c} />);
+    expect(within(card()).getByText("This store looks low-trust.")).toBeTruthy();
+  });
+
+  it("uses the same condition chip colours as the comparison table (Resale is violet everywhere)", () => {
+    const c = demo();
+    c.bestDeal = { listingId: "lst-kickswap", price: 118, code: null, cashback: null, total: 118 };
+    render(<BestDealCard comparison={c} />);
+    expect(within(card()).getByText("Resale").className).toContain(CONDITION_TAG.resale.className);
   });
 
   it("says so when no trusted store has the size", () => {

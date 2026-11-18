@@ -29,4 +29,14 @@ describe("loadComparison", () => {
     expect(nows.length).toBeGreaterThan(1);
     expect(nows.every((n) => n instanceof Date && n === nows[0])).toBe(true);
   });
+
+  it("works out each listing's total once, and picks both best deals from those totals", async () => {
+    const userId = (await seed(prisma)).demoUserId;
+    const item = await prisma.item.findFirstOrThrow({ where: { userId, name: "Denim jacket" }, include: { listings: true } });
+    vi.mocked(pricing.bestTotal).mockClear();
+    const c = (await loadComparison(item.id, userId))!;
+    expect(pricing.bestTotal).toHaveBeenCalledTimes(item.listings.length);
+    expect(c.bestDeal?.listingId).toBe(c.listings.find((l) => l.storeId === "store-kickswap")?.id);
+    expect(c.bestTrustedDeal?.listingId).toBe(c.listings.find((l) => l.storeId === "store-target")?.id);
+  });
 });

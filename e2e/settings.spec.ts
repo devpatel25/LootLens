@@ -6,12 +6,19 @@ test.use({ storageState: "e2e/.auth/settings-user.json" });
 
 // Start from the defaults even on a CI retry after a partial save.
 test.beforeEach(async ({ request }) => {
-  await request.patch("/api/settings", { data: { freshnessHours: 24, firstOrderEligible: false } });
+  const reset = await request.patch("/api/settings", { data: { freshnessHours: 24, firstOrderEligible: false } });
+  expect(reset.ok()).toBe(true);
 });
 
 const card = (page: import("@playwright/test").Page, code: string) => page.getByRole("listitem", { name: `Code ${code}` });
 
 test("settings change the freshness window and persist", async ({ page }) => {
+  // SAVE10 was checked 30 hours ago: hidden at the default 24 hours, so the change below is what shows it.
+  await page.goto("/codes");
+  await expect(page.getByText("Codes checked in the last 24 hours that still work.")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Codes" })).toBeVisible();
+  await expect(card(page, "SAVE10")).toHaveCount(0);
+
   await page.goto("/settings");
   await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
   await expect(page.getByRole("radio", { name: "24 hours" })).toBeChecked();

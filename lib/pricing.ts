@@ -132,6 +132,21 @@ export function bestDeal(
   return best?.deal ?? null;
 }
 
+/** Listings whose store exists and is not low-trust (stub for the red step). */
+export function trustedListings(listings: Listing[], stores: Store[]): Listing[] {
+  void stores;
+  return listings;
+}
+
+/** The lowest total among already computed deals (stub for the red step). */
+export function pickBestDeal(deals: BestDeal[], listings: Listing[], stores: Store[], size: string): BestDeal | null {
+  void deals;
+  void listings;
+  void stores;
+  void size;
+  return null;
+}
+
 /** Cheapest listing in stock whose store exists and is not low-trust. */
 export function cheapestTrustedListing(
   listings: Listing[],
