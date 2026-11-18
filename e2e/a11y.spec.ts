@@ -1,21 +1,12 @@
-import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expectNoAxeViolations, itemId } from "./helpers";
 
 // Automated WCAG 2.2 A and AA checks on every signed-in screen, at laptop and phone widths and in dark
 // mode. Each case waits for the screen's real content (not its loading state) before scanning.
 // Manual checks (keyboard order, focus visibility, screen reader wording) are in docs/a11y-audit.md.
-const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-
-async function itemId(request: APIRequestContext, name: string): Promise<string> {
-  const { data } = (await (await request.get("/api/items")).json()) as { data: { id: string; name: string }[] };
-  return data.find((i) => i.name === name)!.id;
-}
-
 async function expectNoViolations(page: Page, ready: Locator) {
   await expect(ready).toBeVisible();
-  const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-  const summary = violations.map((v) => `${v.id} (${v.impact}): ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
-  expect(summary, summary.join("\n")).toEqual([]);
+  await expectNoAxeViolations(page);
 }
 
 const SCREENS: { path: string; ready: (page: Page) => Locator }[] = [
@@ -57,17 +48,30 @@ for (const viewport of [
       await expectNoViolations(page, page.getByText("Enter a name."));
     });
 
+    test.describe("a user with no alerts", () => {
+      // The demo user is shared with specs that create alerts in parallel, so its Alerts screen may or may not
+      // be empty. This user (e2e/auth-setup.ts) never gets alerts or watches, so the empty state is certain.
+      test.use({ storageState: "e2e/.auth/settings-user.json" });
+      test("/alerts in the empty state has no WCAG A/AA violations", async ({ page }) => {
+        await page.goto("/alerts");
+        await expectNoViolations(page, page.getByRole("heading", { name: "No alerts yet" }));
+      });
+    });
+
     test("Alerts with real alerts and a watch has no WCAG A/AA violations", async ({ page, request }) => {
       // A throwaway item, so the simulated drop never changes the seeded items other specs check. One fixed
       // name per viewport: demo listings come from the name, and these were checked to give a price drop
       // (see e2e/watches.spec.ts). The seed clears the demo user's items at the start of every run.
       const name = `A11y watch ${viewport.name}`;
-      const item = (
-        await (await request.post("/api/items", { data: { name, category: "tech", sizes: ["One size"], selectedSize: "One size", typicalPrice: 50 } })).json()
-      ).data;
+      const created = await request.post("/api/items", { data: { name, category: "tech", sizes: ["One size"], selectedSize: "One size", typicalPrice: 50 } });
+      // Fail on the HTTP error itself, not later as a timeout or on item.id in finally.
+      expect(created.status()).toBe(201);
+      const item = (await created.json()).data;
       try {
         expect((await request.post("/api/watches", { data: { itemId: item.id, size: "One size" } })).status()).toBe(201);
-        await request.post("/api/demo/simulate", { data: { itemId: item.id } });
+        const sim = await request.post("/api/demo/simulate", { data: { itemId: item.id } });
+        expect(sim.ok()).toBe(true);
+        expect((await sim.json()).data.alertsCreated).toBeGreaterThanOrEqual(1);
         await page.goto("/alerts");
         await expectNoViolations(page, page.getByRole("region", { name, exact: true }).getByText(/^Price dropped from/));
         await page.goto(`/items/${item.id}`);

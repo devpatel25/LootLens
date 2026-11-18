@@ -1,13 +1,5 @@
-import { expect, test, type APIRequestContext } from "@playwright/test";
-
-async function itemId(request: APIRequestContext, name: string): Promise<string> {
-  const res = await request.get("/api/items");
-  expect(res.ok()).toBeTruthy();
-  const { data } = (await res.json()) as { data: { id: string; name: string }[] };
-  const item = data.find((i) => i.name === name);
-  expect(item, `seeded item ${name}`).toBeTruthy();
-  return item!.id;
-}
+import { expect, test } from "@playwright/test";
+import { itemId } from "./helpers";
 
 test("Item Detail compares every store and marks the cheapest in the saved size", async ({ page, request }) => {
   const id = await itemId(request, "Adidas Samba OG");

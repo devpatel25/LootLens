@@ -1,9 +1,5 @@
-import { expect, test, type APIRequestContext } from "@playwright/test";
-
-async function itemId(request: APIRequestContext, name: string): Promise<string> {
-  const { data } = (await (await request.get("/api/items")).json()) as { data: { id: string; name: string }[] };
-  return data.find((i) => i.name === name)!.id;
-}
+import { expect, test } from "@playwright/test";
+import { itemId } from "./helpers";
 
 test("Best Deal subtracts the best code from the price and shows the total", async ({ page, request }) => {
   await page.goto(`/items/${await itemId(request, "Mechanical keyboard")}`);
