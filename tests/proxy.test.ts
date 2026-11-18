@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { authConfig, routeDecision, signInUrl } from "@/lib/authConfig";
+import { authConfig, routeDecision } from "@/lib/authConfig";
+import { signInUrl } from "@/lib/signin";
 import { isUnder } from "@/lib/paths";
 import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { config } from "@/proxy";
