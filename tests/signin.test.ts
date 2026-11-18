@@ -90,8 +90,10 @@ describe("signInErrorMessage", () => {
     expect(signInErrorMessage("AccessDenied")).toBe("Google sign-in was cancelled or denied. Try again.");
   });
 
-  it("explains a server setup problem without leaking details", () => {
-    expect(signInErrorMessage("Configuration")).toBe("Sign-in is not set up correctly on the server. Try again later.");
+  // Auth.js also reports an expired or replayed sign-in (a missing state cookie) as Configuration, and trying
+  // again fixes that, so the message must not say "try later" only.
+  it("explains a server-side failure without leaking details, and says trying again can work", () => {
+    expect(signInErrorMessage("Configuration")).toBe("Sign-in could not finish on the server. Try again. If it keeps failing, try again later.");
   });
 
   it.each(["__proto__", "constructor", "toString", "hasOwnProperty"])("treats the object key %s as an unknown code", (code) => {

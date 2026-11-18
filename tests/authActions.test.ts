@@ -47,7 +47,8 @@ describe("signInWithGoogle", () => {
     expect(auth.signIn).toHaveBeenCalledWith("google", { redirectTo: "/wishlist" });
   });
 
-  it("returns to the sign-in page with a message when Auth.js fails (for example a missing secret)", async () => {
+  // A safety net: in next-auth beta.32 most failures come back as a redirect to pages.error, not a throw.
+  it("if signIn ever throws an AuthError, returns to the sign-in page with a safe code and the return address", async () => {
     auth.signIn.mockRejectedValue(new MissingSecret("no secret"));
     await expect(signInWithGoogle(form("/items/abc"))).rejects.toThrow("redirect /signin?error=Configuration&callbackUrl=%2Fitems%2Fabc");
   });
