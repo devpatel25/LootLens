@@ -15,7 +15,7 @@ export class ApiClientError extends Error {
 type ErrorBody = { error?: { code?: string; message?: string; retryAfterSeconds?: number } };
 
 /** Calls a LootLens API route from the browser. Returns `data` or throws ApiClientError. */
-export async function apiFetch<T>(url: string, init: { method?: string; json?: unknown } = {}): Promise<T> {
+export async function apiFetch<T>(url: string, init: { method?: string; json?: unknown; background?: boolean } = {}): Promise<T> {
   const res = await fetch(url, {
     method: init.method ?? "GET",
     headers: init.json === undefined ? undefined : { "content-type": "application/json" },

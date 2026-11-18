@@ -169,6 +169,31 @@ describe("WishlistView", () => {
     expect(JSON.parse(String(init?.body))).toEqual({ name: "Samba renamed" });
   });
 
+  it("before saving new sizes, stops if another tab changed the sizes, so its size and watch are not removed", async () => {
+    // GET returns the item as it is now: another tab added size 11.
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { ...samba(), sizes: ["8", "9", "10", "11"] } }));
+    render(<WishlistView items={items()} anyDemo />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Adidas Samba OG" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit item" });
+    fireEvent.change(within(dialog).getByLabelText("Sizes"), { target: { value: "8, 9, 10, 12" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect((await within(dialog).findByRole("alert")).textContent).toBe("This changed somewhere else. Reload and try again.");
+    expect(vi.mocked(fetch).mock.calls.map((c) => c[1]?.method ?? "GET")).toEqual(["GET"]);
+  });
+
+  it("saves new sizes when nobody else changed them", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: samba() })).mockResolvedValueOnce(json(200, { data: {} }));
+    render(<WishlistView items={items()} anyDemo />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Adidas Samba OG" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit item" });
+    fireEvent.change(within(dialog).getByLabelText("Sizes"), { target: { value: "8, 9, 10, 12" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+    const patch = vi.mocked(fetch).mock.calls[1];
+    expect(patch[1]?.method).toBe("PATCH");
+    expect(JSON.parse(String(patch[1]?.body))).toEqual({ sizes: ["8", "9", "10", "12"] });
+  });
+
   it("Delete asks first, then deletes, refreshes, and announces it", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { id: "item-samba" } }));
     render(<WishlistView items={items()} anyDemo />);

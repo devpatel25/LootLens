@@ -20,6 +20,12 @@ describe("apiFetch", () => {
     expect(signInAgain).toHaveBeenCalledTimes(1);
   });
 
+  it("a background call (a poll) does not leave the page on a 401, so a half-filled form is kept", async () => {
+    respond(401, { error: { code: "unauthorized", message: "Sign in required" } });
+    await expect(apiFetch("/api/alerts", { background: true })).rejects.toMatchObject({ status: 401 });
+    expect(signInAgain).not.toHaveBeenCalled();
+  });
+
   it("does not leave the page for other errors", async () => {
     respond(404, { error: { code: "not_found", message: "Item not found" } });
     await expect(apiFetch("/api/items/x")).rejects.toMatchObject({ status: 404 });

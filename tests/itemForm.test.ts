@@ -77,7 +77,7 @@ describe("toItemBody", () => {
     ["12.345", "Use at most 2 decimal places, like 49.99."],
     ["$40", "Enter numbers only, like 49.99, with no $ or commas."],
     ["1,299", "Enter numbers only, like 49.99, with no $ or commas."],
-    ["-5", "Enter numbers only, like 49.99, with no $ or commas."],
+    ["-5", "Enter a price above $0."],
     ["abc", "Enter numbers only, like 49.99, with no $ or commas."],
   ])("explains what is wrong with price %s", (typicalPrice, message) => {
     const r = toItemBody({ ...good, typicalPrice });
