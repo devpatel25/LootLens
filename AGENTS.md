@@ -74,7 +74,7 @@ fixtures/               demo JSON in API shapes, for UI work and tests
 tests/                  Vitest unit + integration (helpers/ for db reset)
 e2e/                    Playwright (a11y.spec.ts: axe WCAG 2.2 A/AA on every screen)
 scripts/smoke.mjs       production smoke test (npm run smoke)
-docs/                   architecture, API, schema, a11y audit, demo script, sprints, retros, reviews
+docs/                   architecture, API, schema, a11y audit, demo script, contributions, sprints, retros, reviews
 ```
 
 Put new code in this map. If the map has to change, update this section in the same PR.
