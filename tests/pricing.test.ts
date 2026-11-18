@@ -178,7 +178,7 @@ describe("bestTotal", () => {
   it("ignores another store's code", () => {
     expect(total([code({ storeId: "other" })]).code).toBeNull();
   });
-  it("picks the biggest discount, first on tie", () => {
+  it("picks the lowest total, first on tie", () => {
     const r = total([
       code({ id: "a", value: 10 }),
       code({ id: "b", type: "flat", value: 30 }),
@@ -186,7 +186,7 @@ describe("bestTotal", () => {
     ]);
     expect(r.code?.id).toBe("b");
   });
-  it("treats discounts equal to the cent as a tie, first wins", () => {
+  it("treats totals equal to the cent as a tie, first wins", () => {
     // 90% of 0.70 is 0.6299999999999999 in floats, the flat code is 0.63.
     const r = bestTotal(
       listing("l", "s1", 0.7),
