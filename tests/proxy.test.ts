@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { routeDecision, signInUrl } from "@/lib/authConfig";
+import { authConfig, routeDecision, signInUrl } from "@/lib/authConfig";
+import { isUnder } from "@/lib/paths";
 import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { config } from "@/proxy";
 
@@ -29,8 +30,28 @@ describe("routeDecision signed out", () => {
 });
 
 describe("routeDecision signed in", () => {
-  it.each(["/wishlist", "/api/items"])("%s -> next", (path) => {
+  it.each(["/wishlist", "/api/items", "/signinx"])("%s -> next", (path) => {
     expect(routeDecision(path, true)).toBe("next");
+  });
+
+  it("sends a signed-in visit to /signin on to its destination", () => {
+    expect(routeDecision("/signin", true)).toBe("leave-signin");
+    expect(routeDecision("/signin/", true)).toBe("leave-signin");
+  });
+});
+
+describe("isUnder (shared path rule)", () => {
+  it("matches the path itself and anything below it, nothing that only starts the same", () => {
+    expect(isUnder("/codes", "/codes")).toBe(true);
+    expect(isUnder("/codes/x", "/codes")).toBe(true);
+    expect(isUnder("/codes-archive", "/codes")).toBe(false);
+    expect(isUnder("/", "/codes")).toBe(false);
+  });
+});
+
+describe("authConfig pages", () => {
+  it("sends Auth.js errors (AccessDenied, Configuration) to our sign-in page, not its built-in error page", () => {
+    expect(authConfig.pages).toEqual({ signIn: "/signin", error: "/signin" });
   });
 });
 

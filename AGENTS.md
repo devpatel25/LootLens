@@ -16,17 +16,19 @@ Next.js 16 differs from older versions in your training data. Before writing Nex
 
 ```
 app/                    routes (server components by default)
-  (auth)/signin/        sign-in page
-  wishlist/             Wishlist home
-  items/[id]/           Item Detail: comparison table, Best Deal, codes, watch panel
-  codes/  alerts/  settings/
+  (auth)/signin/        sign-in page (no shell)
+  (app)/                signed-in screens inside AppShell; layout, loading.tsx, error.tsx
+    wishlist/           Wishlist home (/ redirects here)
+    items/[id]/         Item Detail: comparison table, Best Deal, codes, watch panel
+    codes/  alerts/  settings/
   api-docs/             Swagger UI page for the API spec
   api/                  route handlers = the public API (items, items/[id]/listings, codes,
                         watches, alerts, stores, settings, health, cron, demo)
 proxy.ts                signed-out redirect (pages) and 401 (API)
 types/                  TypeScript type augmentations (next-auth)
 public/openapi.json     API spec (OpenAPI 3.1). Update it when routes change
-components/             UI components (ComparisonTable, CodeCard, WatchPanel, ...)
+components/             UI components (AppShell, AppNav, ComparisonTable, CodeCard, WatchPanel, ...)
+                        shared states: LoadingState, EmptyState, ErrorState, DemoDataBadge
 lib/
   pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
   alerts.ts             pure alert evaluation
@@ -37,6 +39,9 @@ lib/
   db-guard.ts           assertNonProdDb()
   prisma.ts  auth.ts
   authConfig.ts         edge-safe auth config and routeDecision (no Prisma)
+  authActions.ts        server actions: signInWithGoogle, signOutAction
+  signin.ts             safeCallbackUrl, signInUrl, keepSignInPage, signInErrorMessage (client-safe)
+  paths.ts              isUnder: the one "this path or below" rule (proxy, callbackUrl, nav)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
   settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)
@@ -93,6 +98,18 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 - **API contract first.** The backend issue adds the response types to `lib/types.ts` before the matching UI issue starts. UI work builds against `fixtures/` files in exactly those shapes until the route is live, then swaps the fixture for the fetch with no type changes. When a contract type gains a field, update the fixture to the exact shape in the same PR, so UI code never reshapes fixture data.
 - **Money:** prices are numbers in USD. Round only for display, with `Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })`.
 - **Naming:** components `PascalCase.tsx`, one component per file; lib modules `camelCase.ts`; tests `*.test.ts(x)` beside the code or in `tests/`; E2E `e2e/*.spec.ts`.
+
+### Frontend conventions
+
+- **Screens.** A signed-in screen lives in `app/(app)/<name>/page.tsx` and gets the shell from `app/(app)/layout.tsx`. Give it one `<h1>` and `export const metadata = { title }`. Add the screen to `NAV_ITEMS` in `components/NavBar.tsx` only if it is a main tab (`AppNav` only reads the URL and renders `NavBar`).
+- **Session reads.** `cacheComponents` is on, so any server component that calls `auth()` sits inside `<Suspense>` and calls `await connection()` first. Never import `lib/auth` in a client file; pass the data or a server action down as props. Session redirects belong in `routeDecision` (`lib/authConfig.ts`, used by `proxy.ts`), which keeps the return address: signed-out visits go to `/signin?callbackUrl=...`, and signed-in visits to `/signin` go on to that address.
+- **Blocking segments.** `app/(app)/layout.tsx` and `/signin` set `export const instant = false`, so they render on the server before sending. That puts the nav (which reads the URL with `usePathname`) with the current tab marked, and the whole sign-in form, in the first HTML. Anywhere else, a client component that reads the URL sits inside `<Suspense>`, or the build fails on dynamic routes such as `/items/[id]`.
+- **States.** Every data screen shows all four states with the shared components: `loading.tsx` uses `LoadingState`, `error.tsx` uses `ErrorState` with `retry`, an empty list uses `EmptyState` with a next step, and populated data shows `DemoDataBadge` while any of it is demo. Never render a raw error message.
+- **Forms and mutations.** Signed-in screens stream their data behind `<Suspense>`, and streamed content stays hidden until JavaScript runs, so those screens need JavaScript. Their forms and buttons call the matching API route, then `router.refresh()`; do not keep a second copy of server data in client state. The sign-in page is the exception: it is server-rendered and its `<form action>` server action works before JavaScript loads.
+- **Sheets and menus.** Escape closes them and focus goes back to the button that opened them. A menu toggle has `aria-expanded` and `aria-controls`. A sheet is a labelled dialog that keeps focus inside while open.
+- **Styling.** Tailwind only, mobile first, then `md:` for the sidebar layout. Pair every colour with a `dark:` value. Use `emerald-700` and darker for brand and focus rings; check AA contrast for any new colour pair.
+- **Tests.** Query by role and accessible name. Next.js renders an empty `role="alert"` route announcer on every page, so in E2E scope alerts by text. Component tests that use `usePathname` or `useRouter` mock `next/navigation` with `vi.mock`.
+- **E2E files.** `e2e/<feature>.spec.ts` runs signed in as `demo@lootlens.test`; `e2e/<feature>-anon.spec.ts` runs signed out. The test DB is reseeded at the start of every run, and all signed-in specs share one user, so a spec that changes data creates its own records and finds them by name.
 
 ## 3. Data honesty
 
