@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/items/route";
 import { prisma } from "@/lib/prisma";
-import { hasDemoListings, loadWishlist, loadWishlistPage } from "@/lib/wishlist";
+import type { WishlistItem } from "@/lib/types";
+import { hasDemoListings, loadWishlist, wishlistShowsDemo } from "@/lib/wishlist";
 import { seed } from "@/prisma/seed";
 import { signInAs } from "./helpers/auth";
 import { resetDb } from "./helpers/db";
@@ -46,12 +47,18 @@ describe("hasDemoListings", () => {
   });
 });
 
-describe("loadWishlistPage", () => {
-  it("returns the items and whether any listing is demo from one query", async () => {
-    const page = await loadWishlistPage(a);
-    expect(page.items.map((i) => i.name).sort()).toEqual(["Adidas Samba OG", "Denim jacket", "Mechanical keyboard"]);
-    expect(page.anyDemo).toBe(true);
-    await prisma.listing.updateMany({ data: { source: "LIVE" } });
-    expect((await loadWishlistPage(a)).anyDemo).toBe(false);
+describe("wishlistShowsDemo", () => {
+  const card = (cheapest: Partial<NonNullable<WishlistItem["cheapest"]>> | null) =>
+    ({ cheapest: cheapest && { source: "live", ...cheapest } }) as WishlistItem;
+
+  it("is true when a card shows a demo price", () => {
+    expect(wishlistShowsDemo([card({ source: "live" }), card({ source: "demo" })])).toBe(true);
+  });
+  it("is true when a card has no price to show, since nothing on it is live", () => {
+    expect(wishlistShowsDemo([card({ source: "live" }), card(null)])).toBe(true);
+  });
+  it("is false when every card shows a live price, or there are no cards", () => {
+    expect(wishlistShowsDemo([card({ source: "live" })])).toBe(false);
+    expect(wishlistShowsDemo([])).toBe(false);
   });
 });

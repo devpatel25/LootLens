@@ -6,7 +6,7 @@ test("wishlist shows each seeded item with its cheapest store", async ({ page })
   await expect(page.getByText("Demo data")).toBeVisible();
   const samba = page.getByRole("listitem").filter({ has: page.getByRole("link", { name: "Adidas Samba OG" }) });
   await expect(samba.getByText("Size 9")).toBeVisible();
-  await expect(samba.getByText("Cheapest: $60.00 at Facebook Marketplace")).toBeVisible();
+  await expect(samba.getByText("Cheapest of the stores shown: $60.00 at Facebook Marketplace")).toBeVisible();
   await samba.getByRole("link", { name: "Adidas Samba OG" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Adidas Samba OG" })).toBeVisible();
 });
@@ -30,7 +30,7 @@ test("add, edit, and delete an item; changes persist across reloads", async ({ p
   await page.reload();
   const card = page.getByRole("listitem").filter({ has: page.getByRole("link", { name, exact: true }) });
   await expect(card.getByText("Size M")).toBeVisible();
-  await expect(card.getByText(/Cheapest: \$|No store shown has size M in stock/)).toBeVisible();
+  await expect(card.getByText(/Cheapest of the stores shown: \$|No store shown has size M in stock/)).toBeVisible();
 
   await card.getByRole("button", { name: `Edit ${name}` }).click();
   const edit = page.getByRole("dialog", { name: "Edit item" });

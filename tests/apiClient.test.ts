@@ -1,12 +1,31 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiClientError, apiFetch, friendlyMessage } from "@/lib/apiClient";
+import { signInAgain } from "@/lib/signInAgain";
+
+vi.mock("@/lib/signInAgain", () => ({ signInAgain: vi.fn() }));
 
 const respond = (status: number, body: unknown) =>
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })));
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.mocked(signInAgain).mockClear();
+});
 
 describe("apiFetch", () => {
+  // A 401 means the session ended (or its user was removed by a demo reset): go to sign-in with ?reauth.
+  it("on a 401 sends the browser to sign in again, and still throws so the caller stops", async () => {
+    respond(401, { error: { code: "unauthorized", message: "Sign in required" } });
+    await expect(apiFetch("/api/items")).rejects.toMatchObject({ status: 401 });
+    expect(signInAgain).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not leave the page for other errors", async () => {
+    respond(404, { error: { code: "not_found", message: "Item not found" } });
+    await expect(apiFetch("/api/items/x")).rejects.toMatchObject({ status: 404 });
+    expect(signInAgain).not.toHaveBeenCalled();
+  });
+
   it("returns data on success", async () => {
     respond(200, { data: { id: "x" } });
     await expect(apiFetch("/api/items/x")).resolves.toEqual({ id: "x" });
@@ -46,7 +65,7 @@ describe("friendlyMessage", () => {
   });
 
   it("explains an ended session", () => {
-    expect(friendlyMessage(new ApiClientError("Sign in required", 401, "unauthorized"))).toBe("Your session ended. Sign in again.");
+    expect(friendlyMessage(new ApiClientError("Sign in required", 401, "unauthorized"))).toBe("Your session ended. Opening the sign-in page.");
   });
 
   it("gives the wait time when rate limited", () => {

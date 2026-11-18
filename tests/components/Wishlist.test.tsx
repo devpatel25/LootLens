@@ -32,7 +32,7 @@ describe("WishlistCard", () => {
     render(<ul><WishlistCard item={samba()} onEdit={() => {}} onDelete={() => {}} /></ul>);
     expect(screen.getByRole("link", { name: "Adidas Samba OG" }).getAttribute("href")).toBe("/items/item-samba");
     expect(screen.getByText("Size 9")).toBeTruthy();
-    expect(screen.getByText("Cheapest: $60.00 at Facebook Marketplace")).toBeTruthy();
+    expect(screen.getByText("Cheapest of the stores shown: $60.00 at Facebook Marketplace")).toBeTruthy();
   });
 
   it("says when no store has the saved size", () => {
@@ -64,7 +64,7 @@ describe("WishlistCard labels (Dev's review)", () => {
 
   it("labels a low-trust, fictional cheapest store", () => {
     card({ ...base, storeName: "KickSwap", condition: "resale", fictional: true, lowTrust: true });
-    expect(screen.getByText("Cheapest: $60.00 at KickSwap (fictional)")).toBeTruthy();
+    expect(screen.getByText("Cheapest of the stores shown: $60.00 at KickSwap (fictional)")).toBeTruthy();
     expect(screen.getByText("Low-trust")).toBeTruthy();
     expect(screen.getByText("Resale")).toBeTruthy();
   });
@@ -154,6 +154,19 @@ describe("WishlistView", () => {
     expect(value("Sizes")).toBe("8, 9, 10");
     expect(value("Your size")).toBe("9");
     expect(value("Typical price (USD)")).toBe("100");
+  });
+
+  it("Edit sends only the fields that changed, so it cannot undo a change made in another tab", async () => {
+    render(<WishlistView items={items()} anyDemo />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Adidas Samba OG" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit item" });
+    fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Samba renamed" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe("/api/items/item-samba");
+    expect(init?.method).toBe("PATCH");
+    expect(JSON.parse(String(init?.body))).toEqual({ name: "Samba renamed" });
   });
 
   it("Delete asks first, then deletes, refreshes, and announces it", async () => {

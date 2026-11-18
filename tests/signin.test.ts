@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_AFTER_SIGNIN, keepSignInPage, safeCallbackUrl, signInErrorCode, signInErrorMessage, signInUrl } from "@/lib/signin";
+import { DEFAULT_AFTER_SIGNIN, keepSignInPage, reauthUrl, safeCallbackUrl, signInErrorCode, signInErrorMessage, signInUrl } from "@/lib/signin";
 
 describe("safeCallbackUrl", () => {
   it("keeps a same-site path with its query", () => {
@@ -55,6 +55,13 @@ describe("signInUrl", () => {
   });
   it("works without a query", () => {
     expect(signInUrl("/wishlist", "")).toBe("/signin?callbackUrl=%2Fwishlist");
+  });
+});
+
+describe("reauthUrl", () => {
+  it("asks to sign in again and keeps the return address", () => {
+    expect(reauthUrl("/items/1", "?size=9")).toBe("/signin?callbackUrl=%2Fitems%2F1%3Fsize%3D9&reauth=1");
+    expect(keepSignInPage(new URL(reauthUrl("/codes", ""), "http://x").searchParams)).toBe(true);
   });
 });
 

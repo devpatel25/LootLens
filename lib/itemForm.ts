@@ -55,8 +55,19 @@ export function formValuesFromItem(item: Item): ItemFormValues {
   };
 }
 
+/** The fields to PATCH: only those whose form text changed since the sheet opened (stub for the red step). */
+export function itemPatch(original: Item, values: ItemFormValues, body: ItemBody): Partial<ItemBody> {
+  void original;
+  void values;
+  return body;
+}
+
 /** Validates with the same zod schema the API uses, and maps problems to one plain message per field. */
-export function toItemBody(values: ItemFormValues): { ok: true; body: ItemBody } | { ok: false; errors: ItemFormErrors } {
+export function toItemBody(
+  values: ItemFormValues,
+  original?: Item,
+): { ok: true; body: ItemBody } | { ok: false; errors: ItemFormErrors } {
+  void original;
   const price = values.typicalPrice.trim();
   const body: ItemBody = {
     name: values.name.trim(),
