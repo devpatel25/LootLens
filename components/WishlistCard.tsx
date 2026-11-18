@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { smallButton } from "@/components/styles";
 import type { MouseEvent } from "react";
 import { formatUsd } from "@/lib/format";
 import { CATEGORIES } from "@/lib/itemForm";
@@ -6,8 +7,6 @@ import { storeLabel } from "@/lib/storeLabel";
 import type { WishlistItem } from "@/lib/types";
 
 const tag = "rounded-full border px-2 py-0.5 text-xs font-semibold";
-const button =
-  "rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 dark:border-zinc-600 dark:hover:bg-zinc-800";
 
 type Handler = (e: MouseEvent<HTMLButtonElement>) => void;
 
@@ -53,10 +52,10 @@ export default function WishlistCard({ item, onEdit, onDelete }: { item: Wishlis
         <p className="text-sm font-medium text-amber-900 dark:text-amber-200">No store shown has size {item.selectedSize} in stock</p>
       )}
       <div className="mt-auto flex gap-2">
-        <button type="button" onClick={onEdit} aria-label={`Edit ${item.name}`} className={button}>
+        <button type="button" onClick={onEdit} aria-label={`Edit ${item.name}`} className={smallButton}>
           Edit
         </button>
-        <button type="button" onClick={onDelete} aria-label={`Delete ${item.name}`} className={`${button} text-red-800 dark:text-red-300`}>
+        <button type="button" onClick={onDelete} aria-label={`Delete ${item.name}`} className={`${smallButton} text-red-800 dark:text-red-300`}>
           Delete
         </button>
       </div>
