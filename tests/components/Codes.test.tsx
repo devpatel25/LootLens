@@ -118,6 +118,10 @@ describe("CodeCard", () => {
 });
 
 describe("CodesView", () => {
+  // The device clock agrees with the fixture's server time, as it does in a real visit. A big gap makes the
+  // view refresh once (tested in tests/useServerClock.test.tsx), which would add to the refresh counts here.
+  beforeEach(() => vi.useFakeTimers({ now: new Date(NOW), toFake: ["Date"] }));
+  afterEach(() => vi.useRealTimers());
   const view = (codes: Code[], showDead = false) =>
     render(<CodesView codes={codes} showDead={showDead} freshnessHours={24} now={NOW} />);
   // "Dead" as a whole word: getByText("Dead") alone would not match DEADDEAL, but keep it explicit.
