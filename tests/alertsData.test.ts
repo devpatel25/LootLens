@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET as ALERTS } from "@/app/api/alerts/route";
 import { GET as WATCHES } from "@/app/api/watches/route";
-import { loadAlerts, loadWatchFor, loadWatches } from "@/lib/alertsData";
+import { loadAlerts, loadItemWatches, loadWatches } from "@/lib/alertsData";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { signInAs } from "./helpers/auth";
@@ -52,9 +52,9 @@ describe("loadWatches", () => {
     expect(await loadWatches(b)).toEqual([]);
   });
 
-  it("loadWatchFor finds the watch for an item and size, and nothing for another user", async () => {
-    expect((await loadWatchFor(a, itemId, "One size"))?.size).toBe("One size");
-    expect(await loadWatchFor(a, itemId, "XL")).toBeNull();
-    expect(await loadWatchFor(b, itemId, "One size")).toBeNull();
+  // The Item page reads these at the same time as the comparison, then picks the saved size's watch.
+  it("loadItemWatches lists the item's watches, and nothing for another user", async () => {
+    expect((await loadItemWatches(a, itemId)).map((w) => w.size)).toEqual(["One size"]);
+    expect(await loadItemWatches(b, itemId)).toEqual([]);
   });
 });

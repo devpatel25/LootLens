@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PATCH } from "@/app/api/alerts/[id]/route";
 import { POST as CLEAR } from "@/app/api/alerts/clear/route";
 import { GET } from "@/app/api/alerts/route";
+import { GET as UNREAD } from "@/app/api/alerts/unread/route";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { ctx, req } from "../helpers/api";
@@ -56,6 +57,22 @@ describe("GET /api/alerts", () => {
       id: expect.any(String), watchId: null, itemId: samba, itemName: "Adidas Samba OG", size: "9", kind: "price_drop",
       detail: { from: 60, to: 50 }, read: true, createdAt: "2026-10-03T10:00:00.000Z",
     });
+  });
+});
+
+describe("GET /api/alerts/unread", () => {
+  it("401 without a session", async () => {
+    signInAs(null);
+    expect((await UNREAD()).status).toBe(401);
+  });
+
+  it("counts only the user's unread alerts", async () => {
+    await mk(a, samba, false, "2026-10-29T10:00:00Z");
+    await mk(a, jacket, false, "2026-10-29T11:00:00Z");
+    await mk(a, samba, true, "2026-10-29T12:00:00Z");
+    const bItem = (await prisma.item.create({ data: { userId: b, name: "B item", category: "shoes", sizes: ["9"], selectedSize: "9", typicalPrice: 10 } })).id;
+    await mk(b, bItem, false, "2026-10-29T13:00:00Z");
+    expect((await (await UNREAD()).json()).data).toEqual({ unreadCount: 2 });
   });
 });
 

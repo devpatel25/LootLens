@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import AlertsBadge from "@/components/AlertsBadge";
+import { useUnreadAlerts } from "@/lib/useUnreadAlerts";
 import type { ReactNode } from "react";
 import { isUnder } from "@/lib/paths";
 
@@ -48,6 +51,8 @@ export function isCurrent(pathname: string, item: Pick<NavItem, "href" | "also">
 
 /** The Main nav. `pathname` null renders it with nothing marked current. */
 export default function NavBar({ pathname }: { pathname: string | null }) {
+  // Not in the Suspense fallback (pathname null), so only one nav ever polls.
+  const unread = useUnreadAlerts(pathname !== null);
   return (
 
     <nav
@@ -75,8 +80,7 @@ export default function NavBar({ pathname }: { pathname: string | null }) {
                   {item.icon}
                 </svg>
                 <span>{item.label}</span>
-                {/* Not in the Suspense fallback (pathname null), so only one badge ever polls. */}
-                {item.badge && pathname !== null && <AlertsBadge describedById="nav-alerts-unread" />}
+                {item.badge && <AlertsBadge count={unread} describedById="nav-alerts-unread" />}
               </Link>
             </li>
           );

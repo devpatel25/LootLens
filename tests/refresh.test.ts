@@ -163,6 +163,13 @@ describe("applyRefresh with a watch deleted mid-refresh", () => {
 });
 
 describe("applyRefresh sources", () => {
+  it("counts price changes apart from stock-only changes", async () => {
+    const fbmNow = await prisma.listing.findUniqueOrThrow({ where: { id: fbm } });
+    const stockOnly = await apply(itemId, [{ listingId: fbm, price: Number(fbmNow.price), stockBySize: { "8": 0, "9": 7, "10": 0 } }]);
+    expect(stockOnly).toMatchObject({ listingsChanged: 1, pricesChanged: 0 });
+    expect(await apply(itemId, setPrice(55))).toMatchObject({ listingsChanged: 1, pricesChanged: 1 });
+  });
+
   it("reports how many listings changed (price or stock), and 0 for a no-op", async () => {
     const first = await applyRefresh(itemId, demoSource);
     expect(first.listingsChanged).toBeGreaterThan(0);

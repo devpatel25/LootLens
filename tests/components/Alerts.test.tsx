@@ -13,9 +13,11 @@ import comparisonFixture from "@/fixtures/comparison.json";
 import type { WatchWithItem } from "@/lib/alertsData";
 import { ALERTS_CHANGED, POLL_MS } from "@/lib/alertText";
 import { DEFAULT_LOW_STOCK } from "@/lib/alerts";
+import { signInAgain } from "@/lib/signInAgain";
 import type { AlertsResponse, ItemComparison, Watch } from "@/lib/types";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
+vi.mock("@/lib/signInAgain", () => ({ signInAgain: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router, usePathname: () => "/alerts" }));
 
 const NOW = "2026-10-29T16:00:00.000Z";
@@ -183,7 +185,7 @@ describe("RefreshButton", () => {
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Refreshing…" }).disabled).toBe(true);
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/items/item-samba/refresh");
     expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("POST");
-    await act(async () => finish(json(200, { data: { comparison: {}, alertsCreated: 1, listingsChanged: 2 } })));
+    await act(async () => finish(json(200, { data: { comparison: {}, alertsCreated: 1, listingsChanged: 2, pricesChanged: 2 } })));
     expect(router.refresh).toHaveBeenCalledTimes(1);
     expect(changed).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("status").textContent).toContain("Prices updated. 1 new alert.");
@@ -194,14 +196,21 @@ describe("RefreshButton", () => {
     [0, "Prices updated."],
     [2, "Prices updated. 2 new alerts."],
   ])("counts %i new alerts", async (n, text) => {
-    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: {}, alertsCreated: n, listingsChanged: 3 } }));
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: {}, alertsCreated: n, listingsChanged: 3, pricesChanged: 3 } }));
     render(<RefreshButton itemId="item-samba" />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain(text));
   });
 
+  it("says only stock changed when no price did, instead of claiming prices were updated", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: {}, alertsCreated: 0, listingsChanged: 2, pricesChanged: 0 } }));
+    render(<RefreshButton itemId="item-samba" />);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Prices checked. Stock updated."));
+  });
+
   it("says nothing changed when the store prices and stock are the same", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: {}, alertsCreated: 0, listingsChanged: 0 } }));
+    vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: { comparison: {}, alertsCreated: 0, listingsChanged: 0, pricesChanged: 0 } }));
     render(<RefreshButton itemId="item-samba" />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Prices checked. Nothing changed."));
@@ -248,17 +257,29 @@ describe("AlertsView", () => {
     expect(within(group("Nike Pegasus 41")).getByText("Out of stock in your size")).toBeTruthy();
   });
 
-  it("Mark read saves, refreshes, and tells the badge", async () => {
+  it("Mark read saves and refreshes the page; the refreshed data then gives the badge its count", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(json(200, { data: {} }));
-    const changed = vi.fn();
-    window.addEventListener(ALERTS_CHANGED, changed);
-    view();
+    const counts: unknown[] = [];
+    const listen = (e: Event) => counts.push((e as CustomEvent).detail?.unreadCount);
+    window.addEventListener(ALERTS_CHANGED, listen);
+    const { rerender } = view();
+    expect(counts).toEqual([3]);
     fireEvent.click(screen.getByRole("button", { name: "Mark read: Price dropped from $84.99 to $60.00" }));
     await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/alerts/alert-1");
     expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({ read: true });
-    expect(changed).toHaveBeenCalled();
-    window.removeEventListener(ALERTS_CHANGED, changed);
+    // No second read of the alerts: the badge waits for the refreshed page data instead.
+    expect(counts).toEqual([3]);
+    rerender(<AlertsView data={{ ...alerts(), unreadCount: 2 }} watches={watches()} now={NOW} anyDemo />);
+    expect(counts).toEqual([3, 2]);
+    window.removeEventListener(ALERTS_CHANGED, listen);
+  });
+
+  it("Delete watch is disabled while another action is saving, like Mark read and Clear read alerts", () => {
+    vi.mocked(fetch).mockReturnValueOnce(new Promise<Response>(() => {}));
+    view();
+    fireEvent.click(screen.getByRole("button", { name: "Mark read: Price dropped from $84.99 to $60.00" }));
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Delete watch for Adidas Samba OG" }).disabled).toBe(true);
   });
 
   it("a read alert offers Mark unread, and Clear read alerts removes them", async () => {
@@ -334,69 +355,83 @@ describe("AlertsView", () => {
 });
 
 describe("AlertsBadge", () => {
-  it("shows the unread count and describes it in words", async () => {
-    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 3 } }));
-    render(<AlertsBadge describedById="badge-desc" />);
-    expect(await screen.findByText("3")).toBeTruthy();
+  it("shows the count and describes it in words", () => {
+    render(<AlertsBadge count={3} describedById="badge-desc" />);
+    expect(screen.getByText("3")).toBeTruthy();
     expect(document.getElementById("badge-desc")?.textContent).toBe("3 unread alerts");
   });
 
-  it("shows nothing at zero or when the request fails", async () => {
-    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 0, readCount: 0 } }));
-    const { container, unmount } = render(<AlertsBadge describedById="badge-desc" />);
-    await waitFor(() => expect(fetch).toHaveBeenCalled());
+  it("shows nothing at zero", () => {
+    const { container } = render(<AlertsBadge count={0} describedById="badge-desc" />);
     expect(container.textContent).toBe("");
-    unmount();
-    vi.mocked(fetch).mockRejectedValue(new TypeError("offline"));
-    const r = render(<AlertsBadge describedById="badge-desc" />);
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-    expect(r.container.textContent).toBe("");
+  });
+});
+
+describe("unread count in the nav", () => {
+  const unread = (n: number) => json(200, { data: { unreadCount: n } });
+
+  it("reads only the count, and keeps the link's name exactly Alerts with the count as its description", async () => {
+    vi.mocked(fetch).mockResolvedValue(unread(3));
+    render(<NavBar pathname="/wishlist" />);
+    expect(await screen.findByRole("link", { name: "Alerts", description: "3 unread alerts" })).toBeTruthy();
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/alerts/unread");
+  });
+
+  it("at zero the Alerts link points at no description, so there is no dangling reference", async () => {
+    vi.mocked(fetch).mockResolvedValue(unread(0));
+    render(<NavBar pathname="/wishlist" />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(screen.getByRole("link", { name: "Alerts" }).getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("the Suspense fallback nav (no pathname yet) does not poll", () => {
+    render(<NavBar pathname={null} />);
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("ignores an older response that arrives after a newer one", async () => {
     let finishOld: (r: Response) => void = () => {};
     vi.mocked(fetch)
       .mockReturnValueOnce(new Promise<Response>((r) => (finishOld = r)))
-      .mockResolvedValueOnce(json(200, { data: { groups: [], unreadCount: 2, readCount: 0 } }));
-    render(<AlertsBadge describedById="badge-desc" />);
-    act(() => {
-      window.dispatchEvent(new Event(ALERTS_CHANGED));
-    });
-    expect(await screen.findByText("2")).toBeTruthy();
-    await act(async () => finishOld(json(200, { data: { groups: [], unreadCount: 3, readCount: 0 } })));
-    expect(screen.getByText("2")).toBeTruthy();
-    expect(screen.queryByText("3")).toBeNull();
-  });
-
-  it("refetches when told alerts changed", async () => {
-    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 1 } }));
-    render(<AlertsBadge describedById="badge-desc" />);
-    await screen.findByText("1");
-    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 4 } }));
-    act(() => {
-      window.dispatchEvent(new Event(ALERTS_CHANGED));
-    });
-    expect(await screen.findByText("4")).toBeTruthy();
-  });
-});
-
-describe("AlertsBadge in the nav", () => {
-  it("keeps the link's name exactly Alerts and puts the count in its description", async () => {
-    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 3 } }));
+      .mockResolvedValueOnce(unread(2));
     render(<NavBar pathname="/wishlist" />);
-    const link = await screen.findByRole("link", { name: "Alerts", description: "3 unread alerts" });
-    expect(link).toBeTruthy();
+    act(() => {
+      window.dispatchEvent(new Event(ALERTS_CHANGED));
+    });
+    expect(await screen.findByRole("link", { name: "Alerts", description: "2 unread alerts" })).toBeTruthy();
+    await act(async () => finishOld(unread(3)));
+    expect(screen.getByRole("link", { name: "Alerts", description: "2 unread alerts" })).toBeTruthy();
   });
 
-  it("the Suspense fallback nav (no pathname yet) does not mount a second badge", () => {
-    render(<NavBar pathname={null} />);
-    expect(fetch).not.toHaveBeenCalled();
+  it("re-reads the count when told alerts changed", async () => {
+    vi.mocked(fetch).mockResolvedValue(unread(1));
+    render(<NavBar pathname="/wishlist" />);
+    await screen.findByRole("link", { name: "Alerts", description: "1 unread alert" });
+    vi.mocked(fetch).mockResolvedValue(unread(4));
+    act(() => {
+      window.dispatchEvent(new Event(ALERTS_CHANGED));
+    });
+    expect(await screen.findByRole("link", { name: "Alerts", description: "4 unread alerts" })).toBeTruthy();
+  });
+
+  it("takes a count sent with the event without reading, and skips its next poll (the Alerts page already polls)", async () => {
+    vi.useFakeTimers({ now: new Date(NOW) });
+    vi.mocked(fetch).mockResolvedValue(unread(1));
+    render(<NavBar pathname="/alerts" />);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await act(async () => vi.advanceTimersByTime(30_000));
+    act(() => {
+      window.dispatchEvent(new CustomEvent(ALERTS_CHANGED, { detail: { unreadCount: 5 } }));
+    });
+    expect(screen.getByRole("link", { name: "Alerts", description: "5 unread alerts" })).toBeTruthy();
+    await act(async () => vi.advanceTimersByTime(30_000));
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it("polls every 60 seconds, skips while the tab is hidden, and stops on unmount", async () => {
     vi.useFakeTimers({ now: new Date(NOW) });
-    vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 1 } }));
-    const { unmount } = render(<AlertsBadge describedById="d" />);
+    vi.mocked(fetch).mockResolvedValue(unread(1));
+    const { unmount } = render(<NavBar pathname="/wishlist" />);
     expect(fetch).toHaveBeenCalledTimes(1);
     await act(async () => vi.advanceTimersByTime(60_000));
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -411,6 +446,13 @@ describe("AlertsBadge in the nav", () => {
     unmount();
     await act(async () => vi.advanceTimersByTime(120_000));
     expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("a poll that gets a 401 does not pull the user to sign-in (background call)", async () => {
+    vi.mocked(fetch).mockResolvedValue(json(401, { error: { code: "unauthorized", message: "Sign in required" } }));
+    render(<NavBar pathname="/wishlist" />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(signInAgain).not.toHaveBeenCalled();
   });
 });
 

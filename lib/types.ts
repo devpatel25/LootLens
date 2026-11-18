@@ -185,7 +185,11 @@ export type AlertsResponse = {
 };
 
 /** POST /api/items/[id]/refresh */
-export type RefreshResult = { comparison: ItemComparison; alertsCreated: number; listingsChanged: number };
+/** listingsChanged counts price or stock changes; pricesChanged counts only listings whose price changed. */
+export type RefreshResult = { comparison: ItemComparison; alertsCreated: number; listingsChanged: number; pricesChanged: number };
+
+/** GET /api/alerts/unread */
+export type UnreadCount = { unreadCount: number };
 
 export type ApiOk<T> = { data: T };
 export type ApiError = {

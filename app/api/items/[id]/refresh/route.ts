@@ -34,14 +34,15 @@ export const POST = route(async (_req: Request, ctx: RouteContext<"/api/items/[i
 
   let alertsCreated: number;
   let listingsChanged: number;
+  let pricesChanged: number;
   try {
-    ({ alertsCreated, listingsChanged } = await applyRefresh(item.id, refreshSource()));
+    ({ alertsCreated, listingsChanged, pricesChanged } = await applyRefresh(item.id, refreshSource()));
   } catch (e) {
     // Give the cooldown slot back so the user can retry.
     await prisma.item.updateMany({ where: { id: item.id, userId }, data: { lastRefreshedAt: item.lastRefreshedAt } });
     throw e;
   }
   const comparison = await loadComparison(item.id, userId);
-  const data: RefreshResult | null = comparison ? { comparison, alertsCreated, listingsChanged } : null;
+  const data: RefreshResult | null = comparison ? { comparison, alertsCreated, listingsChanged, pricesChanged } : null;
   return data ? ok(data) : itemNotFound();
 });

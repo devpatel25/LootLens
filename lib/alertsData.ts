@@ -42,6 +42,13 @@ export async function loadWatches(userId: string): Promise<WatchWithItem[]> {
 }
 
 /** The user's watch on one item and size, or null. */
+/** The user's watches on one item, every size (stub for the red step). */
+export async function loadItemWatches(userId: string, itemId: string): Promise<Watch[]> {
+  void userId;
+  void itemId;
+  return [];
+}
+
 export async function loadWatchFor(userId: string, itemId: string, size: string): Promise<Watch | null> {
   const row = await prisma.watch.findFirst({ where: { userId, itemId, size } });
   return row ? toWatch(row) : null;

@@ -1,6 +1,13 @@
 import { cheapestListing, stockInSize } from "@/lib/pricing";
 import type { AlertKind, Listing, Store } from "@/lib/types";
 
+/** True when a target price is set and is not below the current price (stub for the red step). */
+export function targetNotBelow(targetPrice: number | null | undefined, price: number): boolean {
+  void targetPrice;
+  void price;
+  return false;
+}
+
 export const MAX_WATCHES_PER_USER = 10;
 
 /** Matches the Watch.lowStockAt column default. */
