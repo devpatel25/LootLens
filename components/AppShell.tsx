@@ -27,7 +27,7 @@ export default function AppShell({ userMenu, children }: { userMenu: ReactNode; 
       </header>
       {/* No <Suspense> needed: app/(app)/layout.tsx sets instant = false, so this renders in the first HTML. */}
       <AppNav />
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6 focus:outline-none md:px-8 md:pb-10">
+      <main id="main" tabIndex={-1} className="mx-auto w-full min-w-0 max-w-5xl flex-1 px-4 pb-24 pt-6 focus:outline-none md:px-8 md:pb-10">
         {children}
       </main>
     </div>

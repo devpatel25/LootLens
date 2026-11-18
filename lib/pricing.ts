@@ -20,18 +20,27 @@ const twoDecimals = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, m
 /** Whole cents as the UI shows them (same Intl rounding as the USD display), so totals that look equal compare equal. */
 export const cents = (x: number) => Math.round(Number(twoDecimals.format(x)) * 100);
 
+/** Store name for a listing, from a lookup built once per call (not a find per comparison). */
+function storeNames(stores: Store[]): (l: Listing) => string {
+  const byId = new Map(stores.map((s) => [s.id, s.name]));
+  return (l) => byId.get(l.storeId) ?? "";
+}
+
 /** Tie rule: new condition first, then store name A to Z. Negative when a wins. */
-function tieBreak(a: Listing, b: Listing, stores: Store[]): number {
+function tieBreak(a: Listing, b: Listing, nameOf: (l: Listing) => string): number {
   if ((a.condition === "new") !== (b.condition === "new")) return a.condition === "new" ? -1 : 1;
-  return storeName(stores, a).localeCompare(storeName(stores, b), "en");
+  return nameOf(a).localeCompare(nameOf(b), "en");
 }
 
 /** The lowest-priced listing in stock for the size, or null. Used and resale count. */
 export function cheapestListing(listings: Listing[], stores: Store[], size: string): Listing | null {
+  const nameOf = storeNames(stores);
   let best: Listing | null = null;
   for (const l of listings) {
     if (stockInSize(l, size) <= 0) continue;
-    if (best === null || l.price < best.price || (l.price === best.price && tieBreak(l, best, stores) < 0)) {
+    // Compare in the cents shown, so prices that display the same are a tie (Story 3 tie rule).
+    const diff = best === null ? -1 : cents(l.price) - cents(best.price);
+    if (diff < 0 || (diff === 0 && tieBreak(l, best!, nameOf) < 0)) {
       best = l;
     }
   }
@@ -106,6 +115,7 @@ export function bestDeal(
   settings: Settings,
   now = new Date(),
 ): BestDeal | null {
+  const nameOf = storeNames(stores);
   let best: { deal: BestDeal; listing: Listing } | null = null;
   for (const listing of listings) {
     const store = stores.find((s) => s.id === listing.storeId);
@@ -114,7 +124,7 @@ export function bestDeal(
     if (
       best === null ||
       cents(deal.total) < cents(best.deal.total) ||
-      (cents(deal.total) === cents(best.deal.total) && tieBreak(listing, best.listing, stores) < 0)
+      (cents(deal.total) === cents(best.deal.total) && tieBreak(listing, best.listing, nameOf) < 0)
     ) {
       best = { deal, listing };
     }
@@ -130,4 +140,11 @@ export function cheapestTrustedListing(
 ): Listing | null {
   const trusted = listings.filter((l) => stores.some((s) => s.id === l.storeId && !s.trust.lowTrust));
   return cheapestListing(trusted, stores, size);
+}
+
+/** Display order for the comparison table: price, then the Story 3 tie rule (new first, then store A to Z). */
+export function sortForComparison(listings: Listing[], stores: Store[]): Listing[] {
+  const nameOf = storeNames(stores);
+  // Cents, the same comparison as cheapestListing, so the first in-stock row is the one marked Cheapest.
+  return [...listings].sort((a, b) => cents(a.price) - cents(b.price) || tieBreak(a, b, nameOf));
 }

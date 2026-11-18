@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import NextAuth from "next-auth";
-import { authConfig, routeDecision, signInUrl } from "@/lib/authConfig";
-import { keepSignInPage, safeCallbackUrl } from "@/lib/signin";
+import { authConfig, routeDecision } from "@/lib/authConfig";
+import { keepSignInPage, safeCallbackUrl, signInUrl } from "@/lib/signin";
 
 // Built from authConfig only, so the proxy never loads Prisma.
 const { auth } = NextAuth(authConfig);

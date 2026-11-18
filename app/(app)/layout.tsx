@@ -3,7 +3,7 @@ import AppShell from "@/components/AppShell";
 import SessionUserMenu from "@/components/SessionUserMenu";
 
 // Allowed to block on the server, so the nav (which reads the URL) is in the first HTML with the current
-// tab marked. Page data below still streams behind each page's own <Suspense>.
+// tab marked. Page data below still streams behind each page's loading.tsx or its own <Suspense>.
 export const instant = false;
 
 function UserMenuPlaceholder() {
