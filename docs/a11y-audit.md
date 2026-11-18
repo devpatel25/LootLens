@@ -22,7 +22,8 @@ Each case waits for the screen's real content (for example the Save settings but
 | Item not found | pass | pass | pass |
 | Codes, default list | pass | pass | pass |
 | Codes, Show dead codes | pass | pass | pass |
-| Alerts in the seeded default state (no alerts yet) | pass | pass | pass |
+| Alerts for the shared demo user (other specs may have added alerts by then) | pass | pass | pass |
+| Alerts in the empty state (a second test user who never has alerts or watches) | pass | pass | pass |
 | Alerts with a price-drop alert and an active watch | pass | pass | pass |
 | Settings | pass | pass | pass |
 

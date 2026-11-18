@@ -43,7 +43,7 @@ flowchart LR
 
 ## How a screen is built
 
-1. **The request.** `proxy.ts` verifies the signed session token (a JWT from Auth.js). Signed-out page visits go to `/signin?callbackUrl=...`; signed-out API calls get a JSON 401; a signed-in visit to `/signin` goes on to its `callbackUrl`. A few paths are public: `/signin`, `/api/auth`, `/api/health`, `/api/cron` (it checks its own secret), `/api-docs`, and `/openapi.json`. The rules live in `routeDecision` in `lib/authConfig.ts`.
+1. **The request.** `proxy.ts` verifies the signed session token (a JWT from Auth.js). Signed-out page visits go to `/signin?callbackUrl=...`; signed-out API calls get a JSON 401; a signed-in visit to `/signin` goes on to its `callbackUrl`, unless it carries `?error` (a sign-in message to show) or `?reauth` (sign in again after the session's user was removed). A few paths are public: `/signin`, `/api/auth`, `/api/health`, `/api/cron/refresh` (it checks its own secret), `/api-docs`, and `/openapi.json`. The rules live in `routeDecision` in `lib/authConfig.ts`.
 2. **The page loads its data on the server.** For example, the Wishlist page calls `loadWishlist(userId)`. The user id always comes from the session (`requirePageUserId()` in `lib/currentUser.ts`), never from the URL or the request body.
 3. **The same loader serves the API.** `GET /api/items` calls the same `loadWishlist`. Pages and the API therefore always show the same data in the same shape (the types in `lib/types.ts`).
 4. **Prices and rules come from `lib/`.** The cheapest listing, the best total after codes and cashback, code freshness, trust flags, and alert rules are plain functions in `lib/pricing.ts` and `lib/alerts.ts`. Screens only display their results.
@@ -56,16 +56,16 @@ flowchart LR
 |---|---|---|---|
 | Signs in with Google | `/signin` | `/api/auth/*` (Auth.js) | `signin.ts` keeps the return address on this site |
 | Saves, edits, deletes an item | `/wishlist` | `GET/POST /api/items`, `PATCH/DELETE /api/items/[id]` | `wishlist.ts`, `pricing.ts` (`cheapestListing`) |
-| Compares stores, sees the best deal and trust signs | `/items/[id]` | `GET /api/items/[id]/listings` | `comparison.ts`, `pricing.ts` (`bestDeal`, `trustFlags`, `cheapestTrustedListing`) |
+| Compares stores, sees the best deal and trust signs | `/items/[id]` | `GET /api/items/[id]/listings` | `comparison.ts`, `pricing.ts` (`bestTotal`, `pickBestDeal`, `trustFlags`, `cheapestTrustedListing`) |
 | Finds live promo codes, marks one dead or alive | `/codes` | `GET /api/codes`, `PATCH /api/codes/[id]` | `codes.ts`, `codeStatus.ts`, `pricing.ts` (`isFresh`, `isExpired`) |
 | Sets a price watch, refreshes prices | `/items/[id]` | `POST /api/watches`, `POST /api/items/[id]/refresh` | `alerts.ts` (`evaluateWatch`), `refresh.ts` (5 minute cooldown) |
-| Reads alerts | `/alerts`, badge on the Alerts tab | `GET /api/alerts`, `PATCH /api/alerts/[id]`, `POST /api/alerts/clear`, `DELETE /api/watches/[id]` | `alertsData.ts`, `alertText.ts` |
+| Reads alerts | `/alerts`, badge on the Alerts tab | `GET /api/alerts`, `GET /api/alerts/unread`, `PATCH /api/alerts/[id]`, `POST /api/alerts/clear`, `DELETE /api/watches/[id]` | `alertsData.ts`, `alertText.ts` |
 | Chooses which codes count | `/settings` | `GET/PATCH /api/settings` | `settings.ts` |
 
 ## Background work
 
 - **Daily refresh.** Vercel Cron calls `GET /api/cron/refresh` once a day (`vercel.json`) with `Authorization: Bearer ${CRON_SECRET}`. It refreshes prices and creates alerts for watches that crossed their target or low-stock threshold.
-- **Polling.** The Alerts screen re-reads alerts every 60 seconds, and so does the unread badge on the Alerts tab. Refresh now and mark read tell the badge to update right away.
+- **Polling.** Both poll only while the browser tab is visible, and catch up when it is shown again (`useVisiblePoll`). The Alerts screen re-reads alerts every 60 seconds. The badge on the Alerts tab reads only the unread count (`GET /api/alerts/unread`) on the same schedule, and takes the new count from the Alerts screen's data when that screen has one, so the alerts are not read twice. Refresh now tells the badge to read again at once.
 
 ## Demo data
 
