@@ -28,6 +28,14 @@ describe("sortForComparison", () => {
     expect(sortForComparison(c.listings, c.stores).slice(1, 3).map((l) => l.id)).toEqual(["lst-amazon", "lst-walmart"]);
   });
 
+  // 60.004 and 60 both show as $60.00, so they are a tie: new condition first, as Story 3 says.
+  it("compares prices in the cents shown, so a sub-cent difference is still a tie", () => {
+    const c = demo();
+    at(c, "lst-walmart", { price: 60.004 });
+    expect(sortForComparison(c.listings, c.stores).slice(0, 2).map((l) => l.id)).toEqual(["lst-walmart", "lst-fbm"]);
+    expect(cheapestListing(c.listings, c.stores, c.item.selectedSize)?.id).toBe("lst-walmart");
+  });
+
   it("puts the cheapest in-stock listing first among same-price in-stock rows", () => {
     const c = demo();
     at(c, "lst-walmart", { price: 60 });

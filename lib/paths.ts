@@ -5,3 +5,8 @@
 export function isUnder(pathname: string, base: string): boolean {
   return pathname === base || pathname.startsWith(base + "/");
 }
+
+/** Return address for an Item Detail page (stub for the red step). */
+export function itemPagePath(id: string): string {
+  return `/items/${encodeURIComponent(id)}`;
+}

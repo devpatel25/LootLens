@@ -184,6 +184,13 @@ describe("ItemDetailView", () => {
     expect(screen.getByText("Demo data")).toBeTruthy();
   });
 
+  it("shows the Demo data badge when there are no listings, since nothing on the page is live", () => {
+    const c = demo();
+    c.listings = [];
+    render(<ItemDetailView comparison={c} />);
+    expect(screen.getByText("Demo data")).toBeTruthy();
+  });
+
   it("hides the Demo data badge when every listing is live", () => {
     const c = demo();
     c.listings = c.listings.map((l) => ({ ...l, source: "live" as const }));
