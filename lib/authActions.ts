@@ -11,7 +11,8 @@ export async function signInWithGoogle(formData: FormData): Promise<void> {
   try {
     await signIn("google", { redirectTo });
   } catch (e) {
-    // A provider or setup failure (for example a missing AUTH_GOOGLE_ID) comes back to the sign-in page with
+    // A safety net. In next-auth beta.32 setup and provider failures usually come back as a redirect to
+    // pages.error (/signin?error=...), not a throw. If an AuthError is thrown, return to the sign-in page with
     // a plain message and the same return address. Anything else, including the redirect to Google, goes on.
     if (e instanceof AuthError) {
       redirect(`/signin?error=${signInErrorCode(e.type)}&callbackUrl=${encodeURIComponent(redirectTo)}`);

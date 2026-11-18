@@ -6,8 +6,8 @@ import { safeCallbackUrl, signInErrorMessage } from "@/lib/signin";
 export const metadata: Metadata = { title: "Sign in" };
 
 // Render on the server before sending, with no streaming boundary: the callbackUrl and any error are in the
-// first HTML, so sign-in works before JavaScript loads. Signed-in visitors never reach this page; the proxy
-// sends them on to their callbackUrl (lib/authConfig.ts routeDecision).
+// first HTML, so sign-in works before JavaScript loads. The proxy sends signed-in visitors on to their
+// callbackUrl, unless the visit carries ?error or ?reauth (keepSignInPage in lib/signin.ts).
 export const instant = false;
 
 export default async function SignInPage({ searchParams }: PageProps<"/signin">) {

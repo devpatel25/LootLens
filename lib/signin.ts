@@ -35,7 +35,7 @@ const MESSAGES = new Map<string, string>([
   // Auth.js reports a cancel on Google's screen as a failed OAuth callback.
   ["OAuthCallbackError", "Google sign-in was cancelled or did not finish. Try again."],
   ["MissingCSRF", "The sign-in page expired. Try again."],
-  ["Configuration", "Sign-in is not set up correctly on the server. Try again later."],
+  ["Configuration", "Sign-in could not finish on the server. Try again. If it keeps failing, try again later."],
 ]);
 
 /** The `?error=` code to send for an Auth.js error type: a code we explain, else Configuration (no details). */
