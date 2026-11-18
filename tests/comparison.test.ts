@@ -16,7 +16,7 @@ beforeEach(async () => {
 });
 
 describe("loadComparison", () => {
-  it("uses one instant for bestTotal and bestDeal", async () => {
+  it("uses one instant for every bestTotal, and picks the best deals without recomputing them", async () => {
     const userId = (await seed(prisma)).demoUserId;
     const item = await prisma.item.findFirstOrThrow({ where: { userId } });
     vi.mocked(pricing.bestTotal).mockClear();
@@ -28,6 +28,8 @@ describe("loadComparison", () => {
     ];
     expect(nows.length).toBeGreaterThan(1);
     expect(nows.every((n) => n instanceof Date && n === nows[0])).toBe(true);
+    // Both best deals come from the bestTotal results, so bestDeal (which would recompute them) is not called.
+    expect(pricing.bestDeal).not.toHaveBeenCalled();
   });
 
   it("works out each listing's total once, and picks both best deals from those totals", async () => {

@@ -27,6 +27,21 @@ describe("pickBestDeal", () => {
     expect(pickBestDeal(c.bestDeals, trustedListings(c.listings, c.stores), c.stores, c.item.selectedSize)).toEqual(c.bestTrustedDeal);
   });
 
+  it("on totals that show the same cents, the tie rule picks new condition first, then store A to Z", () => {
+    const c = structuredClone(comparisonFixture) as ItemComparison;
+    const deal = (listingId: string, total: number) => ({ listingId, price: total, code: null, cashback: null, total });
+    // Used Facebook Marketplace is 60.004 (shows $60.00); new Walmart is 60.00: a tie, so new wins.
+    expect(pickBestDeal([deal("lst-fbm", 60.004), deal("lst-walmart", 60)], c.listings, c.stores, c.item.selectedSize)?.listingId).toBe("lst-walmart");
+    // Two new listings at the same total: store name A to Z, so Adidas before Walmart.
+    expect(pickBestDeal([deal("lst-walmart", 60), deal("lst-adidas", 60)], c.listings, c.stores, c.item.selectedSize)?.listingId).toBe("lst-adidas");
+  });
+
+  it("skips a deal whose listing's store is missing", () => {
+    const c = structuredClone(comparisonFixture) as ItemComparison;
+    c.listings = c.listings.map((l) => (l.id === "lst-fbm" ? { ...l, storeId: "store-missing" } : l));
+    expect(pickBestDeal(c.bestDeals, c.listings, c.stores, c.item.selectedSize)?.listingId).not.toBe("lst-fbm");
+  });
+
   it("skips listings out of stock in the size, and returns null when none is left", () => {
     const c = structuredClone(comparisonFixture) as ItemComparison;
     c.listings = c.listings.map((l) => ({ ...l, stockBySize: {} }));
