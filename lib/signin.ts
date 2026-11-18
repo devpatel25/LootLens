@@ -34,6 +34,22 @@ const MESSAGES = new Map<string, string>([
   ["Configuration", "Sign-in is not set up correctly on the server. Try again later."],
 ]);
 
+/** The sign-in page with a return address. Client-safe (no Auth.js imports), so links can use it too. */
+export function signInUrl(pathname: string, search: string): string {
+  return `/signin?callbackUrl=${encodeURIComponent(pathname + search)}`;
+}
+
+/** True when a signed-in visit to /signin should still see the page (stub for the red step). */
+export function keepSignInPage(params: URLSearchParams): boolean {
+  void params;
+  return false;
+}
+
+/** The `?error=` code to send for an Auth.js error type (stub for the red step). */
+export function signInErrorCode(type: string): string {
+  return type;
+}
+
 /** Plain message for an Auth.js `?error=` code, or null when there is no error. */
 export function signInErrorMessage(code: string | string[] | undefined): string | null {
   const value = first(code);

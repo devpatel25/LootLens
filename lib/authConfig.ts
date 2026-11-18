@@ -25,6 +25,5 @@ export const authConfig = {
   callbacks,
 } satisfies NextAuthConfig;
 
-export function signInUrl(pathname: string, search: string): string {
-  return `/signin?callbackUrl=${encodeURIComponent(pathname + search)}`;
-}
+// Server code also imports signInUrl from here; it lives in lib/signin.ts so client links can use it.
+export { signInUrl } from "@/lib/signin";

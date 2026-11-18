@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { routeDecision, signInUrl } from "@/lib/authConfig";
+import { authConfig, routeDecision, signInUrl } from "@/lib/authConfig";
 import { isUnder } from "@/lib/paths";
 import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { config } from "@/proxy";
@@ -46,6 +46,12 @@ describe("isUnder (shared path rule)", () => {
     expect(isUnder("/codes/x", "/codes")).toBe(true);
     expect(isUnder("/codes-archive", "/codes")).toBe(false);
     expect(isUnder("/", "/codes")).toBe(false);
+  });
+});
+
+describe("authConfig pages", () => {
+  it("sends Auth.js errors (AccessDenied, Configuration) to our sign-in page, not its built-in error page", () => {
+    expect(authConfig.pages).toEqual({ signIn: "/signin", error: "/signin" });
   });
 });
 

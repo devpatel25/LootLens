@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_AFTER_SIGNIN, safeCallbackUrl, signInErrorMessage } from "@/lib/signin";
+import { DEFAULT_AFTER_SIGNIN, keepSignInPage, safeCallbackUrl, signInErrorCode, signInErrorMessage, signInUrl } from "@/lib/signin";
 
 describe("safeCallbackUrl", () => {
   it("keeps a same-site path with its query", () => {
@@ -42,6 +42,42 @@ describe("safeCallbackUrl", () => {
     expect(safeCallbackUrl("/signin")).toBe("/wishlist");
     expect(safeCallbackUrl("/signin?callbackUrl=%2Fcodes")).toBe("/wishlist");
   });
+
+  it.each(["/%61pi/items", "/%61%70%69", "/%73ignin", "/sign%69n?callbackUrl=%2Fcodes"])(
+    "checks the decoded path, so the encoded %s is still refused",
+    (raw) => expect(safeCallbackUrl(raw)).toBe("/wishlist"),
+  );
+});
+
+describe("signInUrl", () => {
+  it("keeps the destination", () => {
+    expect(signInUrl("/items/1", "?size=9")).toBe("/signin?callbackUrl=%2Fitems%2F1%3Fsize%3D9");
+  });
+  it("works without a query", () => {
+    expect(signInUrl("/wishlist", "")).toBe("/signin?callbackUrl=%2Fwishlist");
+  });
+});
+
+describe("keepSignInPage", () => {
+  it("shows the page to a signed-in visit that carries an error, so the message is seen", () => {
+    expect(keepSignInPage(new URLSearchParams("error=OAuthCallbackError"))).toBe(true);
+  });
+  it("shows the page when the visit asks to sign in again (a session whose user was removed)", () => {
+    expect(keepSignInPage(new URLSearchParams("reauth=1&callbackUrl=%2Fcodes"))).toBe(true);
+  });
+  it("sends an ordinary signed-in visit on", () => {
+    expect(keepSignInPage(new URLSearchParams("callbackUrl=%2Fcodes"))).toBe(false);
+    expect(keepSignInPage(new URLSearchParams(""))).toBe(false);
+  });
+});
+
+describe("signInErrorCode", () => {
+  it.each(["AccessDenied", "OAuthCallbackError", "MissingCSRF", "Configuration"])("passes the known code %s through", (type) => {
+    expect(signInErrorCode(type)).toBe(type);
+  });
+  it.each(["MissingSecret", "InvalidProvider", "AuthError", "__proto__"])("reports %s as Configuration, without its details", (type) => {
+    expect(signInErrorCode(type)).toBe("Configuration");
+  });
 });
 
 describe("signInErrorMessage", () => {
@@ -62,8 +98,16 @@ describe("signInErrorMessage", () => {
     expect(signInErrorMessage(code)).toBe("Sign-in did not finish. Try again.");
   });
 
+  it("explains a sign-in cancelled at Google (Auth.js reports it as OAuthCallbackError)", () => {
+    expect(signInErrorMessage("OAuthCallbackError")).toBe("Google sign-in was cancelled or did not finish. Try again.");
+  });
+
+  it("explains an expired sign-in form", () => {
+    expect(signInErrorMessage("MissingCSRF")).toBe("The sign-in page expired. Try again.");
+  });
+
   it("gives a generic message for any other code", () => {
-    expect(signInErrorMessage("OAuthCallbackError")).toBe("Sign-in did not finish. Try again.");
+    expect(signInErrorMessage("Verification")).toBe("Sign-in did not finish. Try again.");
     expect(signInErrorMessage(["AccessDenied", "x"])).toBe("Google sign-in was cancelled or denied. Try again.");
   });
 });
