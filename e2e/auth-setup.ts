@@ -32,6 +32,9 @@ async function main(): Promise<void> {
     create: { email: "settings@lootlens.test", name: "Settings Tester" },
   });
   await prisma.userSettings.deleteMany({ where: { userId: other.id } });
+  // This user never has items, so its Alerts screen is always empty (a11y.spec.ts scans that state).
+  // Watches and alerts go with their items.
+  await prisma.item.deleteMany({ where: { userId: other.id } });
   const otherValue = await encode({
     token: { sub: other.id, email: "settings@lootlens.test", name: "Settings Tester" },
     secret: process.env.AUTH_SECRET!,

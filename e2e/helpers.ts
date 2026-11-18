@@ -3,7 +3,9 @@ import { expect, type APIRequestContext, type Page } from "@playwright/test";
 
 /** The seeded item's id, found by name through the API, the same way the screens get it. */
 export async function itemId(request: APIRequestContext, name: string): Promise<string> {
-  const { data } = (await (await request.get("/api/items")).json()) as { data: { id: string; name: string }[] };
+  const res = await request.get("/api/items");
+  expect(res.ok(), `GET /api/items answered ${res.status()}`).toBe(true);
+  const { data } = (await res.json()) as { data: { id: string; name: string }[] };
   const item = data.find((i) => i.name === name);
   if (!item) throw new Error(`No item named "${name}" for this test user`);
   return item.id;
