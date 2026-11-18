@@ -310,7 +310,7 @@ describe("AlertsView", () => {
   });
 
   it("does not re-read while the tab is hidden, and catches up when it is shown", () => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ now: new Date(NOW) });
     view();
     const hidden = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
     act(() => vi.advanceTimersByTime(POLL_MS));
@@ -323,7 +323,7 @@ describe("AlertsView", () => {
   });
 
   it("re-reads alerts from the server every 60 seconds", () => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ now: new Date(NOW) });
     view();
     expect(POLL_MS).toBe(60_000);
     act(() => vi.advanceTimersByTime(60_000));
@@ -394,7 +394,7 @@ describe("AlertsBadge in the nav", () => {
   });
 
   it("polls every 60 seconds, skips while the tab is hidden, and stops on unmount", async () => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ now: new Date(NOW) });
     vi.mocked(fetch).mockResolvedValue(json(200, { data: { groups: [], unreadCount: 1 } }));
     const { unmount } = render(<AlertsBadge describedById="d" />);
     expect(fetch).toHaveBeenCalledTimes(1);
