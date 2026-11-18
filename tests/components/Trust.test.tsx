@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import ComparisonTable from "@/components/ComparisonTable";
 import ItemDetailView from "@/components/ItemDetailView";
 import fixture from "@/fixtures/comparison.json";
+import lowTrustFixture from "@/fixtures/comparison-lowtrust.json";
 import type { ItemComparison } from "@/lib/types";
 
 afterEach(cleanup);
@@ -11,14 +12,9 @@ afterEach(cleanup);
 const demo = () => structuredClone(fixture) as ItemComparison;
 const row = (name: RegExp) => screen.getByRole("row", { name });
 
-/** Same data, but the low-trust KickSwap listing is the cheapest in stock. */
-function cheapestIsLowTrust(): ItemComparison {
-  const c = demo();
-  c.listings = c.listings.map((l) => (l.id === "lst-kickswap" ? { ...l, price: 29 } : l));
-  c.cheapestListingId = "lst-kickswap";
-  c.cheapestTrustedListingId = "lst-fbm";
-  return c;
-}
+/** The contract-checked fixture where the low-trust KickSwap listing ($49) is the cheapest in stock. */
+const cheapestIsLowTrust = () => structuredClone(lowTrustFixture) as ItemComparison;
+const rowsWith = (text: string) => screen.getAllByRole("row").filter((r) => within(r).queryByText(text));
 
 describe("trust signs in the comparison table", () => {
   it("has Seller and Trust columns", () => {
@@ -55,16 +51,56 @@ describe("trust signs in the comparison table", () => {
     const kick = row(/KickSwap/);
     expect(within(kick).getByText("Low-trust")).toBeTruthy();
     expect(within(kick).getByText("No HTTPS, under 20 photo reviews, and rating under 3.5")).toBeTruthy();
-    expect(screen.getAllByText("Low-trust")).toHaveLength(1);
+    expect(rowsWith("Low-trust")).toHaveLength(1);
   });
 });
 
 describe("unknown store (Dev's review)", () => {
-  it("says the trust is unknown instead of looking as safe as a trusted store", () => {
+  const unknownWalmart = () => {
     const c = demo();
     c.listings = c.listings.map((l) => (l.id === "lst-walmart" ? { ...l, storeId: "store-missing" } : l));
-    render(<ComparisonTable comparison={c} />);
+    return c;
+  };
+
+  it("says the trust is unknown instead of looking as safe as a trusted store", () => {
+    render(<ComparisonTable comparison={unknownWalmart()} />);
     expect(within(row(/Unknown store/)).getByText("Trust unknown")).toBeTruthy();
+  });
+
+  it("names the seller as unknown instead of leaving the cell empty (Story 6 needs a seller name)", () => {
+    render(<ComparisonTable comparison={unknownWalmart()} />);
+    expect(within(row(/Unknown store/)).getByRole("cell", { name: "Unknown seller" })).toBeTruthy();
+  });
+
+  it("when the cheapest listing's store is unknown, still shows the price, warns, and names the trusted alternative", () => {
+    const c = cheapestIsLowTrust();
+    c.listings = c.listings.map((l) => (l.id === "lst-kickswap" ? { ...l, storeId: "store-missing" } : l));
+    const { container } = render(<ItemDetailView comparison={c} />);
+    expect(within(container).getByText("Cheapest of the stores shown: $49.00 at Unknown store")).toBeTruthy();
+    const note = screen.getByRole("note", { name: "Trust warning" }).textContent;
+    expect(note).toContain("The cheapest store shown could not be checked, so its trust is unknown.");
+    expect(note).toContain("Cheapest trusted store shown: $60.00 at Facebook Marketplace.");
+  });
+});
+
+describe("low-trust with no reasons listed", () => {
+  const noReasons = () => {
+    const c = cheapestIsLowTrust();
+    c.stores = c.stores.map((s) => (s.trust.lowTrust ? { ...s, trust: { lowTrust: true, reasons: [] } } : s));
+    return c;
+  };
+
+  it("the warning ends the sentence instead of printing an empty list", () => {
+    render(<ItemDetailView comparison={noReasons()} />);
+    const note = screen.getByRole("note", { name: "Trust warning" }).textContent ?? "";
+    expect(note).toContain("The cheapest store shown, KickSwap (fictional demo store), looks low-trust.");
+    expect(note).not.toContain(": .");
+  });
+
+  it("the table row shows no empty reasons line", () => {
+    render(<ComparisonTable comparison={noReasons()} />);
+    const trustCell = within(row(/KickSwap/)).getAllByRole("cell").find((td) => td.textContent?.includes("photo review"))!;
+    expect(trustCell.querySelectorAll("span")).toHaveLength(2);
   });
 });
 
@@ -102,7 +138,7 @@ describe("cheapest trusted alternative", () => {
   it("labels a fictional cheapest store as fictional in the summary line", () => {
     const c = cheapestIsLowTrust();
     c.stores = c.stores.map((s) => (s.fictional ? { ...s, name: "KickSwap" } : s));
-    render(<ItemDetailView comparison={c} />);
-    expect(screen.getByText(/Cheapest of the stores shown: \$29\.00 at KickSwap \(fictional\)/)).toBeTruthy();
+    const { container } = render(<ItemDetailView comparison={c} />);
+    expect(within(container).getByText(/Cheapest of the stores shown: \$49\.00 at KickSwap \(fictional\)/)).toBeTruthy();
   });
 });
