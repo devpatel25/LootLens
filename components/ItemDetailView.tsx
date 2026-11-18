@@ -10,7 +10,7 @@ export default function ItemDetailView({ comparison }: { comparison: ItemCompari
   const cheapest = listings.find((l) => l.id === cheapestListingId);
   const cheapestStore = cheapest && stores.find((s) => s.id === cheapest.storeId);
   // Demo unless the page really shows live prices: with no listings, nothing here is live (AGENTS.md section 3).
-  const anyDemo = listings.length === 0 || listings.some((l) => l.source === "demo");
+  const showDemoBadge = listings.length === 0 || listings.some((l) => l.source === "demo");
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -23,7 +23,7 @@ export default function ItemDetailView({ comparison }: { comparison: ItemCompari
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight">{item.name}</h1>
-          {anyDemo && <DemoDataBadge />}
+          {showDemoBadge && <DemoDataBadge />}
         </div>
         <p className="text-sm text-zinc-600 dark:text-zinc-300">Saved size: {item.selectedSize}</p>
         {cheapest && cheapestStore && (
