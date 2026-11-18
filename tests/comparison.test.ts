@@ -36,7 +36,9 @@ describe("loadComparison", () => {
     vi.mocked(pricing.bestTotal).mockClear();
     const c = (await loadComparison(item.id, userId))!;
     expect(pricing.bestTotal).toHaveBeenCalledTimes(item.listings.length);
-    expect(c.bestDeal?.listingId).toBe(c.listings.find((l) => l.storeId === "store-kickswap")?.id);
-    expect(c.bestTrustedDeal?.listingId).toBe(c.listings.find((l) => l.storeId === "store-target")?.id);
+    // Target's TGT50 takes its total to $0, so it is both the best deal and the best trusted deal.
+    const target = c.listings.find((l) => l.storeId === "store-target")?.id;
+    expect(c.bestDeal?.listingId).toBe(target);
+    expect(c.bestTrustedDeal).toEqual(c.bestDeals.find((d) => d.listingId === target));
   });
 });
