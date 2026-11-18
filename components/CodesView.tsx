@@ -6,7 +6,7 @@ import CodeCard from "@/components/CodeCard";
 import DemoDataBadge from "@/components/DemoDataBadge";
 import EmptyState from "@/components/EmptyState";
 import { apiFetch, friendlyMessage } from "@/lib/apiClient";
-import { smallButton } from "@/components/styles";
+import { field, smallButton } from "@/components/styles";
 import { CODES_ARE_DEMO, codeState } from "@/lib/codeStatus";
 import type { Code } from "@/lib/types";
 import { useServerClock } from "@/lib/useNow";
@@ -18,9 +18,6 @@ export type CodesViewProps = { codes: Code[]; showDead: boolean; freshnessHours:
  * mark was made (`from`). Once a refresh brings a newer check time, from us or anyone else, the server wins.
  */
 type Mark = { status: "live" | "dead"; at: string; from: string };
-
-const input =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-700 dark:border-zinc-600 dark:bg-zinc-800";
 
 export default function CodesView({ codes, showDead, freshnessHours, now: serverNow }: CodesViewProps) {
   const router = useRouter();
@@ -51,8 +48,21 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
 
   useEffect(() => {
     if (!focusCode) return;
-    listRef.current?.querySelector<HTMLButtonElement>(`button[aria-label="Mark dead ${focusCode}"], button[aria-label="Mark alive ${focusCode}"]`)?.focus();
+    // Compare labels as text, not in a CSS selector, so a code with a quote or backslash cannot break it.
+    const labels = [`Mark dead ${focusCode}`, `Mark alive ${focusCode}`, `Still works ${focusCode}`];
+    const buttons = listRef.current ? [...listRef.current.querySelectorAll("button")] : [];
+    buttons.find((b) => labels.includes(b.getAttribute("aria-label") ?? ""))?.focus();
   }, [focusCode]);
+
+  // Drop marks the server has moved past (a newer check time), so the map does not grow with every mark.
+  const [marksFor, setMarksFor] = useState(codes);
+  if (marksFor !== codes) {
+    setMarksFor(codes);
+    setMarks((m) => {
+      const kept = Object.entries(m).filter(([id, mk]) => codes.some((c) => c.id === id && c.lastCheckedAt === mk.from));
+      return kept.length === Object.keys(m).length ? m : Object.fromEntries(kept);
+    });
+  }
 
   const shown = codes.map((c) => {
     const m = marks[c.id];
@@ -128,13 +138,13 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
           <label htmlFor={`${uid}-q`} className="text-sm font-medium">
             Search codes
           </label>
-          <input id={`${uid}-q`} type="search" className={input} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input id={`${uid}-q`} type="search" className={field} value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor={`${uid}-store`} className="text-sm font-medium">
             Store
           </label>
-          <select id={`${uid}-store`} className={input} value={store} onChange={(e) => setStore(e.target.value)}>
+          <select id={`${uid}-store`} className={field} value={store} onChange={(e) => setStore(e.target.value)}>
             <option value="">All stores</option>
             {stores.map((s) => (
               <option key={s} value={s}>

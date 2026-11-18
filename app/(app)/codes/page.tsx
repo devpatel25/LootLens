@@ -11,10 +11,10 @@ export const metadata: Metadata = { title: "Codes" };
 async function Codes({ searchParams }: { searchParams: PageProps<"/codes">["searchParams"] }) {
   const showDead = (await searchParams).showDead === "true";
   const userId = await requirePageUserId(showDead ? "/codes?showDead=true" : "/codes");
-  // Settings are read once here and passed in, so the page and loadCodes agree on the window.
-  const settings = await getSettings(userId);
-  const codes = await loadCodes({ showDead, freshnessHours: settings.freshnessHours });
-  return <CodesView codes={codes} showDead={showDead} freshnessHours={settings.freshnessHours} now={new Date().toISOString()} />;
+  // Settings are read once, at the same time as the codes, so the page and loadCodes agree on the window.
+  const hours = getSettings(userId).then((s) => s.freshnessHours);
+  const [freshnessHours, codes] = await Promise.all([hours, loadCodes({ showDead, freshnessHours: hours })]);
+  return <CodesView codes={codes} showDead={showDead} freshnessHours={freshnessHours} now={new Date().toISOString()} />;
 }
 
 export default function CodesPage({ searchParams }: PageProps<"/codes">) {

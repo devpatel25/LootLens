@@ -14,6 +14,8 @@ export const GET = route(async (req: Request) => {
   const q = parse(query, Object.fromEntries(new URL(req.url).searchParams));
   if (q instanceof Response) return q;
 
-  const { freshnessHours } = await getSettings(userId);
-  return ok(await loadCodes({ showDead: q.showDead === "true", storeId: q.storeId, freshnessHours }));
+  const showDead = q.showDead === "true";
+  // Every code comes back with showDead, so the settings are only read for the live list, in parallel.
+  const freshnessHours = showDead ? 0 : getSettings(userId).then((s) => s.freshnessHours);
+  return ok(await loadCodes({ showDead, storeId: q.storeId, freshnessHours }));
 });

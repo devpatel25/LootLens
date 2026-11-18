@@ -29,7 +29,7 @@ types/                  TypeScript type augmentations (next-auth)
 public/openapi.json     API spec (OpenAPI 3.1). Update it when routes change
 components/             UI components (AppShell, AppNav, ComparisonTable, CodeCard, WatchPanel, ...)
                         shared states: LoadingState, EmptyState, ErrorState, DemoDataBadge
-                        styles.ts: shared class strings (smallButton, chip)
+                        styles.ts: shared class strings (smallButton, field, chip)
 lib/
   pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
   alerts.ts             pure alert evaluation
@@ -52,9 +52,9 @@ lib/
   itemForm.ts           item form values <-> API body, validated with itemSchema
   useModalDialog.ts     <dialog> as a modal: Escape, data-autofocus, focus back to the opener
   format.ts             formatUsd, checkedAgo, endsIn (display only)
-  codes.ts              loadCodes({ showDead, freshnessHours }): uses codeState, so API and browser agree
+  codes.ts              loadCodes({ showDead, freshnessHours (number or promise) }): uses codeState, so API and browser agree
   codeStatus.ts         codeState (live, dead, stale, expired) for client components; CODES_ARE_DEMO
-  useNow.ts             useServerClock: ticks on server time (device clock offset removed), re-anchors on refresh
+  useNow.ts             useServerClock: ticks on server time, re-anchors on refresh; a gap over 5 min is checked with one refresh
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
   settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)

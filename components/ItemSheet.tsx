@@ -15,6 +15,7 @@ import {
 } from "@/lib/itemForm";
 import type { Item } from "@/lib/types";
 import { useModalDialog } from "@/lib/useModalDialog";
+import { field } from "@/components/styles";
 
 export type ItemSheetProps = {
   open: boolean;
@@ -31,8 +32,6 @@ export default function ItemSheet(props: ItemSheetProps) {
   return props.open ? <OpenItemSheet {...props} /> : null;
 }
 
-const input =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-emerald-700 aria-[invalid=true]:border-red-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:aria-[invalid=true]:border-red-400";
 
 function Field({
   id,
@@ -150,10 +149,10 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetP
             </p>
           )}
           <Field id={id("name")} label="Name" error={errors.name}>
-            <input {...aria("name")} className={input} value={values.name} onChange={set("name")} autoComplete="off" data-autofocus maxLength={120} />
+            <input {...aria("name")} className={field} value={values.name} onChange={set("name")} autoComplete="off" data-autofocus maxLength={120} />
           </Field>
           <Field id={id("category")} label="Category" error={errors.category}>
-            <select {...aria("category")} className={input} value={values.category} onChange={set("category")}>
+            <select {...aria("category")} className={field} value={values.category} onChange={set("category")}>
               <option value="">Choose</option>
               {customCategory && <option value={customCategory}>{customCategory}</option>}
               {CATEGORIES.map((c) => (
@@ -164,7 +163,7 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetP
             </select>
           </Field>
           <Field id={id("sizes")} label="Sizes" hint="Separate sizes with commas, for example 8, 9, 10 or S, M, L." error={errors.sizes}>
-            <input {...aria("sizes", true, removedSizes.length > 0 ? `${uid}-removed` : undefined)} className={input} value={values.sizes} onChange={set("sizes")} autoComplete="off" />
+            <input {...aria("sizes", true, removedSizes.length > 0 ? `${uid}-removed` : undefined)} className={field} value={values.sizes} onChange={set("sizes")} autoComplete="off" />
           </Field>
           {removedSizes.length > 0 && (
             <p id={`${uid}-removed`} aria-live="polite" className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
@@ -172,7 +171,7 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetP
             </p>
           )}
           <Field id={id("selectedSize")} label="Your size" error={errors.selectedSize}>
-            <select {...aria("selectedSize")} className={input} value={values.selectedSize} onChange={set("selectedSize")}>
+            <select {...aria("selectedSize")} className={field} value={values.selectedSize} onChange={set("selectedSize")}>
               <option value="">Choose</option>
               {sizes.map((s) => (
                 <option key={s} value={s}>
@@ -182,10 +181,10 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetP
             </select>
           </Field>
           <Field id={id("typicalPrice")} label="Typical price (USD)" error={errors.typicalPrice}>
-            <input {...aria("typicalPrice")} className={input} value={values.typicalPrice} onChange={set("typicalPrice")} inputMode="decimal" autoComplete="off" />
+            <input {...aria("typicalPrice")} className={field} value={values.typicalPrice} onChange={set("typicalPrice")} inputMode="decimal" autoComplete="off" />
           </Field>
           <Field id={id("sourceUrl")} label="Product link (optional)" error={errors.sourceUrl}>
-            <input {...aria("sourceUrl")} className={input} value={values.sourceUrl} onChange={set("sourceUrl")} type="url" inputMode="url" autoComplete="off" />
+            <input {...aria("sourceUrl")} className={field} value={values.sourceUrl} onChange={set("sourceUrl")} type="url" inputMode="url" autoComplete="off" />
           </Field>
         </div>
         <div className="flex justify-end gap-3 border-t border-zinc-200 px-6 py-4 dark:border-zinc-700">

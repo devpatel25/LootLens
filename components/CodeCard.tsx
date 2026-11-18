@@ -1,7 +1,7 @@
 "use client";
 
 import type { CodeState } from "@/lib/codeStatus";
-import { smallButton } from "@/components/styles";
+import { chip, smallButton } from "@/components/styles";
 import { checkedAgo, endsIn, formatUsd } from "@/lib/format";
 import { isExpired } from "@/lib/pricing";
 import type { Code } from "@/lib/types";
@@ -54,7 +54,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300">{code.storeName}</span>
-        {tag && <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${tag.className}`}>{tag.label}</span>}
+        {tag && <span className={`${chip} ${tag.className}`}>{tag.label}</span>}
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-mono text-xl font-bold tracking-wider [overflow-wrap:anywhere]">{code.code}</span>
@@ -72,20 +72,30 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
       </ul>
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-zinc-600 dark:text-zinc-400">{checkedAgo(code.lastCheckedAt, new Date(now))}</span>
+        {/* An ended code cannot be marked alive: that would stamp it as checked and working for everyone. */}
         {state === "dead" ? (
-          <button type="button" disabled={busy} onClick={() => onMark("live")} aria-label={`Mark alive ${code.code}`} className={smallButton}>
-            Mark alive
-          </button>
+          !isExpired(code, new Date(now)) && (
+            <button type="button" disabled={busy} onClick={() => onMark("live")} aria-label={`Mark alive ${code.code}`} className={smallButton}>
+              Mark alive
+            </button>
+          )
         ) : state !== "expired" ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onMark("dead")}
-            aria-label={`Mark dead ${code.code}`}
-            className={`${smallButton} text-red-800 dark:text-red-300`}
-          >
-            Mark dead
-          </button>
+          <span className="flex flex-wrap gap-2">
+            {state === "stale" && (
+              <button type="button" disabled={busy} onClick={() => onMark("live")} aria-label={`Still works ${code.code}`} className={smallButton}>
+                Still works
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onMark("dead")}
+              aria-label={`Mark dead ${code.code}`}
+              className={`${smallButton} text-red-800 dark:text-red-300`}
+            >
+              Mark dead
+            </button>
+          </span>
         ) : null}
       </div>
     </li>
