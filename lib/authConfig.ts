@@ -21,7 +21,9 @@ export const callbacks = {
 export const authConfig = {
   providers: [Google],
   session: { strategy: "jwt" },
-  pages: { signIn: "/signin" },
+  // Auth.js sends sign-in errors to `signIn` and the rest (AccessDenied, Configuration) to `error`. Both go to
+  // our page, which turns the ?error= code into a plain message (lib/signin.ts).
+  pages: { signIn: "/signin", error: "/signin" },
   callbacks,
 } satisfies NextAuthConfig;
 

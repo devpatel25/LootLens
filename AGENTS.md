@@ -40,7 +40,7 @@ lib/
   prisma.ts  auth.ts
   authConfig.ts         edge-safe auth config and routeDecision (no Prisma)
   authActions.ts        server actions: signInWithGoogle, signOutAction
-  signin.ts             safeCallbackUrl, signInErrorMessage
+  signin.ts             safeCallbackUrl, signInUrl, keepSignInPage, signInErrorMessage (client-safe)
   paths.ts              isUnder: the one "this path or below" rule (proxy, callbackUrl, nav)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
@@ -105,7 +105,7 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 - **Session reads.** `cacheComponents` is on, so any server component that calls `auth()` sits inside `<Suspense>` and calls `await connection()` first. Never import `lib/auth` in a client file; pass the data or a server action down as props. Session redirects belong in `routeDecision` (`lib/authConfig.ts`, used by `proxy.ts`), which keeps the return address: signed-out visits go to `/signin?callbackUrl=...`, and signed-in visits to `/signin` go on to that address.
 - **Blocking segments.** `app/(app)/layout.tsx` and `/signin` set `export const instant = false`, so they render on the server before sending. That puts the nav (which reads the URL with `usePathname`) with the current tab marked, and the whole sign-in form, in the first HTML. Anywhere else, a client component that reads the URL sits inside `<Suspense>`, or the build fails on dynamic routes such as `/items/[id]`.
 - **States.** Every data screen shows all four states with the shared components: `loading.tsx` uses `LoadingState`, `error.tsx` uses `ErrorState` with `retry`, an empty list uses `EmptyState` with a next step, and populated data shows `DemoDataBadge` while any of it is demo. Never render a raw error message.
-- **Forms and mutations.** Signed-in screens stream their data behind `<Suspense>`, and streamed content stays hidden until JavaScript runs, so those screens need JavaScript. Their forms and buttons call the matching API route through `lib/apiClient.ts`, then `router.refresh()`; do not keep a second copy of server data in client state. The sign-in page is the exception: it is server-rendered and its `<form action>` server action works before JavaScript loads.
+- **Forms and mutations.** Signed-in screens stream their data behind `<Suspense>`, and streamed content stays hidden until JavaScript runs, so those screens need JavaScript. Their forms and buttons call the matching API route, then `router.refresh()`; do not keep a second copy of server data in client state. The sign-in page is the exception: it is server-rendered and its `<form action>` server action works before JavaScript loads.
 - **Sheets and menus.** Escape closes them and focus goes back to the button that opened them. A menu toggle has `aria-expanded` and `aria-controls`. A sheet is a labelled dialog that keeps focus inside while open.
 - **Styling.** Tailwind only, mobile first, then `md:` for the sidebar layout. Pair every colour with a `dark:` value. Use `emerald-700` and darker for brand and focus rings; check AA contrast for any new colour pair.
 - **Tests.** Query by role and accessible name. Next.js renders an empty `role="alert"` route announcer on every page, so in E2E scope alerts by text. Component tests that use `usePathname` or `useRouter` mock `next/navigation` with `vi.mock`.
