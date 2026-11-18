@@ -86,11 +86,11 @@ Price and stock alerts are the app's stateful core.
 - A daily Vercel Cron job (`vercel.json`, 09:00 UTC, daily only because Vercel Hobby allows nothing more often) calls `GET /api/cron/refresh` with `Authorization: Bearer $CRON_SECRET`. It refreshes every item, evaluates every watch, and marks expired codes dead. Outside demo mode, prices and stock stay as they are until a real data source lands, so the job then only expires codes and re-checks watches.
 - "Refresh now" is `POST /api/items/{id}/refresh`. Each item can refresh once every 5 minutes. A refresh inside that window returns 429 with `retryAfterSeconds`.
 - Alerts are deduped and fire on crossings. A watch remembers whether its price and stock conditions already hold, so an alert is created only when a condition flips from not met to met. A price that stays below target does not alert again.
-- The Alerts screen re-reads alerts every 60 seconds while its tab is visible. The badge on the Alerts tab reads only the unread count (`GET /api/alerts/unread`) on the same schedule, and takes the new count from the Alerts screen when that screen has one. Refresh now on Item Detail updates the badge at once.
+- The Alerts screen re-reads alerts every 60 seconds while the browser tab is visible. The badge on the Alerts tab reads only the unread count (`GET /api/alerts/unread`) on the same schedule, and takes the new count from the Alerts screen when that screen has one. Refresh now on Item Detail updates the badge at once.
 
 ## Demo data
 
-All prices, stock, and codes in this repo are demo data until a real data source is chosen and integrated. The API labels every listing `source: "demo"` or `"live"`. The UI (the frontend issues) will show a "Demo data" badge on screens that use demo data. LootLens never scrapes store sites and never takes payment.
+All prices, stock, and codes in this repo are demo data until a real data source is chosen and integrated. The API labels every listing `source: "demo"` or `"live"`. Every screen that shows demo data carries a "Demo data" badge. LootLens never scrapes store sites and never takes payment.
 
 ## Scripts
 

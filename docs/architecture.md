@@ -64,7 +64,7 @@ flowchart LR
 
 ## Background work
 
-- **Daily refresh.** Vercel Cron calls `GET /api/cron/refresh` once a day (`vercel.json`) with `Authorization: Bearer ${CRON_SECRET}`. It refreshes prices and creates alerts for watches that crossed their target or low-stock threshold.
+- **Daily refresh.** Vercel Cron calls `GET /api/cron/refresh` once a day (`vercel.json`) with `Authorization: Bearer ${CRON_SECRET}`. It marks expired codes dead, re-checks every watch, and creates alerts for watches that crossed their target or low-stock threshold. Prices and stock only change in demo mode (the demo price feed); outside it they stay as they are until a real data source lands.
 - **Polling.** Both poll only while the browser tab is visible, and catch up when it is shown again (`useVisiblePoll`). The Alerts screen re-reads alerts every 60 seconds. The badge on the Alerts tab reads only the unread count (`GET /api/alerts/unread`) on the same schedule, and takes the new count from the Alerts screen's data when that screen has one, so the alerts are not read twice. Refresh now tells the badge to read again at once.
 
 ## Demo data
@@ -78,8 +78,8 @@ flowchart LR
 |---|---|---|
 | Your laptop | Docker PostgreSQL on port 5433 (`npm run db:up`) | `npm run dev` |
 | GitHub Actions CI | PostgreSQL service container | lint, typecheck, unit tests, and Playwright on every PR, with throwaway env values |
-| Vercel preview (planned, #5) | A Neon branch per preview | every pushed branch |
-| Production (planned, #5) | Neon `main` | merges to `main` |
+| Vercel preview | One shared Neon `preview` branch | every pushed branch |
+| Production | Neon `main` | merges to `main` |
 
 Real secrets live in `.env.local` and Vercel environment variables, never in the repo. The full rules are in `AGENTS.md` section 1.
 
