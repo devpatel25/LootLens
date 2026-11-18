@@ -48,6 +48,11 @@ export function signInUrl(pathname: string, search: string): string {
   return `/signin?callbackUrl=${encodeURIComponent(pathname + search)}`;
 }
 
+/** The sign-in page for a session that ended, keeping the return address. ?reauth keeps it on /signin. */
+export function reauthUrl(pathname: string, search: string): string {
+  return `${signInUrl(pathname, search)}&reauth=1`;
+}
+
 /**
  * True when a signed-in visit to /signin should still see the page instead of going on: it carries an
  * error to show, or asks to sign in again (`reauth`), for example when the session's user was removed by

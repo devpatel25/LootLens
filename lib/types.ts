@@ -120,7 +120,16 @@ export type ItemComparison = {
 
 /** GET /api/items */
 export type WishlistItem = Item & {
-  cheapest: { listingId: string; storeName: string; price: number } | null;
+  /** The cheapest in-stock listing for the saved size, with what a card needs to label it honestly. */
+  cheapest: {
+    listingId: string;
+    storeName: string;
+    price: number;
+    condition: ListingCondition;
+    source: DataSource;
+    fictional: boolean;
+    lowTrust: boolean;
+  } | null;
 };
 
 /** GET /api/settings */

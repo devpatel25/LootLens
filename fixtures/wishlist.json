@@ -17,7 +17,11 @@
     "cheapest": {
       "listingId": "lst-fbm",
       "storeName": "Facebook Marketplace",
-      "price": 60
+      "price": 60,
+      "condition": "used",
+      "source": "demo",
+      "fictional": false,
+      "lowTrust": false
     }
   },
   {
