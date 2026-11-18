@@ -304,9 +304,8 @@ describe("ItemSheet", () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith("Samba OG"));
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/items/item-samba");
     expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe("PATCH");
-    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({
-      name: "Samba OG", category: "shoes", sizes: ["8", "9", "10"], selectedSize: "9", typicalPrice: 100, sourceUrl: null,
-    });
+    // Only the changed field, so the PATCH cannot undo a change made in another tab.
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({ name: "Samba OG" });
   });
 
   it("warns before a removed size takes its watches and alerts with it", () => {
