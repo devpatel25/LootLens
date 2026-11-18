@@ -29,9 +29,9 @@ types/                  TypeScript type augmentations (next-auth)
 public/openapi.json     API spec (OpenAPI 3.1). Update it when routes change
 components/             UI components (AppShell, AppNav, ComparisonTable, CodeCard, WatchPanel, ...)
                         shared states: LoadingState, EmptyState, ErrorState, DemoDataBadge
-                        styles.ts: shared class strings (smallButton, field, chip)
+                        styles.ts: shared class strings (smallButton, field, chip, CONDITION_TAG)
 lib/
-  pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
+  pricing.ts            pure price math: cheapestListing, bestTotal, pickBestDeal, trustedListings, isFresh, trustFlags
   alerts.ts             pure alert evaluation
   demoSource.ts         pure demo price feed (ListingUpdate[] from listings)
   refresh.ts            applyRefresh (locked transaction, deduped alerts), refreshItems, refreshSource, currentSource

@@ -115,36 +115,33 @@ export function bestDeal(
   settings: Settings,
   now = new Date(),
 ): BestDeal | null {
+  const deals = listings.flatMap((listing) => {
+    const store = stores.find((s) => s.id === listing.storeId);
+    return store && stockInSize(listing, size) > 0 ? [bestTotal(listing, store, codes, settings, now)] : [];
+  });
+  return pickBestDeal(deals, listings, stores, size);
+}
+
+/** Listings whose store exists and is not low-trust. The one trust filter for listings. */
+export function trustedListings(listings: Listing[], stores: Store[]): Listing[] {
+  return listings.filter((l) => stores.some((s) => s.id === l.storeId && !s.trust.lowTrust));
+}
+
+/**
+ * The lowest total among deals already worked out (one per listing), counting only `listings` that are in
+ * stock for the size and whose store exists. Totals compare in shown cents, then the Story 3 tie rule.
+ */
+export function pickBestDeal(deals: BestDeal[], listings: Listing[], stores: Store[], size: string): BestDeal | null {
+  const byId = new Map(listings.map((l) => [l.id, l]));
   const nameOf = storeNames(stores);
   let best: { deal: BestDeal; listing: Listing } | null = null;
-  for (const listing of listings) {
-    const store = stores.find((s) => s.id === listing.storeId);
-    if (!store || stockInSize(listing, size) <= 0) continue;
-    const deal = bestTotal(listing, store, codes, settings, now);
-    if (
-      best === null ||
-      cents(deal.total) < cents(best.deal.total) ||
-      (cents(deal.total) === cents(best.deal.total) && tieBreak(listing, best.listing, nameOf) < 0)
-    ) {
-      best = { deal, listing };
-    }
+  for (const deal of deals) {
+    const listing = byId.get(deal.listingId);
+    if (!listing || !stores.some((s) => s.id === listing.storeId) || stockInSize(listing, size) <= 0) continue;
+    const diff = best === null ? -1 : cents(deal.total) - cents(best.deal.total);
+    if (diff < 0 || (diff === 0 && tieBreak(listing, best!.listing, nameOf) < 0)) best = { deal, listing };
   }
   return best?.deal ?? null;
-}
-
-/** Listings whose store exists and is not low-trust (stub for the red step). */
-export function trustedListings(listings: Listing[], stores: Store[]): Listing[] {
-  void stores;
-  return listings;
-}
-
-/** The lowest total among already computed deals (stub for the red step). */
-export function pickBestDeal(deals: BestDeal[], listings: Listing[], stores: Store[], size: string): BestDeal | null {
-  void deals;
-  void listings;
-  void stores;
-  void size;
-  return null;
 }
 
 /** Cheapest listing in stock whose store exists and is not low-trust. */
@@ -153,8 +150,7 @@ export function cheapestTrustedListing(
   stores: Store[],
   size: string,
 ): Listing | null {
-  const trusted = listings.filter((l) => stores.some((s) => s.id === l.storeId && !s.trust.lowTrust));
-  return cheapestListing(trusted, stores, size);
+  return cheapestListing(trustedListings(listings, stores), stores, size);
 }
 
 /** Display order for the comparison table: price, then the Story 3 tie rule (new first, then store A to Z). */
@@ -169,7 +165,6 @@ export function sortForComparison(listings: Listing[], stores: Store[]): Listing
  * rounded total. When false, the card explains the one-cent gap. Display-only; the totals stay unrounded.
  */
 export function bestDealAddsUp(deal: BestDeal): boolean {
-  // toPrecision(15) undoes binary noise first (1.665 * 100 is 166.4999...), so this rounds like formatUsd.
-  const cents = (x: number) => Math.round(Number((x * 100).toPrecision(15)));
+  // The shared cents() rounds with the same Intl rule as formatUsd, so this matches what the card shows.
   return cents(deal.price) - cents(deal.code?.discount ?? 0) - cents(deal.cashback?.amount ?? 0) === cents(deal.total);
 }

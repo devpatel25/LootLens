@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { chip } from "@/components/styles";
+import { CONDITION_TAG, chip } from "@/components/styles";
 import { formatUsd } from "@/lib/format";
 import { bestDealAddsUp } from "@/lib/pricing";
 import { trustReasonsSentence } from "@/lib/trust";
@@ -53,9 +53,7 @@ export default function BestDealCard({ comparison }: { comparison: ItemCompariso
               Best total of the stores shown: {formatUsd(bestDeal.total)} at {storeLabel(store)}
             </span>
             {listing.condition !== "new" && (
-              <span className={`${chip} border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100`}>
-                {listing.condition === "used" ? "Used" : "Resale"}
-              </span>
+              <span className={`${chip} ${CONDITION_TAG[listing.condition].className}`}>{CONDITION_TAG[listing.condition].label}</span>
             )}
             {listing.source === "demo" && (
               <span className={`${chip} border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300`}>Demo</span>
@@ -68,11 +66,15 @@ export default function BestDealCard({ comparison }: { comparison: ItemCompariso
           </p>
           {store.trust.lowTrust && (
             <div className="flex flex-col gap-1 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
-              <p>This store looks low-trust: {trustReasonsSentence(store.trust.reasons)}.</p>
+              <p>
+                This store looks low-trust{store.trust.reasons.length ? `: ${trustReasonsSentence(store.trust.reasons)}` : ""}.
+              </p>
               <p className="font-semibold">
-                {bestTrustedDeal && trustedStore
-                  ? `Best trusted total of the stores shown: ${formatUsd(bestTrustedDeal.total)} at ${storeLabel(trustedStore)}`
-                  : `No trusted store shown has size ${item.selectedSize} in stock.`}
+                {!bestTrustedDeal
+                  ? `No trusted store shown has size ${item.selectedSize} in stock.`
+                  : trustedStore
+                    ? `Best trusted total of the stores shown: ${formatUsd(bestTrustedDeal.total)} at ${storeLabel(trustedStore)}`
+                    : "The best trusted deal could not be shown. Refresh the page to try again."}
               </p>
             </div>
           )}

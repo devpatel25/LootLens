@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { smallButton } from "@/components/styles";
 import type { MouseEvent } from "react";
 import { formatUsd } from "@/lib/format";
 import { CATEGORIES } from "@/lib/itemForm";
 import { storeLabel } from "@/lib/storeLabel";
 import type { WishlistItem } from "@/lib/types";
-
-const tag = "rounded-full border px-2 py-0.5 text-xs font-semibold";
+import { CONDITION_TAG, chip, smallButton } from "@/components/styles";
 
 type Handler = (e: MouseEvent<HTMLButtonElement>) => void;
 
@@ -36,15 +34,13 @@ export default function WishlistCard({ item, onEdit, onDelete }: { item: Wishlis
           </p>
           <p className="flex flex-wrap gap-1.5">
             {item.cheapest.condition !== "new" && (
-              <span className={`${tag} border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100`}>
-                {item.cheapest.condition === "used" ? "Used" : "Resale"}
-              </span>
+              <span className={`${chip} ${CONDITION_TAG[item.cheapest.condition].className}`}>{CONDITION_TAG[item.cheapest.condition].label}</span>
             )}
             {item.cheapest.lowTrust && (
-              <span className={`${tag} border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100`}>Low-trust</span>
+              <span className={`${chip} border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100`}>Low-trust</span>
             )}
             {item.cheapest.source === "demo" && (
-              <span className={`${tag} border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300`}>Demo</span>
+              <span className={`${chip} border-zinc-300 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300`}>Demo</span>
             )}
           </p>
         </div>

@@ -41,58 +41,57 @@ export default function SettingsForm({ settings }: { settings: Settings }) {
     <form onSubmit={save} className="flex max-w-xl flex-col gap-6">
       {/* Locked while saving, so the saved values always match what is shown. */}
       <fieldset disabled={busy} className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <p id={`${uid}-fresh`} className="font-semibold">
-          Freshness window
-        </p>
-        <p id={`${uid}-fresh-hint`} className="text-sm text-zinc-600 dark:text-zinc-300">
-          Only codes checked within this many hours count as live, on the Codes screen and in your best deals.
-        </p>
-        <div role="radiogroup" aria-labelledby={`${uid}-fresh`} aria-describedby={`${uid}-fresh-hint`} className="flex flex-wrap gap-2">
-          {WINDOWS.map((h) => (
-            <label
-              key={h}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm has-[:checked]:border-emerald-700 has-[:checked]:bg-emerald-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-emerald-700 dark:border-zinc-600 dark:has-[:checked]:border-emerald-400 dark:has-[:checked]:bg-emerald-950"
-            >
-              <input
-                type="radio"
-                name={`${uid}-hours`}
-                value={h}
-                checked={hours === h}
-                onChange={() => {
-                  setHours(h);
-                  setMessage("");
-                  setError(null);
-                }}
-                className="accent-emerald-700"
-              />
-              {h} hours
-            </label>
-          ))}
+        <div className="flex flex-col gap-2">
+          <p id={`${uid}-fresh`} className="font-semibold">
+            Freshness window
+          </p>
+          <p id={`${uid}-fresh-hint`} className="text-sm text-zinc-600 dark:text-zinc-300">
+            Only codes checked within this many hours count as live, on the Codes screen and in your best deals.
+          </p>
+          <div role="radiogroup" aria-labelledby={`${uid}-fresh`} aria-describedby={`${uid}-fresh-hint`} className="flex flex-wrap gap-2">
+            {WINDOWS.map((h) => (
+              <label
+                key={h}
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm has-[:checked]:border-emerald-700 has-[:checked]:bg-emerald-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-emerald-700 dark:border-zinc-600 dark:has-[:checked]:border-emerald-400 dark:has-[:checked]:bg-emerald-950"
+              >
+                <input
+                  type="radio"
+                  name={`${uid}-hours`}
+                  value={h}
+                  checked={hours === h}
+                  onChange={() => {
+                    setHours(h);
+                    setMessage("");
+                    setError(null);
+                  }}
+                  className="accent-emerald-700"
+                />
+                {h} hours
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="flex items-center gap-2 font-semibold">
-          <input
-            type="checkbox"
-            checked={firstOrder}
-            onChange={(e) => {
-              setFirstOrder(e.target.checked);
-              setMessage("");
-              setError(null);
-            }}
-            aria-describedby={`${uid}-first-hint`}
-            className="size-4 accent-emerald-700"
-          />
-          I can use first-order codes
-        </label>
-        <p id={`${uid}-first-hint`} className="text-sm text-zinc-600 dark:text-zinc-300">
-          Turn this on if you have not ordered from these stores before. First-order-only codes do not count toward your best deal
-          while this is off.
-        </p>
-      </div>
-
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 font-semibold">
+            <input
+              type="checkbox"
+              checked={firstOrder}
+              onChange={(e) => {
+                setFirstOrder(e.target.checked);
+                setMessage("");
+                setError(null);
+              }}
+              aria-describedby={`${uid}-first-hint`}
+              className="size-4 accent-emerald-700"
+            />
+            I can use first-order codes
+          </label>
+          <p id={`${uid}-first-hint`} className="text-sm text-zinc-600 dark:text-zinc-300">
+            Turn this on if you have not ordered from these stores before. First-order-only codes do not count toward your best deal
+            while this is off.
+          </p>
+        </div>
       </fieldset>
       {error && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
