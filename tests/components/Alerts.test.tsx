@@ -263,15 +263,20 @@ describe("AlertsView", () => {
     const listen = (e: Event) => counts.push((e as CustomEvent).detail?.unreadCount);
     window.addEventListener(ALERTS_CHANGED, listen);
     const { rerender } = view();
-    expect(counts).toEqual([3]);
+    // Nothing on mount: the badge reads the count itself. That also keeps a preserved page that is shown again
+    // (React Activity re-runs its effects with the old data) from sending an old count.
+    expect(counts).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Mark read: Price dropped from $84.99 to $60.00" }));
     await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/alerts/alert-1");
     expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({ read: true });
     // No second read of the alerts: the badge waits for the refreshed page data instead.
-    expect(counts).toEqual([3]);
+    expect(counts).toEqual([]);
     rerender(<AlertsView data={{ ...alerts(), unreadCount: 2 }} watches={watches()} now={NOW} anyDemo />);
-    expect(counts).toEqual([3, 2]);
+    expect(counts).toEqual([2]);
+    // Same count again (a refresh where nothing changed, or the page shown again): nothing is sent.
+    rerender(<AlertsView data={{ ...alerts(), unreadCount: 2 }} watches={watches()} now={NOW} anyDemo />);
+    expect(counts).toEqual([2]);
     window.removeEventListener(ALERTS_CHANGED, listen);
   });
 
@@ -426,6 +431,9 @@ describe("unread count in the nav", () => {
     expect(screen.getByRole("link", { name: "Alerts", description: "5 unread alerts" })).toBeTruthy();
     await act(async () => vi.advanceTimersByTime(30_000));
     expect(fetch).toHaveBeenCalledTimes(1);
+    // The skip is for one poll only: the next one reads again.
+    await act(async () => vi.advanceTimersByTime(60_000));
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("polls every 60 seconds, skips while the tab is hidden, and stops on unmount", async () => {
