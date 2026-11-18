@@ -10,7 +10,13 @@ import UserMenu from "@/components/UserMenu";
 const auth = vi.hoisted(() => ({ auth: vi.fn(), signIn: vi.fn(), signOut: vi.fn() }));
 vi.mock("@/lib/auth", () => auth);
 vi.mock("next/server", () => ({ connection: async () => {} }));
-vi.mock("next/navigation", () => ({ redirect: vi.fn(() => { throw new Error("redirect called"); }), usePathname: () => "/wishlist" }));
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn(() => {
+    throw new Error("redirect called");
+  }),
+  usePathname: () => "/wishlist",
+  useSearchParams: () => new URLSearchParams("size=9"),
+}));
 
 afterEach(cleanup);
 
@@ -74,10 +80,10 @@ describe("SessionUserMenu", () => {
     expect(screen.getByRole("button", { name: "Account menu for Demo Shopper" })).toBeTruthy();
   });
 
-  it("without a session shows a Sign in link instead of redirecting (the proxy keeps the return address)", async () => {
+  it("without a session shows a Sign in link that keeps the current page, instead of redirecting", async () => {
     auth.auth.mockResolvedValueOnce(null);
     render(await SessionUserMenu());
-    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin");
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/signin?callbackUrl=%2Fwishlist%3Fsize%3D9");
   });
 });
 
