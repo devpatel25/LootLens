@@ -1,3 +1,5 @@
+import { signInAgain } from "@/lib/signInAgain";
+
 export class ApiClientError extends Error {
   constructor(
     message: string,
@@ -21,6 +23,8 @@ export async function apiFetch<T>(url: string, init: { method?: string; json?: u
   });
   const body: unknown = await res.json().catch(() => undefined);
   if (!res.ok) {
+    // The session ended, or its user was removed by a demo reset: sign in again and come back here.
+    if (res.status === 401) signInAgain();
     const e = (body as ErrorBody | undefined)?.error;
     throw new ApiClientError(e?.message ?? `Request failed (${res.status})`, res.status, e?.code ?? "unknown", e?.retryAfterSeconds);
   }
@@ -30,7 +34,7 @@ export async function apiFetch<T>(url: string, init: { method?: string; json?: u
 /** Plain message to show the shopper for any thrown error. */
 export function friendlyMessage(err: unknown): string {
   if (err instanceof ApiClientError) {
-    if (err.status === 401) return "Your session ended. Sign in again.";
+    if (err.status === 401) return "Your session ended. Opening the sign-in page.";
     if (err.status === 429) {
       return err.retryAfterSeconds
         ? `Too many requests. Try again in ${err.retryAfterSeconds} seconds.`

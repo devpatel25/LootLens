@@ -33,7 +33,7 @@ export default function WishlistCard({ item, onEdit, onDelete }: { item: Wishlis
       {item.cheapest ? (
         <div className="flex flex-col gap-1.5">
           <p className="text-sm font-medium">
-            Cheapest: {formatUsd(item.cheapest.price)} at {storeLabel({ name: item.cheapest.storeName, fictional: item.cheapest.fictional })}
+            Cheapest of the stores shown: {formatUsd(item.cheapest.price)} at {storeLabel({ name: item.cheapest.storeName, fictional: item.cheapest.fictional })}
           </p>
           <p className="flex flex-wrap gap-1.5">
             {item.cheapest.condition !== "new" && (

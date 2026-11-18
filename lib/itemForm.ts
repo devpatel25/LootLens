@@ -39,6 +39,23 @@ const MESSAGES: Record<keyof ItemFormValues, string> = {
   sourceUrl: "Enter a full link that starts with https:// or http://",
 };
 
+// Per issue, where one field can fail in more than one way (an old category can be longer than the list allows).
+const BY_CODE: Partial<Record<keyof ItemFormValues, Partial<Record<string, string>>>> = {
+  name: { too_big: "Use a name of at most 120 characters." },
+  category: { too_big: "Use a category of at most 40 characters." },
+};
+
+/** What is wrong with the price text, or null when it is a valid price. */
+function priceMessage(raw: string): string | null {
+  if (!raw) return MESSAGES.typicalPrice;
+  if (/^\d+\.\d{3,}$/.test(raw)) return "Use at most 2 decimal places, like 49.99.";
+  if (!/^\d+(\.\d{1,2})?$/.test(raw)) return "Enter numbers only, like 49.99, with no $ or commas.";
+  const n = Number(raw);
+  if (n <= 0) return "Enter a price above $0.";
+  if (n > 99999.99) return "Enter a price of $99,999.99 or less.";
+  return null;
+}
+
 /** "8, 9 ,10" -> ["8", "9", "10"]: trimmed, no blanks, no repeats, order kept. */
 export function parseSizes(text: string): string[] {
   return [...new Set(text.split(",").map((s) => s.trim()).filter(Boolean))];
@@ -55,11 +72,25 @@ export function formValuesFromItem(item: Item): ItemFormValues {
   };
 }
 
-/** The fields to PATCH: only those whose form text changed since the sheet opened (stub for the red step). */
+/**
+ * The sizes the form stands for. While the sizes text is still what the item showed, the item's own list is
+ * kept, so a size with a comma in it ("42,5") is not split into two.
+ */
+export function sizesFrom(values: ItemFormValues, original?: Item): string[] {
+  return original && values.sizes === formValuesFromItem(original).sizes ? original.sizes : parseSizes(values.sizes);
+}
+
+/**
+ * The fields to PATCH: only those whose form text changed since the sheet opened. A name edit then cannot
+ * undo sizes another tab added, which would also delete that size's watch and alerts.
+ */
 export function itemPatch(original: Item, values: ItemFormValues, body: ItemBody): Partial<ItemBody> {
-  void original;
-  void values;
-  return body;
+  const before = formValuesFromItem(original);
+  const patch: Partial<Record<keyof ItemBody, unknown>> = {};
+  for (const key of Object.keys(before) as (keyof ItemFormValues)[]) {
+    if (values[key] !== before[key]) patch[key] = body[key];
+  }
+  return patch as Partial<ItemBody>;
 }
 
 /** Validates with the same zod schema the API uses, and maps problems to one plain message per field. */
@@ -67,12 +98,11 @@ export function toItemBody(
   values: ItemFormValues,
   original?: Item,
 ): { ok: true; body: ItemBody } | { ok: false; errors: ItemFormErrors } {
-  void original;
   const price = values.typicalPrice.trim();
   const body: ItemBody = {
     name: values.name.trim(),
     category: values.category.trim(),
-    sizes: parseSizes(values.sizes),
+    sizes: sizesFrom(values, original),
     selectedSize: values.selectedSize.trim(),
     // Digits with up to two decimals only: Number() alone would accept "0x20" ($32) or "1e3" ($1,000).
     typicalPrice: /^\d+(\.\d{1,2})?$/.test(price) ? Number(price) : Number.NaN,
@@ -85,7 +115,7 @@ export function toItemBody(
   for (const issue of r.error.issues) {
     const field = issue.path[0] as keyof ItemFormValues | undefined;
     if (!field || !(field in MESSAGES) || errors[field]) continue;
-    errors[field] = MESSAGES[field];
+    errors[field] = field === "typicalPrice" ? (priceMessage(price) ?? MESSAGES.typicalPrice) : (BY_CODE[field]?.[issue.code] ?? MESSAGES[field]);
     if (field === "sizes" && issue.path.length > 1) errors.sizes = "Each size can be at most 20 characters.";
     else if (field === "sizes" && issue.code === "too_big") errors.sizes = "Use at most 12 sizes.";
   }

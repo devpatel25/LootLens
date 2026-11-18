@@ -40,12 +40,13 @@ lib/
   prisma.ts  auth.ts
   authConfig.ts         edge-safe auth config and routeDecision (no Prisma)
   authActions.ts        server actions: signInWithGoogle, signOutAction
-  signin.ts             safeCallbackUrl, signInUrl, keepSignInPage, signInErrorMessage (client-safe)
+  signin.ts             safeCallbackUrl, signInUrl, reauthUrl, keepSignInPage, signInErrorMessage (client-safe)
+  signInAgain.ts        signInAgain(): browser goes to reauthUrl for the current page (apiFetch calls it on a 401)
   paths.ts              isUnder: the one "this path or below" rule (proxy, callbackUrl, nav); itemPagePath
   format.ts             formatUsd (display only)
   storeLabel.ts         needsFictionalLabel, storeLabel: fictional stores are labelled from store.fictional
   currentUser.ts        requirePageUserId(returnTo): session user id for server pages (else sign-in, keeping returnTo)
-  wishlist.ts           loadWishlist (GET /api/items), loadWishlistPage (items plus anyDemo, one query), hasDemoListings
+  wishlist.ts           loadWishlist (GET /api/items and the Wishlist page), wishlistShowsDemo (badge from the cards), hasDemoListings
   apiClient.ts          apiFetch for client components, ApiClientError, friendlyMessage
   itemForm.ts           item form values <-> API body, validated with itemSchema
   useModalDialog.ts     <dialog> as a modal: Escape, data-autofocus, focus back to the opener

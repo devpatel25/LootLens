@@ -6,7 +6,8 @@ import {
   CATEGORIES,
   EMPTY_FORM,
   formValuesFromItem,
-  parseSizes,
+  itemPatch,
+  sizesFrom,
   toItemBody,
   type ItemFormErrors,
   type ItemFormValues,
@@ -80,7 +81,7 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetP
   const [errors, setErrors] = useState<ItemFormErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const title = item ? "Edit item" : "Add item";
-  const sizes = parseSizes(values.sizes);
+  const sizes = sizesFrom(values, item ?? undefined);
   // PATCH deletes watches and alerts for sizes that leave the list (app/api/items/[id]/route.ts).
   const removedSizes = item ? item.sizes.filter((s) => !sizes.includes(s)) : [];
   // From the saved item, so the option stays even after the user picks another category.
@@ -96,7 +97,7 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetP
   async function submit(e: FormEvent) {
     e.preventDefault();
     setFormError(null);
-    const r = toItemBody(values);
+    const r = toItemBody(values, item ?? undefined);
     if (!r.ok) {
       setErrors(r.errors);
       const first = FIELD_ORDER.find((f) => r.errors[f]);
@@ -104,9 +105,12 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetP
       return;
     }
     setErrors({});
+    // Editing sends only what changed. With nothing changed it still sends {}, so an item deleted in another
+    // tab is reported (404) the same way.
+    const json = item ? itemPatch(item, values, r.body) : r.body;
     setBusy(true);
     try {
-      await apiFetch(item ? `/api/items/${item.id}` : "/api/items", { method: item ? "PATCH" : "POST", json: r.body });
+      await apiFetch(item ? `/api/items/${item.id}` : "/api/items", { method: item ? "PATCH" : "POST", json });
       onSaved(r.body.name);
     } catch (err) {
       if (item && err instanceof ApiClientError && err.status === 404) {

@@ -48,9 +48,9 @@ export function signInUrl(pathname: string, search: string): string {
   return `/signin?callbackUrl=${encodeURIComponent(pathname + search)}`;
 }
 
-/** The sign-in page for a session that ended, keeping the return address (stub for the red step). */
+/** The sign-in page for a session that ended, keeping the return address. ?reauth keeps it on /signin. */
 export function reauthUrl(pathname: string, search: string): string {
-  return signInUrl(pathname, search);
+  return `${signInUrl(pathname, search)}&reauth=1`;
 }
 
 /**
