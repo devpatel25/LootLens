@@ -9,6 +9,7 @@ import ItemSheet from "@/components/ItemSheet";
 import WishlistCard from "@/components/WishlistCard";
 import { ApiClientError, apiFetch } from "@/lib/apiClient";
 import type { Item, WishlistItem } from "@/lib/types";
+import { useAnnouncement } from "@/lib/useAnnouncement";
 
 const primary =
   "rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
@@ -18,9 +19,7 @@ export default function WishlistView({ items, anyDemo }: { items: WishlistItem[]
   const router = useRouter();
   const [sheet, setSheet] = useState<{ item: Item | null } | null>(null);
   const [deleting, setDeleting] = useState<WishlistItem | null>(null);
-  // seq gives each announcement a fresh node, so screen readers repeat a message that did not change.
-  const [{ message, seq }, setAnnouncement] = useState({ message: "", seq: 0 });
-  const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
+  const [{ message, seq }, setMessage] = useAnnouncement();
   // The button that opened the current dialog (kept from the click, since Safari does not focus it).
   const [opener, setOpener] = useState<HTMLElement | null>(null);
   // Bumped after an add or delete: the button that opened the dialog may disappear, so focus the heading.

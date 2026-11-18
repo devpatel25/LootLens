@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alertKindForStock, evaluateWatch } from "@/lib/alerts";
+import { alertKindForStock, evaluateWatch, targetNotBelow } from "@/lib/alerts";
 import { demoSource } from "@/lib/demoSource";
 import { currentSource } from "@/lib/refresh";
 import type { Listing } from "@/lib/types";
@@ -62,5 +62,18 @@ describe("alertKindForStock", () => {
   it("zero is out_of_stock, above zero is low_size", () => {
     expect(alertKindForStock(0)).toBe("out_of_stock");
     expect(alertKindForStock(2)).toBe("low_size");
+  });
+});
+
+describe("targetNotBelow", () => {
+  // One rule for the watch form and POST /api/watches: a target must be below today's cheapest price.
+  it.each([
+    [60, 60, true],
+    [70, 60, true],
+    [59.99, 60, false],
+    [null, 60, false],
+    [undefined, 60, false],
+  ])("target %s with a price of %s -> %s", (target, price, want) => {
+    expect(targetNotBelow(target, price)).toBe(want);
   });
 });

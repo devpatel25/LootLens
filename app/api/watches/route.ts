@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { currentForSize, DEFAULT_LOW_STOCK, evaluateWatch, MAX_WATCHES_PER_USER } from "@/lib/alerts";
+import { currentForSize, DEFAULT_LOW_STOCK, evaluateWatch, MAX_LOW_STOCK, MAX_WATCHES_PER_USER, targetNotBelow } from "@/lib/alerts";
 import { listingsInclude, toListingsAndStores, toWatch } from "@/lib/dto";
 import { fail, fkName, itemNotFound, ok, parse, requireUserId, route } from "@/lib/http";
 import { Prisma } from "@/lib/generated/prisma/client";
@@ -11,7 +11,7 @@ const watchSchema = z.object({
   itemId: z.string().min(1).max(64),
   size: z.string().trim().min(1).max(20),
   targetPrice: moneySchema.nullable().optional(),
-  lowStockAt: z.number().int().min(0).max(50).optional(),
+  lowStockAt: z.number().int().min(0).max(MAX_LOW_STOCK).optional(),
 });
 
 export const GET = route(async () => {
@@ -47,6 +47,12 @@ export const POST = route(async (req: Request) => {
       // Duplicate first: re-submitting an existing watch is not a cap problem.
       if (await tx.watch.findUnique({ where: { userId_itemId_size: { userId, itemId: item.id, size: body.size } } })) {
         return fail(409, "watch_exists", "Already watching this item and size");
+      }
+      // After the duplicate check, so a stale tab re-submitting an existing watch gets watch_exists.
+      // A target at or above today's price would be met at creation and stay silent until the price rose and
+      // fell again, so it is refused here, not only in the form.
+      if (targetNotBelow(body.targetPrice, price)) {
+        return fail(400, "target_not_below", "targetPrice: must be below the current cheapest price");
       }
       if ((await tx.watch.count({ where: { userId } })) >= MAX_WATCHES_PER_USER) {
         return fail(409, "watch_limit", `At most ${MAX_WATCHES_PER_USER} watches`);

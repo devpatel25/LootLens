@@ -97,7 +97,7 @@ describe("contract fixtures", () => {
       "listings",
       "stores",
     ]);
-    expect(keys(alerts)).toEqual(["groups", "unreadCount"]);
+    expect(keys(alerts)).toEqual(["groups", "readCount", "unreadCount"]);
     expect(keys(settings)).toEqual(["firstOrderEligible", "freshnessHours"]);
   });
 

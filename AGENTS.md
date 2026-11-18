@@ -23,7 +23,7 @@ app/                    routes (server components by default)
     codes/  alerts/  settings/
   api-docs/             Swagger UI page for the API spec
   api/                  route handlers = the public API (items, items/[id]/listings, codes,
-                        watches, alerts, stores, settings, health, cron, demo)
+                        watches, alerts, alerts/unread, stores, settings, health, cron, demo)
 proxy.ts                signed-out redirect (pages) and 401 (API)
 types/                  TypeScript type augmentations (next-auth)
 public/openapi.json     API spec (OpenAPI 3.1). Update it when routes change
@@ -54,8 +54,13 @@ lib/
   format.ts             formatUsd, checkedAgo, endsIn (display only)
   codes.ts              loadCodes({ showDead, freshnessHours (number or promise) }): uses codeState, so API and browser agree
   codeStatus.ts         codeState (live, dead, stale, expired) for client components; CODES_ARE_DEMO
-  useNow.ts             useServerClock: ticks on server time, re-anchors on refresh; a gap over 5 min is checked with one refresh
+  useNow.ts             useServerClock and useNow: tick on server time, re-anchor on refresh; a gap over 5 min is checked with one refresh
+  useVisiblePoll.ts     useVisiblePoll(fn, ms): every ms while the tab is visible, and once when it is shown again
+  useAnnouncement.ts    useAnnouncement(): status message plus a fresh seq, so a repeated message is read again
+  useUnreadAlerts.ts    useUnreadAlerts(): nav badge count from GET /api/alerts/unread, or from the Alerts page's own data
   trust.ts              plain wording for trustFlags reasons (storeLabel is in storeLabel.ts)
+  alertsData.ts         loadAlerts, loadWatches, loadItemWatches (GET /api/alerts and the Alerts page share loadAlerts)
+  alertText.ts          plain wording for alerts and watches; ALERTS_CHANGED event (may carry unreadCount) and POLL_MS
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
   settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)

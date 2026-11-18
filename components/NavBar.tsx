@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import AlertsBadge from "@/components/AlertsBadge";
+import { useUnreadAlerts } from "@/lib/useUnreadAlerts";
 import type { ReactNode } from "react";
 import { isUnder } from "@/lib/paths";
 
-type NavItem = { href: string; label: string; also?: string[]; icon: ReactNode };
+type NavItem = { href: string; label: string; also?: string[]; icon: ReactNode; badge?: boolean };
 
 const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
@@ -26,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/alerts",
     label: "Alerts",
+    badge: true,
     icon: <path {...stroke} d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4l2-2Zm4 4a2 2 0 0 0 4 0" />,
   },
   {
@@ -46,6 +51,8 @@ export function isCurrent(pathname: string, item: Pick<NavItem, "href" | "also">
 
 /** The Main nav. `pathname` null renders it with nothing marked current. */
 export default function NavBar({ pathname }: { pathname: string | null }) {
+  // Not in the Suspense fallback (pathname null), so only one nav ever polls.
+  const unread = useUnreadAlerts(pathname !== null);
   return (
 
     <nav
@@ -60,8 +67,9 @@ export default function NavBar({ pathname }: { pathname: string | null }) {
               <Link
                 href={item.href}
                 aria-current={current ? "page" : undefined}
+                aria-describedby={item.badge && unread > 0 ? "nav-alerts-unread" : undefined}
                 className={[
-                  "flex flex-col items-center gap-1 px-2 py-2 text-xs font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-700",
+                  "relative flex flex-col items-center gap-1 px-2 py-2 text-xs font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-700",
                   "md:flex-row md:gap-3 md:rounded-lg md:px-3 md:text-sm",
                   current
                     ? "text-emerald-800 md:bg-emerald-50 dark:text-emerald-300 md:dark:bg-emerald-950"
@@ -72,6 +80,7 @@ export default function NavBar({ pathname }: { pathname: string | null }) {
                   {item.icon}
                 </svg>
                 <span>{item.label}</span>
+                {item.badge && <AlertsBadge count={unread} describedById="nav-alerts-unread" />}
               </Link>
             </li>
           );

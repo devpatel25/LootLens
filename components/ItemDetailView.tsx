@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import BestDealCard from "@/components/BestDealCard";
 import ComparisonTable from "@/components/ComparisonTable";
 import DemoDataBadge from "@/components/DemoDataBadge";
@@ -7,7 +8,16 @@ import { storeLabel } from "@/lib/storeLabel";
 import { trustReasonsSentence } from "@/lib/trust";
 import type { ItemComparison } from "@/lib/types";
 
-export default function ItemDetailView({ comparison }: { comparison: ItemComparison }) {
+/** `refresh` and `watchPanel` are slots for the client pieces, so this view stays renderable without a router. */
+export default function ItemDetailView({
+  comparison,
+  refresh,
+  watchPanel,
+}: {
+  comparison: ItemComparison;
+  refresh?: ReactNode;
+  watchPanel?: ReactNode;
+}) {
   const { item, listings, stores, cheapestListingId } = comparison;
   const storeById = new Map(stores.map((s) => [s.id, s]));
   /** A listing by id with its store; the store is undefined when it is not in the response. */
@@ -65,10 +75,14 @@ export default function ItemDetailView({ comparison }: { comparison: ItemCompari
         )}
       </div>
       <BestDealCard comparison={comparison} />
+      {watchPanel}
       <section aria-labelledby="compare-heading" className="flex min-w-0 flex-col gap-3">
-        <h2 id="compare-heading" className="text-lg font-semibold">
-          Compare stores
-        </h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h2 id="compare-heading" className="text-lg font-semibold">
+            Compare stores
+          </h2>
+          {refresh}
+        </div>
         <ComparisonTable comparison={comparison} />
       </section>
     </div>
