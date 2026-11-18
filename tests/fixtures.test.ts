@@ -7,7 +7,20 @@ import codesAll from "@/fixtures/codes-all.json";
 import alerts from "@/fixtures/alerts.json";
 import settings from "@/fixtures/settings.json";
 import lowTrust from "@/fixtures/comparison-lowtrust.json";
-import type { AlertsResponse, Code, ItemComparison, Settings, WishlistItem } from "@/lib/types";
+import openapi from "@/public/openapi.json";
+import type {
+  Alert,
+  AlertKind,
+  AlertsResponse,
+  Code,
+  DataSource,
+  FreshnessHours,
+  ItemComparison,
+  ListingCondition,
+  Settings,
+  TrustReason,
+  WishlistItem,
+} from "@/lib/types";
 
 // JSON imports widen literals, so compare against a widened shape.
 type Json<T> = T extends string
@@ -32,6 +45,29 @@ codesAll satisfies Json<Code>[];
 alerts satisfies Json<AlertsResponse>;
 settings satisfies Json<Settings>;
 
+// Json<T> widens literal unions, so tie each union to a runtime list in both directions:
+// the list and the union must be equal, so either one drifting fails typecheck.
+type Same<U, L extends readonly unknown[]> = [U] extends [L[number]] ? ([L[number]] extends [U] ? true : false) : false;
+const DATA_SOURCES = ["live", "demo"] as const satisfies readonly DataSource[];
+const CONDITIONS = ["new", "used", "resale"] as const satisfies readonly ListingCondition[];
+const CODE_TYPES = ["pct", "flat"] as const satisfies readonly Code["type"][];
+const CODE_STATUSES = ["live", "dead"] as const satisfies readonly Code["status"][];
+const FRESHNESS = [6, 12, 24, 48, 72] as const satisfies readonly FreshnessHours[];
+const TRUST_REASONS = ["no_https", "few_photo_reviews", "low_rating"] as const satisfies readonly TrustReason[];
+const ALERT_KINDS = ["price_drop", "low_size", "out_of_stock"] as const satisfies readonly Alert["kind"][];
+const _exhaustive: [
+  Same<DataSource, typeof DATA_SOURCES>,
+  Same<ListingCondition, typeof CONDITIONS>,
+  Same<Code["type"], typeof CODE_TYPES>,
+  Same<Code["status"], typeof CODE_STATUSES>,
+  Same<FreshnessHours, typeof FRESHNESS>,
+  Same<TrustReason, typeof TRUST_REASONS>,
+  Same<AlertKind, typeof ALERT_KINDS>,
+  Same<Alert["kind"], typeof ALERT_KINDS>,
+  Same<AlertsResponse["groups"][number]["alerts"][number]["kind"], typeof ALERT_KINDS>,
+] = [true, true, true, true, true, true, true, true, true];
+void _exhaustive;
+
 const keys = (o: object) => Object.keys(o).sort();
 const c = comparison as unknown as ItemComparison;
 const codeList = codes as unknown as Code[];
@@ -41,6 +77,10 @@ const NOW = Date.parse("2026-10-29T16:00:00.000Z");
 const LIMIT = settings.freshnessHours * 3_600_000;
 const isStale = (k: Code) => NOW - Date.parse(k.lastCheckedAt) >= LIMIT;
 const isExpired = (k: Code) => k.expiresAt !== null && Date.parse(k.expiresAt) <= NOW;
+
+const schemas = openapi.components.schemas;
+const bothComparisons = [c, lowTrust as unknown as ItemComparison];
+const alertKinds = schemas.Alert.oneOf.flatMap((o) => o.properties.kind.enum);
 
 const ITEM_KEYS = ["category", "createdAt", "id", "imageUrl", "name", "selectedSize", "sizes", "sourceUrl", "typicalPrice", "updatedAt"];
 const CODE_KEYS = ["cashback", "code", "expiresAt", "firstOrderOnly", "id", "label", "lastCheckedAt", "minSpend", "status", "storeId", "storeName", "type", "value"];
@@ -60,19 +100,25 @@ describe("contract fixtures", () => {
     expect(keys(settings)).toEqual(["firstOrderEligible", "freshnessHours"]);
   });
 
-  it("uses allowed literal values", () => {
-    for (const l of c.listings) {
-      expect(["new", "used", "resale"]).toContain(l.condition);
-      expect(l.source).toBe("demo");
-    }
-    for (const k of [...codeList, ...allCodes]) {
-      expect(["pct", "flat"]).toContain(k.type);
-      expect(["live", "dead"]).toContain(k.status);
-    }
-    for (const g of alertData.groups)
-      for (const a of g.alerts)
-        expect(["price_drop", "low_size", "out_of_stock"]).toContain(a.kind);
-    expect([6, 12, 24, 48, 72]).toContain(settings.freshnessHours);
+  it.each([
+    ["listing source", DATA_SOURCES, bothComparisons.flatMap((x) => x.listings.map((l) => l.source)), schemas.Listing.properties.source.enum],
+    ["listing condition", CONDITIONS, bothComparisons.flatMap((x) => x.listings.map((l) => l.condition)), schemas.Listing.properties.condition.enum],
+    ["code type", CODE_TYPES, [...codeList, ...allCodes].map((k) => k.type), schemas.Code.properties.type.enum],
+    ["code status", CODE_STATUSES, [...codeList, ...allCodes].map((k) => k.status), schemas.Code.properties.status.enum],
+    ["freshnessHours", FRESHNESS, [settings.freshnessHours], schemas.Settings.properties.freshnessHours.enum],
+    ["trust reason", TRUST_REASONS, bothComparisons.flatMap((x) => x.stores.flatMap((s) => s.trust.reasons)), schemas.TrustFlags.properties.reasons.items.enum],
+    ["alert kind", ALERT_KINDS, alertData.groups.flatMap((g) => g.alerts.map((a) => a.kind)), alertKinds],
+  ] as [string, readonly (string | number)[], (string | number)[], (string | number)[]][])(
+    "%s: fixtures use listed values and openapi enum matches",
+    (_name, list, used, spec) => {
+      expect(used.length).toBeGreaterThan(0);
+      for (const v of used) expect(list).toContain(v);
+      expect([...spec].sort()).toEqual([...list].sort());
+    },
+  );
+
+  it("labels every comparison listing demo", () => {
+    for (const l of c.listings) expect(l.source).toBe("demo");
   });
 
   it("resolves listing references", () => {
@@ -159,9 +205,13 @@ describe("contract fixtures", () => {
     expect(codeList.map((k) => k.code)).not.toContain("STALE15");
   });
 
-  it("words SAVE30 as 150 or more", () => {
-    for (const k of [...codeList, ...allCodes].filter((x) => x.code === "SAVE30"))
-      expect(k.label).toBe("$30 off orders of $150 or more");
+  it.each([
+    ["codes.json", codeList],
+    ["codes-all.json", allCodes],
+  ])("words SAVE30 as 150 or more in %s", (_name, list) => {
+    const k = list.find((x) => x.code === "SAVE30");
+    expect(k).toBeDefined();
+    expect(k).toMatchObject({ label: "$30 off orders of $150 or more", minSpend: 150, type: "flat", value: 30 });
   });
 
 });
