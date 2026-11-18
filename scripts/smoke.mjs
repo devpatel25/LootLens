@@ -2,7 +2,9 @@
 //   SMOKE_URL=https://your-app.vercel.app npm run smoke
 // It only reads public or signed-out responses. It never signs in and never changes data.
 // A preview behind Vercel deployment protection answers with a login page; run it against an open URL.
-// It does not prove DEMO_MODE is off in production: check that in the Vercel project settings.
+// What it cannot see from outside: whether CRON_SECRET is set and whether DEMO_MODE is off. A missing secret
+// and a wrong one both answer 401, and the proxy answers 401 to every signed-out API call before the demo gate
+// runs. Check both in the Vercel project settings, and that the cron job's last run succeeded.
 // None of the checks touch the database, so a broken database connection will not show up here.
 
 const base = (process.env.SMOKE_URL ?? process.argv[2] ?? "").replace(/\/+$/, "");
@@ -50,6 +52,7 @@ const checks = [
     },
   },
   {
+    // Shows the endpoint is not open to anyone. It cannot tell whether CRON_SECRET is set (see the note above).
     name: "cron endpoint refuses a call without the secret",
     run: async () => {
       const res = await get("/api/cron/refresh");
@@ -57,12 +60,11 @@ const checks = [
     },
   },
   {
-    name: "demo simulate is locked for signed-out callers",
+    name: "demo simulate refuses signed-out callers",
     run: async () => {
       const res = await get("/api/demo/simulate", { method: "POST" });
       // The proxy answers 401 before the demo gate runs, so this shows the endpoint is not open to the
-      // public. Whether DEMO_MODE is off in production is a Vercel settings check, not something a
-      // signed-out request can see.
+      // public. It would pass with DEMO_MODE on as well: that is a Vercel settings check (see the note above).
       return res.status === 401 ? null : `got ${res.status}, expected 401`;
     },
   },
