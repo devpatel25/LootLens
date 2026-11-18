@@ -9,7 +9,7 @@ LootLens is built by two people. This page records who owned which part, which p
 | Area | Backend: database, API routes, sign-in, CI, deploys, domain logic in `lib/` | Frontend: every screen, components, client state, accessibility, end-to-end tests, release checks |
 | Issues owned | #1 to #6, #11 to #14 (10 issues) | #7 to #10, #15 to #19 (9 issues) |
 
-Reviews also turned up follow-up issues: #44 to #50 and #62. Dev's open PRs #61 and #63 to #66 cover #50, #62, #46, #49, and #44.
+Reviews of #24 to #29 turned up follow-up issues #44 to #50, and Dependabot's first run led to #62. Dev's open PRs #61 and #63 to #66 cover #50, #62, #46, #49, and #44.
 
 Each user story was split into a backend issue (Dev) and a screen issue (Kunal), so both partners worked on every feature and reviewed each other's pull requests.
 
@@ -58,7 +58,7 @@ The frontend pull requests are stacked: each one builds on the one before. #30 i
 | Reviewer | Pull requests reviewed |
 |---|---|
 | Kunal Ghanwat | #22 (approved), #23 (approved), #24 (comments), #25 (changes requested, then approved), #26 (approved), #27 (approved), #28 (approved), #29 (changes requested, then approved), #37 (approved) |
-| Dev Patel | #30, #31, #32, #33, #34, #35, #36, #42, #43 (inline comments, then changes requested; fixes pushed and replied to) |
+| Dev Patel | #30, #31, #32, #33, #34, #35, #36, #42, #43 (changes requested on each; fixes pushed and replied to) |
 
 The course asks for at least 5 visible reviews by each partner. Kunal has reviewed 9 pull requests and Dev has reviewed 9, so both have met it. Dev's newer PRs (#61, #63 to #66) are still waiting for Kunal's review.
 
@@ -69,8 +69,8 @@ The course asks for at least 5 visible reviews by each partner. Kunal has review
 
 ## How the work was checked
 
-- Code PRs follow the test-first order in `AGENTS.md`: a `test(#N)` commit with failing tests, then the `feat(#N)` or `fix(#N)` commit that makes them pass. Docs-only PRs (#22, #23, #29, #43) have no failing test to start from.
-- CI arrived with #25. Since then, every PR runs lint, type checks, unit and integration tests, and Playwright end-to-end tests in CI, and #37 added CodeQL security scanning. #22 and #23 merged before CI existed. The frontend PRs add automated accessibility checks (WCAG 2.2 A and AA) on every screen.
+- Code PRs follow the test-first order in `AGENTS.md`: a `test(#N)` commit with failing tests, then the `feat(#N)` or `fix(#N)` commit that makes them pass. Docs-only PRs (#22, #23, #43) have no failing test to start from.
+- CI arrived with #25. PRs opened or updated since then run lint, type checks, unit and integration tests, and Playwright end-to-end tests in CI, and #37 added CodeQL security scanning. #22 and #23 merged before CI existed, and #24 and #37 merged without a CI run. The frontend PRs add automated accessibility checks (WCAG 2.2 A and AA) on every screen.
 - AI coding agents were used under the rules in `AGENTS.md`. Each frontend PR was also read by an independent AI reviewer before it was opened. Partner review comes before merging; the exceptions so far are #60 and the Dependabot updates, which merged without one.
 
 ## Submission checklist (#19)
