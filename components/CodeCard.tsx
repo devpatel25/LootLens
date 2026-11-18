@@ -12,7 +12,8 @@ export type CodeCardProps = {
   /** Current time as ISO. Starts as server time so the first browser render matches, then ticks. */
   now: string;
   busy: boolean;
-  onMark: (status: "live" | "dead") => void;
+  /** `label` is the pressed button's accessible name, so focus can return to it after a failed save. */
+  onMark: (status: "live" | "dead", label: string) => void;
   onCopied: (code: string) => void;
   onCopyFailed?: () => void;
 };
@@ -48,6 +49,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
   return (
     <li
       aria-label={`Code ${code.code}`}
+      data-code-id={code.id}
       className={`flex min-w-0 flex-col gap-3 rounded-xl border bg-white p-4 dark:bg-zinc-900 ${
         state === "live" ? "border-zinc-200 dark:border-zinc-800" : "border-dashed border-zinc-300 dark:border-zinc-700"
       }`}
@@ -75,21 +77,21 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
         {/* An ended code cannot be marked alive: that would stamp it as checked and working for everyone. */}
         {state === "dead" ? (
           !isExpired(code, new Date(now)) && (
-            <button type="button" disabled={busy} onClick={() => onMark("live")} aria-label={`Mark alive ${code.code}`} className={smallButton}>
+            <button type="button" disabled={busy} onClick={() => onMark("live", `Mark alive ${code.code}`)} aria-label={`Mark alive ${code.code}`} className={smallButton}>
               Mark alive
             </button>
           )
         ) : state !== "expired" ? (
           <span className="flex flex-wrap gap-2">
             {state === "stale" && (
-              <button type="button" disabled={busy} onClick={() => onMark("live")} aria-label={`Still works ${code.code}`} className={smallButton}>
+              <button type="button" disabled={busy} onClick={() => onMark("live", `Still works ${code.code}`)} aria-label={`Still works ${code.code}`} className={smallButton}>
                 Still works
               </button>
             )}
             <button
               type="button"
               disabled={busy}
-              onClick={() => onMark("dead")}
+              onClick={() => onMark("dead", `Mark dead ${code.code}`)}
               aria-label={`Mark dead ${code.code}`}
               className={`${smallButton} text-red-800 dark:text-red-300`}
             >

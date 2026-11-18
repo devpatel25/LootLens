@@ -34,8 +34,8 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
   const setMessage = (text: string) => setAnnouncement((a) => ({ message: text, seq: a.seq + 1 }));
   const [error, setError] = useState<string | null>(null);
   const [focusList, setFocusList] = useState(0);
-  // After a failed mark, focus goes back to that code's button so keyboard users do not lose their place.
-  const [focusCode, setFocusCode] = useState<string | null>(null);
+  // After a failed mark, focus goes back to the button that was pressed, so keyboard users do not lose their place.
+  const [focusCode, setFocusCode] = useState<{ id: string; label: string } | null>(null);
   // The box shows where we are going while the server loads the other list.
   const [switching, startSwitch] = useTransition();
   const [target, setTarget] = useState<boolean | null>(null);
@@ -48,10 +48,10 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
 
   useEffect(() => {
     if (!focusCode) return;
-    // Compare labels as text, not in a CSS selector, so a code with a quote or backslash cannot break it.
-    const labels = [`Mark dead ${focusCode}`, `Mark alive ${focusCode}`, `Still works ${focusCode}`];
-    const buttons = listRef.current ? [...listRef.current.querySelectorAll("button")] : [];
-    buttons.find((b) => labels.includes(b.getAttribute("aria-label") ?? ""))?.focus();
+    // Find the card by id and the button by its label as text, not in a CSS selector, so a code with a quote
+    // or backslash cannot break it and two stores with the same code string cannot mix up.
+    const cardEl = [...(listRef.current?.children ?? [])].find((li) => (li as HTMLElement).dataset.codeId === focusCode.id);
+    [...(cardEl?.querySelectorAll("button") ?? [])].find((b) => b.getAttribute("aria-label") === focusCode.label)?.focus();
   }, [focusCode]);
 
   // Drop marks the server has moved past (a newer check time), so the map does not grow with every mark.
@@ -77,7 +77,7 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
       (!store || code.storeName === store) && (!q || [code.code, code.label, code.storeName].some((t) => t.toLowerCase().includes(q))),
   );
 
-  async function mark(code: Code, status: "live" | "dead") {
+  async function mark(code: Code, status: "live" | "dead", label: string) {
     const server = codes.find((c) => c.id === code.id);
     if (!server) return;
     const before = marks[code.id];
@@ -98,7 +98,7 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
         return next;
       });
       setError(friendlyMessage(e));
-      setFocusCode(code.code);
+      setFocusCode({ id: code.id, label });
     } finally {
       setPending((p) => {
         const next = new Set(p);
@@ -207,7 +207,7 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
               state={state}
               now={now.toISOString()}
               busy={pending.has(code.id)}
-              onMark={(status) => mark(code, status)}
+              onMark={(status, label) => mark(code, status, label)}
               onCopied={(c) => {
                 setError(null);
                 setMessage(`Copied ${c}.`);
