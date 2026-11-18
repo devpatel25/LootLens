@@ -72,3 +72,12 @@ test("a signed-in visit to /signin goes on to its callbackUrl", async ({ request
   expect(res.status()).toBeLessThan(400);
   expect(res.headers()["location"]).toMatch(/\/codes$/);
 });
+
+test("a signed-in visit with an error or a request to sign in again still sees the sign-in page", async ({ page }) => {
+  // After a demo reset the session can name a user that no longer exists; ?reauth lets that user sign in again.
+  await page.goto("/signin?reauth=1&callbackUrl=%2Fcodes");
+  await expect(page).toHaveURL(/\/signin\?reauth=1/);
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+  await page.goto("/signin?error=OAuthCallbackError");
+  await expect(page.getByText("Google sign-in was cancelled or did not finish. Try again.")).toBeVisible();
+});
