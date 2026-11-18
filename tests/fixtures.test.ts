@@ -198,9 +198,13 @@ describe("contract fixtures", () => {
     expect(codeList.map((k) => k.code)).not.toContain("STALE15");
   });
 
-  it("words SAVE30 as 150 or more", () => {
-    for (const k of [...codeList, ...allCodes].filter((x) => x.code === "SAVE30"))
-      expect(k.label).toBe("$30 off orders of $150 or more");
+  it.each([
+    ["codes.json", codeList],
+    ["codes-all.json", allCodes],
+  ])("words SAVE30 as 150 or more in %s", (_name, list) => {
+    const k = list.find((x) => x.code === "SAVE30");
+    expect(k).toBeDefined();
+    expect(k).toMatchObject({ label: "$30 off orders of $150 or more", minSpend: 150, type: "flat", value: 30 });
   });
 
 });
