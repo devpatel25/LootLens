@@ -37,6 +37,7 @@ lib/
   db-guard.ts           assertNonProdDb()
   prisma.ts  auth.ts
   authConfig.ts         edge-safe auth config and routeDecision (no Prisma)
+  apiError.ts           dependency-free error response builders (used by http.ts and proxy.ts)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
   settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)
