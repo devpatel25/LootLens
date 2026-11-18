@@ -46,8 +46,8 @@ alerts satisfies Json<AlertsResponse>;
 settings satisfies Json<Settings>;
 
 // Json<T> widens literal unions, so tie each union to a runtime list in both directions:
-// a list value outside the union or a union member missing from the list fails typecheck.
-type Exhaustive<U, L extends readonly unknown[]> = [Exclude<U, L[number]>] extends [never] ? true : false;
+// the list and the union must be equal, so either one drifting fails typecheck.
+type Same<U, L extends readonly unknown[]> = [U] extends [L[number]] ? ([L[number]] extends [U] ? true : false) : false;
 const DATA_SOURCES = ["live", "demo"] as const satisfies readonly DataSource[];
 const CONDITIONS = ["new", "used", "resale"] as const satisfies readonly ListingCondition[];
 const CODE_TYPES = ["pct", "flat"] as const satisfies readonly Code["type"][];
@@ -56,15 +56,15 @@ const FRESHNESS = [6, 12, 24, 48, 72] as const satisfies readonly FreshnessHours
 const TRUST_REASONS = ["no_https", "few_photo_reviews", "low_rating"] as const satisfies readonly TrustReason[];
 const ALERT_KINDS = ["price_drop", "low_size", "out_of_stock"] as const satisfies readonly Alert["kind"][];
 const _exhaustive: [
-  Exhaustive<DataSource, typeof DATA_SOURCES>,
-  Exhaustive<ListingCondition, typeof CONDITIONS>,
-  Exhaustive<Code["type"], typeof CODE_TYPES>,
-  Exhaustive<Code["status"], typeof CODE_STATUSES>,
-  Exhaustive<FreshnessHours, typeof FRESHNESS>,
-  Exhaustive<TrustReason, typeof TRUST_REASONS>,
-  Exhaustive<AlertKind, typeof ALERT_KINDS>,
-  Exhaustive<Alert["kind"], typeof ALERT_KINDS>,
-  Exhaustive<AlertsResponse["groups"][number]["alerts"][number]["kind"], typeof ALERT_KINDS>,
+  Same<DataSource, typeof DATA_SOURCES>,
+  Same<ListingCondition, typeof CONDITIONS>,
+  Same<Code["type"], typeof CODE_TYPES>,
+  Same<Code["status"], typeof CODE_STATUSES>,
+  Same<FreshnessHours, typeof FRESHNESS>,
+  Same<TrustReason, typeof TRUST_REASONS>,
+  Same<AlertKind, typeof ALERT_KINDS>,
+  Same<Alert["kind"], typeof ALERT_KINDS>,
+  Same<AlertsResponse["groups"][number]["alerts"][number]["kind"], typeof ALERT_KINDS>,
 ] = [true, true, true, true, true, true, true, true, true];
 void _exhaustive;
 
