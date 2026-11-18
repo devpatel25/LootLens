@@ -9,6 +9,7 @@ import settings from "@/fixtures/settings.json";
 import lowTrust from "@/fixtures/comparison-lowtrust.json";
 import openapi from "@/public/openapi.json";
 import type {
+  Alert,
   AlertKind,
   AlertsResponse,
   Code,
@@ -53,7 +54,7 @@ const CODE_TYPES = ["pct", "flat"] as const satisfies readonly Code["type"][];
 const CODE_STATUSES = ["live", "dead"] as const satisfies readonly Code["status"][];
 const FRESHNESS = [6, 12, 24, 48, 72] as const satisfies readonly FreshnessHours[];
 const TRUST_REASONS = ["no_https", "few_photo_reviews", "low_rating"] as const satisfies readonly TrustReason[];
-const ALERT_KINDS = ["price_drop", "low_size", "out_of_stock"] as const satisfies readonly AlertKind[];
+const ALERT_KINDS = ["price_drop", "low_size", "out_of_stock"] as const satisfies readonly Alert["kind"][];
 const _exhaustive: [
   Exhaustive<DataSource, typeof DATA_SOURCES>,
   Exhaustive<ListingCondition, typeof CONDITIONS>,
@@ -62,7 +63,9 @@ const _exhaustive: [
   Exhaustive<FreshnessHours, typeof FRESHNESS>,
   Exhaustive<TrustReason, typeof TRUST_REASONS>,
   Exhaustive<AlertKind, typeof ALERT_KINDS>,
-] = [true, true, true, true, true, true, true];
+  Exhaustive<Alert["kind"], typeof ALERT_KINDS>,
+  Exhaustive<AlertsResponse["groups"][number]["alerts"][number]["kind"], typeof ALERT_KINDS>,
+] = [true, true, true, true, true, true, true, true, true];
 void _exhaustive;
 
 const keys = (o: object) => Object.keys(o).sort();
@@ -77,7 +80,7 @@ const isExpired = (k: Code) => k.expiresAt !== null && Date.parse(k.expiresAt) <
 
 const schemas = openapi.components.schemas;
 const bothComparisons = [c, lowTrust as unknown as ItemComparison];
-const alertKinds = schemas.Alert.oneOf.map((o) => o.properties.kind.enum[0]);
+const alertKinds = schemas.Alert.oneOf.flatMap((o) => o.properties.kind.enum);
 
 const ITEM_KEYS = ["category", "createdAt", "id", "imageUrl", "name", "selectedSize", "sizes", "sourceUrl", "typicalPrice", "updatedAt"];
 const CODE_KEYS = ["cashback", "code", "expiresAt", "firstOrderOnly", "id", "label", "lastCheckedAt", "minSpend", "status", "storeId", "storeName", "type", "value"];
@@ -113,6 +116,10 @@ describe("contract fixtures", () => {
       expect([...spec].sort()).toEqual([...list].sort());
     },
   );
+
+  it("labels every comparison listing demo", () => {
+    for (const l of c.listings) expect(l.source).toBe("demo");
+  });
 
   it("resolves listing references", () => {
     const ids = c.listings.map((l) => l.id);
