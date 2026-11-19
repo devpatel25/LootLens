@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import AlertsView from "@/components/AlertsView";
-import { loadAlerts, loadWatches } from "@/lib/alertsData";
+import { hasDemoListings, loadAlerts, loadWatches } from "@/lib/alertsData";
 import { requirePageUserId } from "@/lib/currentUser";
-import { hasDemoListings } from "@/lib/wishlist";
 import Loading from "./loading";
 
 export const metadata: Metadata = { title: "Alerts" };

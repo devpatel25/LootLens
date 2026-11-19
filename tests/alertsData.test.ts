@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET as ALERTS } from "@/app/api/alerts/route";
 import { GET as WATCHES } from "@/app/api/watches/route";
-import { loadAlerts, loadItemWatches, loadWatches } from "@/lib/alertsData";
+import { hasDemoListings, loadAlerts, loadItemWatches, loadWatches } from "@/lib/alertsData";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { signInAs } from "./helpers/auth";
@@ -56,5 +56,18 @@ describe("loadWatches", () => {
   it("loadItemWatches lists the item's watches, and nothing for another user", async () => {
     expect((await loadItemWatches(a, itemId)).map((w) => w.size)).toEqual(["One size"]);
     expect(await loadItemWatches(b, itemId)).toEqual([]);
+  });
+});
+
+// The Alerts page shows the Demo data badge from this.
+describe("hasDemoListings", () => {
+  it("is true while any listing on the user's items is demo", async () => {
+    expect(await hasDemoListings(a)).toBe(true);
+  });
+
+  it("is false once every listing is live, and for a user with no items", async () => {
+    await prisma.listing.updateMany({ data: { source: "LIVE" } });
+    expect(await hasDemoListings(a)).toBe(false);
+    expect(await hasDemoListings(b)).toBe(false);
   });
 });
