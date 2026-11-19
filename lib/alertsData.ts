@@ -46,3 +46,9 @@ export async function loadWatches(userId: string): Promise<WatchWithItem[]> {
 export async function loadItemWatches(userId: string, itemId: string): Promise<Watch[]> {
   return (await prisma.watch.findMany({ where: { userId, itemId }, orderBy: { size: "asc" } })).map(toWatch);
 }
+
+/** True when any listing on the user's items is demo data. */
+export async function hasDemoListings(userId: string): Promise<boolean> {
+  void userId;
+  return false; // stub: the real query moves here from lib/wishlist.ts in the next commit
+}
