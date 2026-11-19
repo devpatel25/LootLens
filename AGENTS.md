@@ -26,6 +26,7 @@ app/                    routes (server components by default)
 proxy.ts                signed-out redirect (pages) and 401 (API)
 types/                  TypeScript type augmentations (next-auth)
 public/openapi.json     API spec (OpenAPI 3.1). Update it when routes change
+public/swagger-ui/      Vendored Swagger UI 5.35.0 dist, unmodified, served at /api-docs
 components/             UI components (ComparisonTable, CodeCard, WatchPanel, ...)
 lib/
   pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
