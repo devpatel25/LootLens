@@ -38,9 +38,3 @@ export async function loadWishlist(userId: string): Promise<WishlistItem[]> {
 export function wishlistShowsDemo(items: WishlistItem[]): boolean {
   return items.some((i) => !i.cheapest || i.cheapest.source === "demo");
 }
-
-/** True when any listing on the user's items is demo data. */
-export async function hasDemoListings(userId: string): Promise<boolean> {
-  const demo = await prisma.listing.findFirst({ where: { source: "DEMO", item: { userId } }, select: { id: true } });
-  return demo !== null;
-}

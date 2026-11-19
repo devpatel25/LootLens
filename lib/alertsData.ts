@@ -49,6 +49,6 @@ export async function loadItemWatches(userId: string, itemId: string): Promise<W
 
 /** True when any listing on the user's items is demo data. */
 export async function hasDemoListings(userId: string): Promise<boolean> {
-  void userId;
-  return false; // stub: the real query moves here from lib/wishlist.ts in the next commit
+  const demo = await prisma.listing.findFirst({ where: { source: "DEMO", item: { userId } }, select: { id: true } });
+  return demo !== null;
 }
