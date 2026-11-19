@@ -120,10 +120,11 @@ describe("applyRefresh stock alerts", () => {
   it("a watch created with the condition already true gives no alert on an unchanged refresh", async () => {
     signInAs(a);
     const { POST } = await import("@/app/api/watches/route");
-    const res = await POST(req("/api/watches", "POST", { itemId, size: "9", targetPrice: 70, lowStockAt: 10 }));
+    // A met price target is refused at creation now (target_not_below), so the already-met condition is stock.
+    const res = await POST(req("/api/watches", "POST", { itemId, size: "9", targetPrice: 55, lowStockAt: 10 }));
     expect(res.status).toBe(201);
     const w = await prisma.watch.findFirstOrThrow({ where: { userId: a } });
-    expect(w).toMatchObject({ priceCondMet: true, stockCondMet: true });
+    expect(w).toMatchObject({ priceCondMet: false, stockCondMet: true });
     expect((await apply(itemId, setStock(1))).alertsCreated).toBe(0);
     expect(await alertCount()).toBe(0);
   });
@@ -162,6 +163,19 @@ describe("applyRefresh with a watch deleted mid-refresh", () => {
 });
 
 describe("applyRefresh sources", () => {
+  it("counts price changes apart from stock-only changes", async () => {
+    const fbmNow = await prisma.listing.findUniqueOrThrow({ where: { id: fbm } });
+    const stockOnly = await apply(itemId, [{ listingId: fbm, price: Number(fbmNow.price), stockBySize: { "8": 0, "9": 7, "10": 0 } }]);
+    expect(stockOnly).toMatchObject({ listingsChanged: 1, pricesChanged: 0 });
+    expect(await apply(itemId, setPrice(55))).toMatchObject({ listingsChanged: 1, pricesChanged: 1 });
+  });
+
+  it("reports how many listings changed (price or stock), and 0 for a no-op", async () => {
+    const first = await applyRefresh(itemId, demoSource);
+    expect(first.listingsChanged).toBeGreaterThan(0);
+    expect((await applyRefresh(itemId, currentSource)).listingsChanged).toBe(0);
+  });
+
   it("leaves updatedAt alone for listings that did not change", async () => {
     const before = await prisma.listing.findMany({ orderBy: { id: "asc" } });
     await applyRefresh(itemId, currentSource);
@@ -235,6 +249,7 @@ describe("POST /api/items/[id]/refresh", () => {
     expect(res.status).toBe(200);
     const { data } = await res.json();
     expect(data.alertsCreated).toBe(1);
+    expect(data.listingsChanged).toBeGreaterThan(0);
     expect(data.comparison.item.id).toBe(itemId);
     expect(data.comparison.listings.find((l: { id: string }) => l.id === fbm).price).toBe(54);
     const row = await prisma.item.findUniqueOrThrow({ where: { id: itemId } });

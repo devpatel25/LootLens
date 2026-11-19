@@ -16,19 +16,22 @@ Next.js 16 differs from older versions in your training data. Before writing Nex
 
 ```
 app/                    routes (server components by default)
-  (auth)/signin/        sign-in page
-  wishlist/             Wishlist home
-  items/[id]/           Item Detail: comparison table, Best Deal, codes, watch panel
-  codes/  alerts/  settings/
+  (auth)/signin/        sign-in page (no shell)
+  (app)/                signed-in screens inside AppShell; layout, loading.tsx, error.tsx
+    wishlist/           Wishlist home (/ redirects here)
+    items/[id]/         Item Detail: comparison table, Best Deal, codes, watch panel
+    codes/  alerts/  settings/
   api-docs/             Swagger UI page for the API spec
   api/                  route handlers = the public API (items, items/[id]/listings, codes,
-                        watches, alerts, stores, settings, health, cron, demo)
+                        watches, alerts, alerts/unread, stores, settings, health, cron, demo)
 proxy.ts                signed-out redirect (pages) and 401 (API)
 types/                  TypeScript type augmentations (next-auth)
 public/openapi.json     API spec (OpenAPI 3.1). Update it when routes change
-components/             UI components (ComparisonTable, CodeCard, WatchPanel, ...)
+components/             UI components (AppShell, AppNav, ComparisonTable, CodeCard, WatchPanel, ...)
+                        shared states: LoadingState, EmptyState, ErrorState, DemoDataBadge
+                        styles.ts: shared class strings (smallButton, field, chip, CONDITION_TAG)
 lib/
-  pricing.ts            pure price math: cheapestListing, bestTotal, isFresh, trustFlags
+  pricing.ts            pure price math: cheapestListing, bestTotal, pickBestDeal, trustedListings, isFresh, trustFlags
   alerts.ts             pure alert evaluation
   demoSource.ts         pure demo price feed (ListingUpdate[] from listings)
   refresh.ts            applyRefresh (locked transaction, deduped alerts), refreshItems, refreshSource, currentSource
@@ -37,6 +40,27 @@ lib/
   db-guard.ts           assertNonProdDb()
   prisma.ts  auth.ts
   authConfig.ts         edge-safe auth config and routeDecision (no Prisma)
+  authActions.ts        server actions: signInWithGoogle, signOutAction
+  signin.ts             safeCallbackUrl, signInUrl, reauthUrl, keepSignInPage, signInErrorMessage (client-safe)
+  signInAgain.ts        signInAgain(): browser goes to reauthUrl for the current page (apiFetch calls it on a 401)
+  paths.ts              isUnder: the one "this path or below" rule (proxy, callbackUrl, nav); itemPagePath
+  format.ts             formatUsd (display only)
+  storeLabel.ts         needsFictionalLabel, storeLabel: fictional stores are labelled from store.fictional
+  currentUser.ts        requirePageUserId(returnTo): session user id for server pages (else sign-in, keeping returnTo)
+  wishlist.ts           loadWishlist (GET /api/items and the Wishlist page), wishlistShowsDemo (badge from the cards), hasDemoListings
+  apiClient.ts          apiFetch for client components, ApiClientError, friendlyMessage
+  itemForm.ts           item form values <-> API body, validated with itemSchema
+  useModalDialog.ts     <dialog> as a modal: Escape, data-autofocus, focus back to the opener
+  format.ts             formatUsd, checkedAgo, endsIn (display only)
+  codes.ts              loadCodes({ showDead, freshnessHours (number or promise) }): uses codeState, so API and browser agree
+  codeStatus.ts         codeState (live, dead, stale, expired) for client components; CODES_ARE_DEMO
+  useNow.ts             useServerClock and useNow: tick on server time, re-anchor on refresh; a gap over 5 min is checked with one refresh
+  useVisiblePoll.ts     useVisiblePoll(fn, ms): every ms while the tab is visible, and once when it is shown again
+  useAnnouncement.ts    useAnnouncement(): status message plus a fresh seq, so a repeated message is read again
+  useUnreadAlerts.ts    useUnreadAlerts(): nav badge count from GET /api/alerts/unread, or from the Alerts page's own data
+  trust.ts              plain wording for trustFlags reasons (storeLabel is in storeLabel.ts)
+  alertsData.ts         loadAlerts, loadWatches, loadItemWatches (GET /api/alerts and the Alerts page share loadAlerts)
+  alertText.ts          plain wording for alerts and watches; ALERTS_CHANGED event (may carry unreadCount) and POLL_MS
   apiError.ts           dependency-free error response builders (used by http.ts and proxy.ts)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
@@ -49,8 +73,9 @@ prisma/                 schema.prisma, migrations/, seed.ts
 prisma.config.ts        Prisma CLI config (env loading, seed command)
 fixtures/               demo JSON in API shapes, for UI work and tests
 tests/                  Vitest unit + integration (helpers/ for db reset)
-e2e/                    Playwright
-docs/                   architecture, API, schema, sprints, retros, reviews
+e2e/                    Playwright (a11y.spec.ts: axe WCAG 2.2 A/AA on every screen)
+scripts/smoke.mjs       production smoke test (npm run smoke)
+docs/                   architecture, API, schema, a11y audit, demo script, contributions, sprints, retros, reviews
 ```
 
 Put new code in this map. If the map has to change, update this section in the same PR.
@@ -95,6 +120,18 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 - **Money:** prices are numbers in USD. Round only for display, with `Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })`.
 - **Naming:** components `PascalCase.tsx`, one component per file; lib modules `camelCase.ts`; tests `*.test.ts(x)` beside the code or in `tests/`; E2E `e2e/*.spec.ts`.
 
+### Frontend conventions
+
+- **Screens.** A signed-in screen lives in `app/(app)/<name>/page.tsx` and gets the shell from `app/(app)/layout.tsx`. Give it one `<h1>` and `export const metadata = { title }`. Add the screen to `NAV_ITEMS` in `components/NavBar.tsx` only if it is a main tab (`AppNav` only reads the URL and renders `NavBar`).
+- **Session reads.** `cacheComponents` is on, so any server component that calls `auth()` sits inside `<Suspense>` and calls `await connection()` first. Never import `lib/auth` in a client file; pass the data or a server action down as props. Session redirects belong in `routeDecision` (`lib/authConfig.ts`, used by `proxy.ts`), which keeps the return address: signed-out visits go to `/signin?callbackUrl=...`, and signed-in visits to `/signin` go on to that address.
+- **Blocking segments.** `app/(app)/layout.tsx` and `/signin` set `export const instant = false`, so they render on the server before sending. That puts the nav (which reads the URL with `usePathname`) with the current tab marked, and the whole sign-in form, in the first HTML. Anywhere else, a client component that reads the URL sits inside `<Suspense>`, or the build fails on dynamic routes such as `/items/[id]`.
+- **States.** Every data screen shows all four states with the shared components: `loading.tsx` uses `LoadingState`, `error.tsx` uses `ErrorState` with `retry`, an empty list uses `EmptyState` with a next step, and populated data shows `DemoDataBadge` while any of it is demo. Never render a raw error message.
+- **Forms and mutations.** Signed-in screens stream their data behind `<Suspense>`, and streamed content stays hidden until JavaScript runs, so those screens need JavaScript. Their forms and buttons call the matching API route through `lib/apiClient.ts`, then `router.refresh()`; do not keep a second copy of server data in client state. The sign-in page is the exception: it is server-rendered and its `<form action>` server action works before JavaScript loads.
+- **Sheets and menus.** Escape closes them and focus goes back to the button that opened them. A menu toggle has `aria-expanded` and `aria-controls`. A sheet is a native `<dialog>` opened with `useModalDialog`, labelled by its heading; mark the field that should get focus with `data-autofocus` (React's `autoFocus` does not reach `showModal`).
+- **Styling.** Tailwind only, mobile first, then `md:` for the sidebar layout. Pair every colour with a `dark:` value. Use `emerald-700` and darker for brand and focus rings; check AA contrast for any new colour pair.
+- **Tests.** Query by role and accessible name. Next.js renders an empty `role="alert"` route announcer on every page, so in E2E scope alerts by text. Component tests that use `usePathname` or `useRouter` mock `next/navigation` with `vi.mock`.
+- **E2E files.** `e2e/<feature>.spec.ts` runs signed in as `demo@lootlens.test`; `e2e/<feature>-anon.spec.ts` runs signed out. The test DB is reseeded at the start of every run, and all signed-in specs share one user, so a spec that changes data creates its own records and finds them by name. Settings are per user: a spec that changes them signs in as `settings@lootlens.test` with `test.use({ storageState: "e2e/.auth/settings-user.json" })` (created in `e2e/auth-setup.ts`).
+
 ## 3. Data honesty
 
 - Every screen showing seeded, simulated, or fixture data shows the `<DemoDataBadge>` ("Demo data"). Listings carry `source: "live" | "demo"`; label each one.
@@ -112,6 +149,7 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
   - Route handlers: integration tests covering 401, 400, cross-user 404 for read and mutate, and the success shape.
   - UI: component tests for all four states (loading, empty, error, populated) and one Playwright flow per user story. Every data route gets a `loading.tsx` and an `error.tsx`.
 - Query UI tests by role and accessible name (`getByRole("columnheader", { name: "Price" })`), the same way a user finds things. Use `getByText` only for plain text that has no role, scoped with `within(row)`.
+- New screens and states get a case in `e2e/a11y.spec.ts`; it must report no WCAG A or AA violations.
 - `npm run lint`, `npm run typecheck`, `npm test`, and `npm run test:e2e` all pass before a PR asks for review.
 
 ## 5. Scrum workflow
