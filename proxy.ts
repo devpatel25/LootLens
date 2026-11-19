@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import NextAuth from "next-auth";
 import { authConfig, routeDecision } from "@/lib/authConfig";
 import { keepSignInPage, safeCallbackUrl, signInUrl } from "@/lib/signin";
+import { unauthorizedResponse } from "@/lib/apiError";
 
 // Built from authConfig only, so the proxy never loads Prisma.
 const { auth } = NextAuth(authConfig);
@@ -9,7 +10,7 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const d = routeDecision(req.nextUrl.pathname, !!req.auth?.user?.id);
   if (d === "unauthorized") {
-    return Response.json({ error: { code: "unauthorized", message: "Sign in required" } }, { status: 401 });
+    return unauthorizedResponse();
   }
   if (d === "redirect") return NextResponse.redirect(new URL(signInUrl(req.nextUrl.pathname, req.nextUrl.search), req.nextUrl));
   // Only page visits are sent on. A sign-in POST (server action) from a stale tab must reach /signin itself,
