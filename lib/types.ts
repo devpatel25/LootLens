@@ -79,9 +79,9 @@ export type Code = {
  * flat value is USD; the discount is capped at the price. Cashback is the store's
  * highest ratePct offer applied to price minus discount.
  * Amounts are unrounded. total = price - code.discount - cashback.amount.
- * Code choice: the applicable code with the largest discount, one code per listing,
- * no stacking. Discounts compare to the cent. On a tie the code that comes first
- * in the codes list the backend reads wins.
+ * Code choice: the applicable code that gives the lowest total to the cent, one code
+ * per listing, no stacking. On a tie the code that comes first in the codes list the
+ * backend reads wins.
  */
 export type BestDeal = {
   listingId: string;
