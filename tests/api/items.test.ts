@@ -89,6 +89,8 @@ describe("POST /api/items", () => {
     ["price too large for the column", { ...good, typicalPrice: 1e9 }],
     ["more than two decimals", { ...good, typicalPrice: 12.345 }],
     ["overlong selectedSize", { ...good, sizes: ["x".repeat(21)], selectedSize: "x".repeat(21) }],
+    ["a comma inside a size", { ...good, sizes: ["42,5", "43"], selectedSize: "43" }],
+    ["a comma inside selectedSize", { ...good, sizes: ["42,5"], selectedSize: "42,5" }],
   ])("400 for %s", async (_n, body) => {
     const res = await post(body);
     expect(res.status).toBe(400);
@@ -174,6 +176,13 @@ describe("/api/items/[id]", () => {
 
   it("PATCH 400 when selectedSize alone is outside sizes", async () => {
     expect((await patch({ selectedSize: "XL" })).status).toBe(400);
+  });
+
+  it("PATCH 400 for a comma inside a size, and the sizes are unchanged", async () => {
+    const res = await patch({ sizes: ["S", "M", "L,XL"] });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe("bad_request");
+    expect((await prisma.item.findUniqueOrThrow({ where: { id } })).sizes).toEqual(["S", "M", "L"]);
   });
 
   it("PATCH 400 for bad json", async () => {

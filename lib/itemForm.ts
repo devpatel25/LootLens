@@ -75,7 +75,8 @@ export function formValuesFromItem(item: Item): ItemFormValues {
 
 /**
  * The sizes the form stands for. While the sizes text is still what the item showed, the item's own list is
- * kept, so a size with a comma in it ("42,5") is not split into two.
+ * kept, so a size saved with a comma before #67 ("42,5") is not split into two: the schema rejects it and the
+ * user is asked to retype the sizes.
  */
 export function sizesFrom(values: ItemFormValues, original?: Item): string[] {
   return original && values.sizes === formValuesFromItem(original).sizes ? original.sizes : parseSizes(values.sizes);
@@ -122,7 +123,8 @@ export function toItemBody(
     const field = issue.path[0] as keyof ItemFormValues | undefined;
     if (!field || !(field in MESSAGES) || errors[field]) continue;
     errors[field] = field === "typicalPrice" ? (priceMessage(price) ?? MESSAGES.typicalPrice) : (BY_CODE[field]?.[issue.code] ?? MESSAGES[field]);
-    if (field === "sizes" && issue.path.length > 1) errors.sizes = "Each size can be at most 20 characters.";
+    if (field === "sizes" && issue.code === "custom" && issue.path.length > 1) errors.sizes = "A size can't contain a comma. Retype the sizes with commas only between them.";
+    else if (field === "sizes" && issue.path.length > 1) errors.sizes = "Each size can be at most 20 characters.";
     else if (field === "sizes" && issue.code === "too_big") errors.sizes = "Use at most 12 sizes.";
   }
   // The "size must be in sizes" rule only runs once the fields parse, so check it here too.
