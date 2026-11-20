@@ -27,6 +27,7 @@ app/                    routes (server components by default)
 proxy.ts                signed-out redirect (pages) and 401 (API)
 types/                  TypeScript type augmentations (next-auth)
 public/openapi.json     API spec (OpenAPI 3.1). Update it when routes change
+public/swagger-ui/      Vendored Swagger UI 5.35.0 dist, unmodified, served at /api-docs
 components/             UI components (AppShell, AppNav, ComparisonTable, CodeCard, WatchPanel, ...)
                         shared states: LoadingState, EmptyState, ErrorState, DemoDataBadge
                         styles.ts: shared class strings (smallButton, field, chip, CONDITION_TAG)

@@ -2,7 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import { isUnder } from "@/lib/paths";
 
-const PUBLIC = ["/signin", "/api/auth", "/api/health", "/api/cron/refresh", "/api-docs", "/openapi.json"];
+const PUBLIC = ["/signin", "/api/auth", "/api/health", "/api/cron/refresh", "/api-docs", "/openapi.json", "/swagger-ui"];
 
 export function routeDecision(pathname: string, signedIn: boolean): "next" | "redirect" | "unauthorized" | "leave-signin" {
   // A signed-in visit to the sign-in page goes on to its callbackUrl (proxy.ts skips that for ?error or ?reauth),

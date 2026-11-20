@@ -26,10 +26,10 @@ Auth.js (Google sign-in, JWT sessions) handles auth.
 
 ## Links
 
-- API docs (Swagger UI): `/api-docs`. The spec is `/openapi.json` (`public/openapi.json`).
+- API docs (Swagger UI): `/api-docs`. Swagger UI 5.35.0 is vendored in `public/swagger-ui`, so the page loads nothing from a CDN. The spec is `/openapi.json` (`public/openapi.json`).
 - Database schema: [`docs/schema.md`](docs/schema.md)
 - Scrum board: https://github.com/users/devpatel25/projects/1
-- Production URL: TBD after deploy setup (#5)
+- Production URL: https://loot-lens-eight.vercel.app
 
 ## Getting started
 
