@@ -411,7 +411,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Updated comparison and the number of alerts it created",
+            "description": "Updated comparison, the number of alerts it created, and how many listings and prices changed",
             "content": {
               "application/json": {
                 "schema": {
@@ -424,7 +424,9 @@
                       "type": "object",
                       "required": [
                         "comparison",
-                        "alertsCreated"
+                        "alertsCreated",
+                        "listingsChanged",
+                        "pricesChanged"
                       ],
                       "properties": {
                         "comparison": {
@@ -433,6 +435,16 @@
                         "alertsCreated": {
                           "type": "integer",
                           "minimum": 0
+                        },
+                        "listingsChanged": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Listings whose price or stock changed in this refresh"
+                        },
+                        "pricesChanged": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "description": "Listings whose price changed in this refresh (stock-only changes are not counted)"
                         }
                       }
                     }
@@ -801,7 +813,7 @@
             "sessionCookie": []
           }
         ],
-        "description": "The watch starts from the current price and stock, so an alert fires only on a later crossing. Limits: 10 watches per user, one per item and size. A duplicate is checked first, so re-submitting an existing watch gives `watch_exists`, not `watch_limit`. A 400 with code `no_listing` means no store has the size in stock.",
+        "description": "The watch starts from the current price and stock, so an alert fires only on a later crossing. Limits: 10 watches per user, one per item and size. A duplicate is checked first, so re-submitting an existing watch gives `watch_exists`, not `watch_limit`. A 400 with code `no_listing` means no store has the size in stock. 400 codes: bad_request (validation, size not in item.sizes), no_listing (size out of stock everywhere), target_not_below (targetPrice is at or above the current cheapest price).",
         "tags": [
           "Watches"
         ],
@@ -973,6 +985,55 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/AlertsResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/api/alerts/unread": {
+      "get": {
+        "summary": "Unread alert count for the nav badge",
+        "description": "Only the count, so the badge can poll cheaply.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Alerts"
+        ],
+        "responses": {
+          "200": {
+            "description": "The signed-in user's unread alerts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "unreadCount"
+                      ],
+                      "properties": {
+                        "unreadCount": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
                     }
                   }
                 }
@@ -1572,14 +1633,16 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 20
+                  "maxLength": 20,
+                  "pattern": "^[^,]*$"
                 }
               },
               "selectedSize": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 20,
-                "description": "Must be one of sizes"
+                "description": "Must be one of sizes. No commas, since the app splits sizes on commas.",
+                "pattern": "^[^,]*$"
               },
               "typicalPrice": {
                 "type": "number",
@@ -1634,14 +1697,16 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 20
+                  "maxLength": 20,
+                  "pattern": "^[^,]*$"
                 }
               },
               "selectedSize": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 20,
-                "description": "Must be one of sizes"
+                "description": "Must be one of sizes. No commas, since the app splits sizes on commas.",
+                "pattern": "^[^,]*$"
               },
               "typicalPrice": {
                 "type": "number",
@@ -1725,7 +1790,11 @@
                     "required": [
                       "listingId",
                       "storeName",
-                      "price"
+                      "price",
+                      "condition",
+                      "source",
+                      "fictional",
+                      "lowTrust"
                     ],
                     "properties": {
                       "listingId": {
@@ -1736,6 +1805,29 @@
                       },
                       "price": {
                         "type": "number"
+                      },
+                      "condition": {
+                        "type": "string",
+                        "enum": [
+                          "new",
+                          "used",
+                          "resale"
+                        ]
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "live",
+                          "demo"
+                        ]
+                      },
+                      "fictional": {
+                        "type": "boolean",
+                        "description": "The store is a made-up demo store"
+                      },
+                      "lowTrust": {
+                        "type": "boolean",
+                        "description": "The store fails trustFlags"
                       }
                     }
                   },
@@ -1743,7 +1835,7 @@
                     "type": "null"
                   }
                 ],
-                "description": "Cheapest in-stock listing for the saved size"
+                "description": "Cheapest in-stock listing for the saved size, with what a card needs to label it"
               }
             }
           }
@@ -1971,7 +2063,8 @@
           "cheapestListingId",
           "cheapestTrustedListingId",
           "bestDeals",
-          "bestDeal"
+          "bestDeal",
+          "bestTrustedDeal"
         ],
         "properties": {
           "item": {
@@ -2019,6 +2112,17 @@
               }
             ],
             "description": "Lowest total among listings in stock for the saved size"
+          },
+          "bestTrustedDeal": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BestDeal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Lowest total among in-stock listings for the saved size at stores that pass trustFlags, or null"
           }
         }
       },
@@ -2100,7 +2204,7 @@
             "properties": {
               "alreadyMet": {
                 "type": "boolean",
-                "description": "True when the current cheapest in-stock price for the size is already at or below targetPrice. False for any drop. No alert fires for this, alerts fire only on a later crossing."
+                "description": "Always false today: a targetPrice at or above the current cheapest in-stock price for the size is refused with 400 target_not_below. Kept in the contract in case that rule changes."
               }
             }
           }
@@ -2307,7 +2411,8 @@
         "type": "object",
         "required": [
           "groups",
-          "unreadCount"
+          "unreadCount",
+          "readCount"
         ],
         "properties": {
           "groups": {
@@ -2341,6 +2446,11 @@
           },
           "unreadCount": {
             "type": "integer"
+          },
+          "readCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Read alerts in the database, for Clear read alerts"
           }
         }
       }

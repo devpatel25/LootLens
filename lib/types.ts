@@ -79,9 +79,9 @@ export type Code = {
  * flat value is USD; the discount is capped at the price. Cashback is the store's
  * highest ratePct offer applied to price minus discount.
  * Amounts are unrounded. total = price - code.discount - cashback.amount.
- * Code choice: the applicable code with the largest discount, one code per listing,
- * no stacking. Discounts compare to the cent. On a tie the code that comes first
- * in the codes list the backend reads wins.
+ * Code choice: the applicable code that gives the lowest total to the cent, one code
+ * per listing, no stacking. On a tie the code that comes first in the codes list the
+ * backend reads wins.
  */
 export type BestDeal = {
   listingId: string;
@@ -116,11 +116,22 @@ export type ItemComparison = {
    * alternative in bestDeals through cheapestTrustedListingId.
    */
   bestDeal: BestDeal | null;
+  /** Lowest total among listings in stock for item.selectedSize at stores that pass trustFlags, or null. */
+  bestTrustedDeal: BestDeal | null;
 };
 
 /** GET /api/items */
 export type WishlistItem = Item & {
-  cheapest: { listingId: string; storeName: string; price: number } | null;
+  /** The cheapest in-stock listing for the saved size, with what a card needs to label it honestly. */
+  cheapest: {
+    listingId: string;
+    storeName: string;
+    price: number;
+    condition: ListingCondition;
+    source: DataSource;
+    fictional: boolean;
+    lowTrust: boolean;
+  } | null;
 };
 
 /** GET /api/settings */
@@ -141,10 +152,9 @@ export type Watch = {
 export type AlertKind = "price_drop" | "low_size" | "out_of_stock";
 
 /**
- * POST /api/watches success data: the new Watch plus alreadyMet. alreadyMet is true when
- * the current cheapest in-stock price for the saved size is already at or below
- * targetPrice at creation. Alerts stay crossing-only, so no alert fires for this; the UI
- * uses the flag to say the item is already at the target.
+ * POST /api/watches success data: the new Watch plus alreadyMet. A target at or above the
+ * current cheapest in-stock price for the saved size is refused with 400 target_not_below,
+ * so alreadyMet is always false today. It stays in the contract in case that rule changes.
  */
 export type CreatedWatch = Watch & { alreadyMet: boolean };
 
@@ -170,7 +180,16 @@ export type Alert = {
 export type AlertsResponse = {
   groups: { itemId: string; itemName: string; unread: number; alerts: Alert[] }[];
   unreadCount: number;
+  /** Read alerts in the database (all of them, not only the ones loaded), for Clear read alerts. */
+  readCount: number;
 };
+
+/** POST /api/items/[id]/refresh */
+/** listingsChanged counts price or stock changes; pricesChanged counts only listings whose price changed. */
+export type RefreshResult = { comparison: ItemComparison; alertsCreated: number; listingsChanged: number; pricesChanged: number };
+
+/** GET /api/alerts/unread */
+export type UnreadCount = { unreadCount: number };
 
 export type ApiOk<T> = { data: T };
 export type ApiError = {

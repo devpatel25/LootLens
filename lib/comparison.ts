@@ -1,5 +1,5 @@
 import { listingsInclude, toCode, toItem, toListingsAndStores } from "@/lib/dto";
-import { bestDeal, bestTotal, cheapestListing, cheapestTrustedListing } from "@/lib/pricing";
+import { bestTotal, cheapestListing, cheapestTrustedListing, pickBestDeal, trustedListings } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import type { ItemComparison } from "@/lib/types";
@@ -31,6 +31,8 @@ export async function loadComparison(itemId: string, userId: string): Promise<It
     cheapestListingId: cheapestListing(listings, stores, item.selectedSize)?.id ?? null,
     cheapestTrustedListingId: cheapestTrustedListing(listings, stores, item.selectedSize)?.id ?? null,
     bestDeals,
-    bestDeal: bestDeal(listings, stores, codes, item.selectedSize, settings, now),
+    // Both picked from the totals above, so each listing's total is worked out once.
+    bestDeal: pickBestDeal(bestDeals, listings, stores, item.selectedSize),
+    bestTrustedDeal: pickBestDeal(bestDeals, trustedListings(listings, stores), stores, item.selectedSize),
   };
 }

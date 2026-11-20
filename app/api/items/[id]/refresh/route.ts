@@ -3,6 +3,7 @@ import { fail, itemNotFound, ok, parse, requireUserId, route } from "@/lib/http"
 import { idParams } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
 import { applyRefresh, REFRESH_COOLDOWN_MS, refreshSource } from "@/lib/refresh";
+import type { RefreshResult } from "@/lib/types";
 
 export const POST = route(async (_req: Request, ctx: RouteContext<"/api/items/[id]/refresh">) => {
   const userId = await requireUserId();
@@ -32,13 +33,17 @@ export const POST = route(async (_req: Request, ctx: RouteContext<"/api/items/[i
   }
 
   let alertsCreated: number;
+  let listingsChanged: number;
+  let pricesChanged: number;
   try {
-    ({ alertsCreated } = await applyRefresh(item.id, refreshSource()));
+    ({ alertsCreated, listingsChanged, pricesChanged } = await applyRefresh(item.id, refreshSource()));
   } catch (e) {
     // Give the cooldown slot back so the user can retry.
     await prisma.item.updateMany({ where: { id: item.id, userId }, data: { lastRefreshedAt: item.lastRefreshedAt } });
     throw e;
   }
   const comparison = await loadComparison(item.id, userId);
-  return comparison ? ok({ comparison, alertsCreated }) : itemNotFound();
+  if (!comparison) return itemNotFound();
+  const data: RefreshResult = { comparison, alertsCreated, listingsChanged, pricesChanged };
+  return ok(data);
 });

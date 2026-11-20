@@ -20,11 +20,12 @@ export function currentSource(listings: Listing[]): ListingUpdate[] {
  * then raises alerts for the item's active watches. Concurrent refreshes of one item run one after the other,
  * each on the latest state.
  * Dedupe: an alert is created only by the call that flips a watch's cond flag from false to true.
+ * Returns how many alerts it created, how many listings changed (price or stock), and how many prices changed.
  */
 export async function applyRefresh(
   itemId: string,
   source: (listings: Listing[]) => ListingUpdate[],
-): Promise<{ alertsCreated: number }> {
+): Promise<{ alertsCreated: number; listingsChanged: number; pricesChanged: number }> {
   return prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM "Item" WHERE id = ${itemId} FOR UPDATE`;
     const load = async () => {
@@ -38,6 +39,7 @@ export async function applyRefresh(
     const updates = source(snapshot.listings);
 
     const changed: { listingId: string; price: number }[] = [];
+    let listingsChanged = 0;
     for (const u of updates) {
       const was = old.get(u.listingId);
       if (!was) continue;
@@ -45,6 +47,7 @@ export async function applyRefresh(
       // Skip no-op writes so Listing.updatedAt keeps meaning "last changed".
       if (!priceChanged && sameStock(was.stockBySize, u.stockBySize)) continue;
       await tx.listing.update({ where: { id: u.listingId }, data: { price: u.price, stockBySize: u.stockBySize } });
+      listingsChanged++;
       if (priceChanged) changed.push({ listingId: u.listingId, price: u.price });
     }
     await tx.priceHistory.createMany({ data: changed });
@@ -83,7 +86,7 @@ export async function applyRefresh(
         alertsCreated++;
       }
     }
-    return { alertsCreated };
+    return { alertsCreated, listingsChanged, pricesChanged: changed.length };
   }, { timeout: 15000 });
 }
 

@@ -90,13 +90,14 @@ describe("contract fixtures", () => {
     expect(keys(comparison)).toEqual([
       "bestDeal",
       "bestDeals",
+      "bestTrustedDeal",
       "cheapestListingId",
       "cheapestTrustedListingId",
       "item",
       "listings",
       "stores",
     ]);
-    expect(keys(alerts)).toEqual(["groups", "unreadCount"]);
+    expect(keys(alerts)).toEqual(["groups", "readCount", "unreadCount"]);
     expect(keys(settings)).toEqual(["firstOrderEligible", "freshnessHours"]);
   });
 

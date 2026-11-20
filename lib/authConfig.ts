@@ -1,11 +1,15 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
+import { isUnder } from "@/lib/paths";
 
 const PUBLIC = ["/signin", "/api/auth", "/api/health", "/api/cron/refresh", "/api-docs", "/openapi.json", "/swagger-ui"];
 
-export function routeDecision(pathname: string, signedIn: boolean): "next" | "redirect" | "unauthorized" {
-  if (signedIn || PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "next";
-  return pathname === "/api" || pathname.startsWith("/api/") ? "unauthorized" : "redirect";
+export function routeDecision(pathname: string, signedIn: boolean): "next" | "redirect" | "unauthorized" | "leave-signin" {
+  // A signed-in visit to the sign-in page goes on to its callbackUrl (proxy.ts skips that for ?error or ?reauth),
+  // so the page itself never reads the session.
+  if (signedIn) return isUnder(pathname, "/signin") ? "leave-signin" : "next";
+  if (PUBLIC.some((p) => isUnder(pathname, p))) return "next";
+  return isUnder(pathname, "/api") ? "unauthorized" : "redirect";
 }
 
 export const callbacks = {
@@ -18,10 +22,9 @@ export const callbacks = {
 export const authConfig = {
   providers: [Google],
   session: { strategy: "jwt" },
-  pages: { signIn: "/signin" },
+  // Auth.js sends sign-in errors to `signIn` and the rest (AccessDenied, Configuration) to `error`. Both go to
+  // our page, which turns the ?error= code into a plain message (lib/signin.ts).
+  pages: { signIn: "/signin", error: "/signin" },
   callbacks,
 } satisfies NextAuthConfig;
 
-export function signInUrl(pathname: string, search: string): string {
-  return `/signin?callbackUrl=${encodeURIComponent(pathname + search)}`;
-}

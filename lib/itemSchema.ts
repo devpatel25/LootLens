@@ -9,15 +9,18 @@ export const moneySchema = z
   .max(99999.99)
   .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, "at most 2 decimal places");
 
+// The form splits sizes on commas, so a comma inside one size could never be edited back.
+const size = z.string().trim().min(1).max(20).refine((s) => !s.includes(","), "a size cannot contain a comma");
+
 const base = z.object({
   name: z.string().trim().min(1).max(120),
   category: z.string().trim().min(1).max(40),
   sizes: z
-    .array(z.string().trim().min(1).max(20))
+    .array(size)
     .min(1)
     .max(12)
     .refine((a) => new Set(a).size === a.length, "sizes must be unique"),
-  selectedSize: z.string().trim().min(1).max(20),
+  selectedSize: size,
   typicalPrice: moneySchema,
   imageUrl: url,
   sourceUrl: url,
