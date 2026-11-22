@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Most items one user can keep. POST /api/items answers 409 item_limit at this count. */
+export const MAX_ITEMS_PER_USER = 100;
+
 const url = z.url({ protocol: /^https?$/ }).nullable().optional();
 
 /** Fits Decimal(10,2): positive, at most 99999.99 and whole cents. */

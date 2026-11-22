@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/items/route";
+import { MAX_ITEMS_PER_USER } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
 import type { WishlistItem } from "@/lib/types";
 import { loadWishlist, wishlistShowsDemo } from "@/lib/wishlist";
@@ -32,6 +33,19 @@ describe("loadWishlist", () => {
 
   it("returns nothing for another user", async () => {
     expect(await loadWishlist(b)).toEqual([]);
+  });
+
+  it("returns at most the per-user cap, keeping the newest items", async () => {
+    const item = (name: string, createdAt: Date) => ({ userId: b, name, category: "shoes" as const, sizes: ["9"], selectedSize: "9", typicalPrice: 10, createdAt });
+    await prisma.item.createMany({
+      data: [
+        ...Array.from({ length: MAX_ITEMS_PER_USER }, (_, i) => item(`old${i}`, new Date("2026-01-01"))),
+        ...Array.from({ length: 5 }, (_, i) => item(`new${i}`, new Date("2026-02-01"))),
+      ],
+    });
+    const names = (await loadWishlist(b)).map((i) => i.name);
+    expect(names).toHaveLength(MAX_ITEMS_PER_USER);
+    expect(names.slice(0, 5).sort()).toEqual(["new0", "new1", "new2", "new3", "new4"]);
   });
 });
 

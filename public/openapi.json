@@ -77,6 +77,7 @@
     "/api/items": {
       "get": {
         "summary": "List the user's items with the cheapest current listing for the saved size",
+        "description": "Returns at most 100 items, the per-user cap, so the list is never unbounded.",
         "security": [
           {
             "sessionCookie": []
@@ -159,6 +160,16 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "409": {
+            "description": "The user already has 100 items. Code `item_limit`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/500"

@@ -1,4 +1,5 @@
 import { listingsInclude, toItem, toListingsAndStores } from "@/lib/dto";
+import { MAX_ITEMS_PER_USER } from "@/lib/itemSchema";
 import { cheapestListing } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import type { Listing, Store, WishlistItem } from "@/lib/types";
@@ -16,12 +17,13 @@ function cheapestFor(best: Listing, stores: Store[]): NonNullable<WishlistItem["
   };
 }
 
-/** The user's items, newest first, each with its cheapest in-stock listing for the saved size. */
+/** The user's items (at most the per-user cap), newest first, each with its cheapest in-stock listing for the saved size. */
 export async function loadWishlist(userId: string): Promise<WishlistItem[]> {
   const rows = await prisma.item.findMany({
     where: { userId },
     orderBy: [{ createdAt: "desc" }, { id: "asc" }],
     include: listingsInclude,
+    take: MAX_ITEMS_PER_USER,
   });
   return rows.map((row) => {
     const { listings, stores } = toListingsAndStores(row.listings);

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DELETE, GET as GET_ONE, PATCH } from "@/app/api/items/[id]/route";
 import { GET as COMPARE } from "@/app/api/items/[id]/listings/route";
 import { GET, POST } from "@/app/api/items/route";
+import { MAX_ITEMS_PER_USER } from "@/lib/itemSchema";
 import { prisma } from "@/lib/prisma";
 import { seed } from "@/prisma/seed";
 import { ctx, req } from "../helpers/api";
@@ -293,5 +294,42 @@ describe("/api/items/[id]", () => {
     expect((await res.json()).data).toEqual({ id });
     expect(await prisma.item.count({ where: { id } })).toBe(0);
     expect(await prisma.listing.count({ where: { itemId: id } })).toBe(0);
+  });
+});
+
+describe("item cap", () => {
+  const post = () => POST(req("/api/items", "POST", good));
+  const fill = (n: number) =>
+    prisma.item.createMany({
+      data: Array.from({ length: n }, (_, i) => ({ userId: b, name: `f${i}`, category: "shoes", sizes: ["9"], selectedSize: "9", typicalPrice: 10 })),
+    });
+
+  it("409 item_limit when the user already has the cap", async () => {
+    signInAs(b);
+    await fill(MAX_ITEMS_PER_USER);
+    const res = await post();
+    expect(res.status).toBe(409);
+    expect((await res.json()).error.code).toBe("item_limit");
+    expect(await prisma.item.count({ where: { userId: b } })).toBe(MAX_ITEMS_PER_USER);
+  });
+
+  it("creates the last allowed item", async () => {
+    signInAs(b);
+    await fill(MAX_ITEMS_PER_USER - 1);
+    expect((await post()).status).toBe(201);
+  });
+
+  it("two concurrent creates at one below the cap make only one item", async () => {
+    signInAs(b);
+    await fill(MAX_ITEMS_PER_USER - 1);
+    const res = await Promise.all([post(), post()]);
+    expect(res.map((r) => r.status).sort()).toEqual([201, 409]);
+    expect(await prisma.item.count({ where: { userId: b } })).toBe(MAX_ITEMS_PER_USER);
+  });
+
+  it("GET returns at most the cap", async () => {
+    signInAs(b);
+    await fill(MAX_ITEMS_PER_USER + 5);
+    expect((await (await GET()).json()).data).toHaveLength(MAX_ITEMS_PER_USER);
   });
 });
