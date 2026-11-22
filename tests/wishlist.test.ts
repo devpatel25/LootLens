@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/items/route";
 import { prisma } from "@/lib/prisma";
 import type { WishlistItem } from "@/lib/types";
-import { hasDemoListings, loadWishlist, wishlistShowsDemo } from "@/lib/wishlist";
+import { loadWishlist, wishlistShowsDemo } from "@/lib/wishlist";
 import { seed } from "@/prisma/seed";
 import { signInAs } from "./helpers/auth";
 import { resetDb } from "./helpers/db";
@@ -32,18 +32,6 @@ describe("loadWishlist", () => {
 
   it("returns nothing for another user", async () => {
     expect(await loadWishlist(b)).toEqual([]);
-  });
-});
-
-describe("hasDemoListings", () => {
-  it("is true while any listing on the user's items is demo", async () => {
-    expect(await hasDemoListings(a)).toBe(true);
-  });
-
-  it("is false once every listing is live, and for a user with no items", async () => {
-    await prisma.listing.updateMany({ data: { source: "LIVE" } });
-    expect(await hasDemoListings(a)).toBe(false);
-    expect(await hasDemoListings(b)).toBe(false);
   });
 });
 

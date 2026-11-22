@@ -45,10 +45,9 @@ lib/
   signin.ts             safeCallbackUrl, signInUrl, reauthUrl, keepSignInPage, signInErrorMessage (client-safe)
   signInAgain.ts        signInAgain(): browser goes to reauthUrl for the current page (apiFetch calls it on a 401)
   paths.ts              isUnder: the one "this path or below" rule (proxy, callbackUrl, nav); itemPagePath
-  format.ts             formatUsd (display only)
   storeLabel.ts         needsFictionalLabel, storeLabel: fictional stores are labelled from store.fictional
   currentUser.ts        requirePageUserId(returnTo): session user id for server pages (else sign-in, keeping returnTo)
-  wishlist.ts           loadWishlist (GET /api/items and the Wishlist page), wishlistShowsDemo (badge from the cards), hasDemoListings
+  wishlist.ts           loadWishlist (GET /api/items and the Wishlist page), wishlistShowsDemo (badge from the cards)
   apiClient.ts          apiFetch for client components, ApiClientError, friendlyMessage
   itemForm.ts           item form values <-> API body, validated with itemSchema
   useModalDialog.ts     <dialog> as a modal: Escape, data-autofocus, focus back to the opener
@@ -60,7 +59,7 @@ lib/
   useAnnouncement.ts    useAnnouncement(): status message plus a fresh seq, so a repeated message is read again
   useUnreadAlerts.ts    useUnreadAlerts(): nav badge count from GET /api/alerts/unread, or from the Alerts page's own data
   trust.ts              plain wording for trustFlags reasons (storeLabel is in storeLabel.ts)
-  alertsData.ts         loadAlerts, loadWatches, loadItemWatches (GET /api/alerts and the Alerts page share loadAlerts)
+  alertsData.ts         loadAlerts, loadWatches, loadItemWatches (GET /api/alerts and the Alerts page share loadAlerts), hasDemoListings (Alerts page badge)
   alertText.ts          plain wording for alerts and watches; ALERTS_CHANGED event (may carry unreadCount) and POLL_MS
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
