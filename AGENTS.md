@@ -61,6 +61,7 @@ lib/
   trust.ts              plain wording for trustFlags reasons (storeLabel is in storeLabel.ts)
   alertsData.ts         loadAlerts, loadWatches, loadItemWatches (GET /api/alerts and the Alerts page share loadAlerts), hasDemoListings (Alerts page badge)
   alertText.ts          plain wording for alerts and watches; ALERTS_CHANGED event (may carry unreadCount) and POLL_MS
+  apiError.ts           dependency-free error response builders (used by http.ts and proxy.ts)
   http.ts               route helpers: ok, fail, requireUserId, parse, route (JSON 500 wrapper), isStaleUser
   dto.ts                DB row to API type mappers (toStore, toItem, toListing, toCode, toSettings, toWatch, toAlert)
   settings.ts           getSettings(userId): the user's settings, or the defaults when no row exists (read only)

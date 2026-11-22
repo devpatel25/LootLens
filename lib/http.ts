@@ -1,6 +1,7 @@
 import { unstable_rethrow } from "next/navigation";
 import type { z } from "zod";
 import { auth } from "@/lib/auth";
+import { errorResponse, unauthorizedResponse } from "@/lib/apiError";
 import { Prisma } from "@/lib/generated/prisma/client";
 
 export function ok<T>(data: T, status = 200): Response {
@@ -8,11 +9,11 @@ export function ok<T>(data: T, status = 200): Response {
 }
 
 export function fail(status: number, code: string, message: string, extra?: { retryAfterSeconds?: number }, headers?: HeadersInit): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers });
+  return errorResponse(status, code, message, extra, headers);
 }
 
 export function unauthorized(): Response {
-  return fail(401, "unauthorized", "Sign in required");
+  return unauthorizedResponse();
 }
 
 export function itemNotFound(): Response {
