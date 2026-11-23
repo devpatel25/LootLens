@@ -68,7 +68,7 @@ npm run test:e2e               # Playwright, builds and serves on port 3100
 
 Seed, reset, simulate, and test truncation call `assertNonProdDb()` first. It passes only when `DB_TARGET` is `local`, `ci`, or `preview`, and the `DATABASE_URL` host differs from `PROD_DB_HOST`. `PROD_DB_HOST` must be set unless the `DATABASE_URL` host is loopback (`localhost`, `127.0.0.1`, `::1`); if it is missing for any other host, the guard throws. Production sets `DB_TARGET=production`.
 
-The live site still needs stores and codes to show anything, and the seed cannot run there. `prisma/catalog.ts` (`npm run db:catalog`) fills that gap: it adds the stores and the demo promo codes, and gives demo listings to items that have none. It only adds, so it is safe on production, and `vercel-build` runs it on every deploy. Everything it adds is demo data and carries the Demo data badge.
+The live site still needs stores and codes to show anything, and the seed cannot run there. `prisma/catalog.ts` (`npm run db:catalog`) fills that gap: it adds the stores and the demo promo codes, and gives demo listings to items that have none. It never removes or resets anything, so it is safe on production, and `vercel-build` runs it on every deploy. Everything it adds is demo data and carries the Demo data badge.
 
 The guard is also fail-closed on Prisma CLI commands. Only `generate`, `version`, `validate`, `format`, `migrate deploy`, `migrate status`, `migrate diff`, and `db seed` run without it (the seed calls the guard itself). Every other command, such as `migrate dev` or `migrate reset`, runs the guard first and stops when it throws.
 
@@ -105,7 +105,7 @@ All prices, stock, and codes in this repo are demo data until a real data source
 | `npm test` | Vitest unit and integration tests |
 | `npm run test:e2e` | Playwright E2E (builds, then runs `next start` on port 3100) |
 | `npm run vercel-build` | What Vercel runs: Prisma client, migrate deploy, demo catalog, `next build` |
-| `npm run db:catalog` | Add the stores and demo codes, and demo listings for items with none. Only adds, so it is safe on any database |
+| `npm run db:catalog` | Add the stores and demo codes, and demo listings for items with none. Never removes anything, so it is safe on any database |
 | `npm run db:up` | Start (or create) the local PostgreSQL container on port 5433 |
 | `npm run db:migrate` | `prisma migrate dev` against the dev database. Refuses a production target |
 | `npm run db:test:migrate` | Apply migrations to the test database from `.env.test` |

@@ -154,7 +154,7 @@ erDiagram
 | Watch | the signed-in user | One per user, item and size. Deleted with the item or user. |
 | Alert | the signed-in user | Deleted with the item or user. Each alert stores the watch `size`, so deleting a watch keeps its alerts with their size and sets `watchId` to null. Removing a size in PATCH items deletes that size's watches and their alerts. |
 | UserSettings | the signed-in user | One row per user, created at sign-up by the `createUser` event. Reads fall back to defaults if the row is missing, and PATCH upserts it. |
-| Store | shared | Any signed-in user can read. Created by seed only. |
+| Store | shared | Any signed-in user can read. Created by seed or `prisma/catalog.ts`, which also keeps the store details up to date on every deploy. |
 | Code | shared | Any signed-in user can read and mark live or dead, which sets `lastCheckedAt` and `lastCheckedById`. Created by seed, `prisma/catalog.ts` (the demo codes on every deploy, production included), or ingestion only. `(storeId, code)` is unique, so a store has one row per code text. |
 
 ## Alert dedupe

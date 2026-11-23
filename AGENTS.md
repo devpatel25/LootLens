@@ -107,7 +107,7 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 - `VERCEL_ENV` is an extra check only, never the sole signal.
 - Unit tests keep these cases rejected: `DB_TARGET` missing, `DB_TARGET=production`, and a production host with `VERCEL_ENV` unset.
 
-`prisma/catalog.ts` is the one loader that runs without the guard, on every deploy, production included. It only adds:
+`prisma/catalog.ts` is the one loader that runs without the guard, on every deploy, production included. It never removes anything:
 
 - It creates the stores, or brings their details up to date.
 - It adds the demo promo codes that are missing. A code that already exists, live or dead, stays exactly as it is.
