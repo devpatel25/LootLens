@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { generateDemoListings } from "@/lib/demoListings";
 import { CATALOG_CODES, loadCatalog, refreshDemoCodes } from "@/prisma/catalog";
 import { seed } from "@/prisma/seed";
 import { resetDb } from "@/tests/helpers/db";
@@ -78,6 +79,39 @@ describe("loadCatalog on an empty database (the live site today)", () => {
   });
 });
 
+describe("loadCatalog and the seed together (the shared preview database)", () => {
+  it("the seed still runs after the catalog added codes with the same text", async () => {
+    await loadCatalog(prisma, NOW);
+    const { demoUserId } = await seed(prisma);
+    expect(await prisma.item.count({ where: { userId: demoUserId } })).toBe(3);
+    // The seed's own SAMBA20 replaces the catalog's copy; one row per store and code text.
+    expect(await prisma.code.count({ where: { storeId: "store-adidas", code: "SAMBA20" } })).toBe(1);
+    expect(await prisma.code.findUnique({ where: { id: "code-adidas-20" } })).not.toBeNull();
+  });
+
+  it("gives an empty item the same demo listings a new item gets", async () => {
+    await loadCatalog(prisma, NOW);
+    const u = await newUser("shopper@lootlens.test");
+    const item = await emptyItem(u.id);
+    await loadCatalog(prisma, NOW);
+    // POST /api/items passes the store ids sorted by id from the database.
+    const ids = (await prisma.store.findMany({ select: { id: true }, orderBy: { id: "asc" } })).map((st) => st.id);
+    const want = generateDemoListings({ name: item.name, sizes: item.sizes, selectedSize: item.selectedSize, typicalPrice: 110 }, ids);
+    const got = await prisma.listing.findMany({ where: { itemId: item.id } });
+    const key = (l: { storeId: string; condition: string }) => `${l.storeId}|${l.condition}`;
+    expect(got.map(key).sort()).toEqual(want.map((l) => key({ storeId: l.storeId, condition: String(l.condition) })).sort());
+  });
+
+  it("fills only the empty item when one item has listings and one has none", async () => {
+    const { demoUserId } = await seed(prisma);
+    const before = await prisma.listing.count();
+    const item = await emptyItem(demoUserId, "Hoodie");
+    expect((await loadCatalog(prisma, NOW)).itemsFilled).toBe(1);
+    const added = (await prisma.listing.count()) - before;
+    expect(added).toBe(await prisma.listing.count({ where: { itemId: item.id } }));
+  });
+});
+
 describe("loadCatalog only adds", () => {
   it("never deletes, never revives a dead code, and never touches users, watches or alerts", async () => {
     const { demoUserId } = await seed(prisma);
@@ -123,6 +157,16 @@ describe("refreshDemoCodes (the daily cron keeps demo codes fresh)", () => {
     expect(changed).toEqual(["SAMBA20", "SAVE25", "WELCOME15"]);
     expect(after.filter((c) => changed.includes(c.code)).every((c) => c.lastCheckedAt.toISOString() === NOW.toISOString())).toBe(true);
     expect(after.find((c) => c.id === other.id)?.lastCheckedAt.toISOString()).toBe(before.get(other.id));
+  });
+
+  it("matches on store and code text together, so the same text at another store is left alone", async () => {
+    await loadCatalog(prisma, new Date(NOW.getTime() - 30 * H));
+    const old = new Date(NOW.getTime() - 30 * H);
+    const elsewhere = await prisma.code.create({
+      data: { storeId: "store-target", code: "SAVE10", label: "10% off", type: "PCT", value: 10, status: "LIVE", lastCheckedAt: old },
+    });
+    expect(await refreshDemoCodes(prisma, NOW)).toBe(CATALOG_CODES.length);
+    expect((await prisma.code.findUniqueOrThrow({ where: { id: elsewhere.id } })).lastCheckedAt).toEqual(old);
   });
 });
 
