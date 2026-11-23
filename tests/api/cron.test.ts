@@ -44,9 +44,20 @@ describe("GET /api/cron/refresh", () => {
     await prisma.watch.create({ data: { userId: a, itemId: kb.id, size: "One size", targetPrice: 79, lowStockAt: 0, baselinePrice: 79.99 } });
     const res = await call("Bearer s3cret-value");
     expect(res.status).toBe(200);
-    expect((await res.json()).data).toEqual({ items: 3, alertsCreated: 1, codesExpired: 1, failed: 0 });
+    // The seed has 5 live codes that are also demo catalog codes; the run re-checks them.
+    expect((await res.json()).data).toEqual({ items: 3, alertsCreated: 1, codesExpired: 1, codesChecked: 5, failed: 0 });
     expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-target-expired" } })).status).toBe("DEAD");
     expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-adidas-20" } })).status).toBe("LIVE");
+  });
+
+  it("keeps the demo codes fresh, and leaves dead codes as they are", async () => {
+    const before = await prisma.code.findUniqueOrThrow({ where: { id: "code-amazon-dead" } });
+    const t0 = Date.now();
+    expect((await call("Bearer s3cret-value")).status).toBe(200);
+    // SAVE10 was checked 30 hours ago in the seed, outside the default window.
+    const save10 = await prisma.code.findUniqueOrThrow({ where: { id: "code-walmart-10" } });
+    expect(save10.lastCheckedAt.getTime()).toBeGreaterThanOrEqual(t0);
+    expect(await prisma.code.findUniqueOrThrow({ where: { id: "code-amazon-dead" } })).toEqual(before);
   });
 
   it("one failing item does not stop the rest", async () => {
