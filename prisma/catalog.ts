@@ -5,9 +5,9 @@ import type { Prisma, PrismaClient } from "@/lib/generated/prisma/client";
 
 /**
  * Shared demo data that is safe on every database, production included: the stores, a set of demo promo
- * codes, and demo listings for items that have none. It only adds. It never deletes a row, never changes
- * a code that already exists (so a code someone marked dead stays dead), and never touches users, watches
- * or alerts. `vercel-build` runs it after `prisma migrate deploy`. See AGENTS.md (Environments).
+ * codes, and demo listings for items that have none. It never deletes a row. It keeps the 8 stores' details
+ * up to date, adds only codes that are missing (so a code someone marked dead stays dead), and never touches
+ * users, watches or alerts. `vercel-build` runs it after `prisma migrate deploy`. See AGENTS.md (Environments).
  */
 
 type S = [id: string, name: string, domain: string, seller: string, https: boolean, photos: number, rating: number, fictional: boolean, cashbackPct: number];
@@ -82,17 +82,23 @@ export async function loadCatalog(db: PrismaClient, now = new Date()): Promise<C
       skipDuplicates: true,
     });
     return { stores, codesAdded };
-  });
+  }, { timeout: 30000 });
 
   // Items saved while there were no stores never got listings. Give them the same demo listings a new item gets.
-  const storeIds = STORES.map(([id]) => id);
+  // Same store order as POST /api/items, so an item gets the same demo listings either way.
+  const storeIds = (await db.store.findMany({ select: { id: true }, orderBy: { id: "asc" } })).map((s) => s.id);
   const empty = await db.item.findMany({ where: { listings: { none: {} } } });
   let itemsFilled = 0;
   for (const item of empty) {
     const listings = generateDemoListings({ ...item, typicalPrice: Number(item.typicalPrice) }, storeIds);
-    // skipDuplicates: if the item got listings in the meantime, its existing rows stay.
-    const { count } = await db.listing.createMany({ data: listings.map((l) => ({ ...l, itemId: item.id })), skipDuplicates: true });
-    if (count > 0) itemsFilled++;
+    try {
+      // skipDuplicates: if the item got listings in the meantime, its existing rows stay.
+      const { count } = await db.listing.createMany({ data: listings.map((l) => ({ ...l, itemId: item.id })), skipDuplicates: true });
+      if (count > 0) itemsFilled++;
+    } catch (e) {
+      // The item was deleted after it was read. Skip it rather than fail the deploy.
+      if ((e as { code?: unknown })?.code !== "P2003") throw e;
+    }
   }
   return { stores, codesAdded, itemsFilled };
 }
@@ -101,6 +107,8 @@ export async function loadCatalog(db: PrismaClient, now = new Date()): Promise<C
  * The daily cron's stand-in for checking the demo codes, like the demo price feed stands in for prices.
  * Without it the demo codes would drop off the Codes screen once they leave the freshness window.
  * Dead and ended codes, and codes that are not demo catalog codes, are left alone.
+ * A code counts as a demo catalog code by its store and code text. When a real code source lands, give Code
+ * a source column and match on that instead, so a real code with the same text is never stamped.
  */
 export async function refreshDemoCodes(db: PrismaClient | Prisma.TransactionClient, now = new Date()): Promise<number> {
   const { count } = await db.code.updateMany({
@@ -125,6 +133,9 @@ const isMain = (() => {
 
 if (isMain) {
   void (async () => {
+    // Same env files as the Prisma CLI (prisma.config.ts), so `npm run db:catalog` finds .env.local. On Vercel there are none.
+    const { loadEnvConfig } = await import("@next/env");
+    loadEnvConfig(process.cwd(), true);
     const { prisma } = await import("@/lib/prisma");
     try {
       const r = await loadCatalog(prisma);

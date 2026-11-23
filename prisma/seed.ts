@@ -72,7 +72,10 @@ export async function seed(db: PrismaClient, now = new Date()): Promise<{ demoUs
 
       // Seed-owned data is replaced, never truncated: real users in previews keep their rows.
       await tx.item.deleteMany({ where: { userId: demo.id } });
-      await tx.code.deleteMany({ where: { id: { in: CODES.map((c) => c[0]) } } });
+      // By id, and by store and code text: the catalog (prisma/catalog.ts) may have added the same codes.
+      await tx.code.deleteMany({
+        where: { OR: [{ id: { in: CODES.map((c) => c[0]) } }, ...CODES.map(([, storeId, code]) => ({ storeId, code }))] },
+      });
 
       for (const it of ITEMS) {
         await tx.item.create({
