@@ -15,8 +15,9 @@
     "db:migrate": "prisma migrate dev",
     "db:test:migrate": "NODE_ENV=test prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:catalog": "tsx prisma/catalog.ts",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && tsx prisma/catalog.ts && next build",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
