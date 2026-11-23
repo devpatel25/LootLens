@@ -1212,6 +1212,7 @@
                         "items",
                         "alertsCreated",
                         "codesExpired",
+                        "codesChecked",
                         "failed"
                       ],
                       "properties": {
@@ -1225,6 +1226,10 @@
                         "codesExpired": {
                           "type": "integer",
                           "description": "Live codes past expiresAt, now marked dead"
+                        },
+                        "codesChecked": {
+                          "type": "integer",
+                          "description": "Live demo codes re-checked, so they stay inside the freshness window"
                         },
                         "failed": {
                           "type": "integer",

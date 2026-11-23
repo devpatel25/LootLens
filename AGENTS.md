@@ -69,7 +69,7 @@ lib/
   comparison.ts         loadComparison: item, listings, stores, best deals for the comparison route
   itemSchema.ts         zod schemas for item bodies and the id route param
   generated/            Prisma client output (gitignored)
-prisma/                 schema.prisma, migrations/, seed.ts
+prisma/                 schema.prisma, migrations/, seed.ts, catalog.ts (stores and demo codes; safe on production)
 prisma.config.ts        Prisma CLI config (env loading, seed command)
 fixtures/               demo JSON in API shapes, for UI work and tests
 tests/                  Vitest unit + integration (helpers/ for db reset)
@@ -85,7 +85,7 @@ Put new code in this map. If the map has to change, update this section in the s
 | Resource | Owner | Rule |
 |---|---|---|
 | Item, Listing (via Item), Watch, Alert, UserSettings | the signed-in user | Every query filters by `userId` from the session. A request for another user's record, or one naming a parent ID the user does not own, returns 404. |
-| Store, Code | shared | Any signed-in user can read. Mark dead/alive is open to any signed-in user and records `lastCheckedAt` and `lastCheckedById`. Codes are created and deleted only by seed or ingestion, never by a public endpoint. |
+| Store, Code | shared | Any signed-in user can read. Mark dead/alive is open to any signed-in user and records `lastCheckedAt` and `lastCheckedById`. Codes are created only by seed, `prisma/catalog.ts`, or ingestion, and deleted only by seed or ingestion, never by a public endpoint. |
 | Demo simulate/reset | dev only | Requires `DEMO_MODE=true` and `assertNonProdDb()`. |
 | `/api/cron/refresh` | Vercel Cron | No session. Requires `Authorization: Bearer ${CRON_SECRET}`, else 401. Exempt from auth middleware. |
 
@@ -97,8 +97,8 @@ Take `userId` from `auth()` only. Request bodies, query strings, and route param
 |---|---|---|---|
 | Local dev | Neon `dev` branch or local Docker PG | `prisma migrate dev` | `.env.local` (gitignored), `DEMO_MODE=true` |
 | CI | Postgres service container | `prisma migrate deploy` before tests | GitHub Actions env, throwaway values, `DEMO_MODE=true` |
-| PR preview | Neon `preview` branch, shared by all previews | `prisma migrate deploy` in Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
-| Production | Neon `main` | `prisma migrate deploy` in Vercel build | Vercel Production scope, no demo |
+| PR preview | Neon `preview` branch, shared by all previews | `prisma migrate deploy`, then `prisma/catalog.ts`, in Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
+| Production | Neon `main` | `prisma migrate deploy`, then `prisma/catalog.ts`, in Vercel build | Vercel Production scope, no demo |
 
 Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-guard.ts`) first. It is fail-closed:
 
@@ -106,6 +106,14 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 - Production sets `DB_TARGET=production`. `PROD_DB_HOST` is set in Vercel and in each maintainer's `.env.local`.
 - `VERCEL_ENV` is an extra check only, never the sole signal.
 - Unit tests keep these cases rejected: `DB_TARGET` missing, `DB_TARGET=production`, and a production host with `VERCEL_ENV` unset.
+
+`prisma/catalog.ts` is the one loader that runs without the guard, on every deploy, production included. It only adds:
+
+- It creates the stores, or brings their details up to date.
+- It adds the demo promo codes that are missing. A code that already exists, live or dead, stays exactly as it is.
+- It gives demo listings to items that have none.
+
+It never deletes a row and never touches users, watches, or alerts. The daily cron re-checks the live demo codes (`refreshDemoCodes`), so they stay inside the freshness window. All of it is demo data and shows the Demo data badge (section 3).
 
 ## 2. Architecture rules
 
