@@ -6,7 +6,6 @@ import { CATALOG_CODES, loadCatalog } from "@/prisma/catalog";
 import { seed } from "@/prisma/seed";
 import { resetDb } from "@/tests/helpers/db";
 
-const NOW = new Date("2026-11-20T12:00:00Z");
 
 async function counts() {
   return {
@@ -30,7 +29,7 @@ beforeEach(async () => {
 
 describe("loadCatalog on an empty database (the live site today)", () => {
   it("adds the 8 stores, with the one fictional store labelled", async () => {
-    const r = await loadCatalog(prisma, NOW);
+    const r = await loadCatalog(prisma);
     expect(r.stores).toBe(8);
     expect(await prisma.store.count()).toBe(8);
     const fictional = await prisma.store.findMany({ where: { fictional: true } });
@@ -38,7 +37,7 @@ describe("loadCatalog on an empty database (the live site today)", () => {
   });
 
   it("adds every demo code as live and not checked by anyone yet, with no end date", async () => {
-    const r = await loadCatalog(prisma, NOW);
+    const r = await loadCatalog(prisma);
     expect(r.codesAdded).toBe(CATALOG_CODES.length);
     const codes = await prisma.code.findMany();
     expect(codes).toHaveLength(CATALOG_CODES.length);
@@ -48,7 +47,7 @@ describe("loadCatalog on an empty database (the live site today)", () => {
   it("works with DB_TARGET=production, because it only adds", async () => {
     vi.stubEnv("DB_TARGET", "production");
     try {
-      expect((await loadCatalog(prisma, NOW)).stores).toBe(8);
+      expect((await loadCatalog(prisma)).stores).toBe(8);
     } finally {
       vi.unstubAllEnvs();
     }
@@ -57,7 +56,7 @@ describe("loadCatalog on an empty database (the live site today)", () => {
   it("gives demo listings to an item that has none, in stock in its saved size", async () => {
     const u = await newUser("shopper@lootlens.test");
     const item = await emptyItem(u.id);
-    const r = await loadCatalog(prisma, NOW);
+    const r = await loadCatalog(prisma);
     expect(r.itemsFilled).toBe(1);
     const listings = await prisma.listing.findMany({ where: { itemId: item.id } });
     expect(listings.length).toBeGreaterThanOrEqual(3);
@@ -68,16 +67,16 @@ describe("loadCatalog on an empty database (the live site today)", () => {
   it("running it twice changes nothing the second time", async () => {
     const u = await newUser("shopper@lootlens.test");
     await emptyItem(u.id);
-    await loadCatalog(prisma, NOW);
+    await loadCatalog(prisma);
     const first = await counts();
-    expect(await loadCatalog(prisma, NOW)).toEqual({ stores: 8, codesAdded: 0, itemsFilled: 0 });
+    expect(await loadCatalog(prisma)).toEqual({ stores: 8, codesAdded: 0, itemsFilled: 0 });
     expect(await counts()).toEqual(first);
   });
 });
 
 describe("loadCatalog and the seed together (the shared preview database)", () => {
   it("the seed still runs after the catalog added codes with the same text", async () => {
-    await loadCatalog(prisma, NOW);
+    await loadCatalog(prisma);
     const { demoUserId } = await seed(prisma);
     expect(await prisma.item.count({ where: { userId: demoUserId } })).toBe(3);
     // The seed's own SAMBA20 replaces the catalog's copy; one row per store and code text.
@@ -86,10 +85,10 @@ describe("loadCatalog and the seed together (the shared preview database)", () =
   });
 
   it("gives an empty item the same demo listings a new item gets", async () => {
-    await loadCatalog(prisma, NOW);
+    await loadCatalog(prisma);
     const u = await newUser("shopper@lootlens.test");
     const item = await emptyItem(u.id);
-    await loadCatalog(prisma, NOW);
+    await loadCatalog(prisma);
     // POST /api/items passes the store ids sorted by id from the database.
     const ids = (await prisma.store.findMany({ select: { id: true }, orderBy: { id: "asc" } })).map((st) => st.id);
     const want = generateDemoListings({ name: item.name, sizes: item.sizes, selectedSize: item.selectedSize, typicalPrice: 110 }, ids);
@@ -102,7 +101,7 @@ describe("loadCatalog and the seed together (the shared preview database)", () =
     const { demoUserId } = await seed(prisma);
     const before = await prisma.listing.count();
     const item = await emptyItem(demoUserId, "Hoodie");
-    expect((await loadCatalog(prisma, NOW)).itemsFilled).toBe(1);
+    expect((await loadCatalog(prisma)).itemsFilled).toBe(1);
     const added = (await prisma.listing.count()) - before;
     expect(added).toBe(await prisma.listing.count({ where: { itemId: item.id } }));
   });
@@ -122,7 +121,7 @@ describe("loadCatalog only adds", () => {
     const listingsBefore = await prisma.listing.findMany({ where: { itemId: samba.id }, orderBy: { id: "asc" } });
     const before = await counts();
 
-    await loadCatalog(prisma, NOW);
+    await loadCatalog(prisma);
 
     const after = await counts();
     expect({ ...after, codes: before.codes, listings: before.listings }).toEqual(before);
