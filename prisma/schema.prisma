@@ -166,7 +166,7 @@ model Code {
   firstOrderOnly  Boolean    @default(false)
   expiresAt       DateTime?
   status          CodeStatus
-  lastCheckedAt   DateTime
+  lastCheckedAt   DateTime?
   lastCheckedById String?
   store           Store      @relation(fields: [storeId], references: [id])
   lastCheckedBy   User?      @relation(fields: [lastCheckedById], references: [id], onDelete: SetNull)

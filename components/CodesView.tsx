@@ -18,7 +18,7 @@ export type CodesViewProps = { codes: Code[]; showDead: boolean; freshnessHours:
  * An optimistic mark. It applies only while the server copy still has the check time it had when the
  * mark was made (`from`). Once a refresh brings a newer check time, from us or anyone else, the server wins.
  */
-type Mark = { status: "live" | "dead"; at: string; from: string };
+type Mark = { status: "live" | "dead"; at: string; from: string | null };
 
 export default function CodesView({ codes, showDead, freshnessHours, now: serverNow }: CodesViewProps) {
   const router = useRouter();

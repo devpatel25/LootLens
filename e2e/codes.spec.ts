@@ -14,8 +14,11 @@ test("shows only live, recently checked, unexpired codes", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Codes" })).toBeVisible();
   await expect(page.getByRole("main").getByText("Demo data")).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Show dead codes" })).not.toBeChecked();
-  for (const code of ["SAMBA20", "SAVE25", "WELCOME15", "TGT50", "BR10"]) await expect(card(page, code)).toBeVisible();
-  await expect(cards(page)).toHaveCount(5);
+  for (const code of ["SAMBA20", "SAVE25", "WELCOME15", "TGT50", "BR10", "TARGET10"]) await expect(card(page, code)).toBeVisible();
+  await expect(cards(page)).toHaveCount(6);
+  // From the catalog: shown, and tagged, since no one has checked it.
+  await expect(card(page, "TARGET10").getByText("Not checked yet")).toBeVisible();
+  await expect(cards(page).last()).toHaveAccessibleName("Code TARGET10");
   await expect(card(page, "SAMBA20").getByText("checked 1h ago")).toBeVisible();
   await expect(card(page, "SAVE25").getByText("Min spend $150.00")).toBeVisible();
   await expect(card(page, "WELCOME15").getByText("First order only")).toBeVisible();

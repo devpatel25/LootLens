@@ -175,6 +175,9 @@ describe("bestTotal", () => {
     expect(r.code?.discount).toBe(30);
     expect(r.total).toBeCloseTo(0, 6);
   });
+  it("ignores a code no one has checked yet", () => {
+    expect(total([code({ lastCheckedAt: null })]).code).toBeNull();
+  });
   it("ignores another store's code", () => {
     expect(total([code({ storeId: "other" })]).code).toBeNull();
   });

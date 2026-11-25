@@ -53,7 +53,8 @@ export function isFresh(
   hours: number,
   now = new Date(),
 ): boolean {
-  return code.status === "live" && now.getTime() - Date.parse(code.lastCheckedAt) < hours * 3_600_000;
+  // A code no one has checked is never fresh, so it never counts toward a best deal.
+  return code.status === "live" && code.lastCheckedAt !== null && now.getTime() - Date.parse(code.lastCheckedAt) < hours * 3_600_000;
 }
 
 export function isExpired(code: Pick<Code, "expiresAt">, now = new Date()): boolean {

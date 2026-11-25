@@ -2,11 +2,10 @@ import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { generateDemoListings } from "@/lib/demoListings";
-import { CATALOG_CODES, loadCatalog, refreshDemoCodes } from "@/prisma/catalog";
+import { CATALOG_CODES, loadCatalog } from "@/prisma/catalog";
 import { seed } from "@/prisma/seed";
 import { resetDb } from "@/tests/helpers/db";
 
-const H = 3_600_000;
 const NOW = new Date("2026-11-20T12:00:00Z");
 
 async function counts() {
@@ -38,15 +37,12 @@ describe("loadCatalog on an empty database (the live site today)", () => {
     expect(fictional.map((s) => s.name)).toEqual(["KickSwap (fictional demo store)"]);
   });
 
-  it("adds every demo code as live and checked now, with no end date", async () => {
+  it("adds every demo code as live and not checked by anyone yet, with no end date", async () => {
     const r = await loadCatalog(prisma, NOW);
     expect(r.codesAdded).toBe(CATALOG_CODES.length);
     const codes = await prisma.code.findMany();
     expect(codes).toHaveLength(CATALOG_CODES.length);
-    for (const c of codes) {
-      expect(c).toMatchObject({ status: "LIVE", expiresAt: null, lastCheckedById: null });
-      expect(c.lastCheckedAt.toISOString()).toBe(NOW.toISOString());
-    }
+    for (const c of codes) expect(c).toMatchObject({ status: "LIVE", expiresAt: null, lastCheckedAt: null, lastCheckedById: null });
   });
 
   it("works with DB_TARGET=production, because it only adds", async () => {
@@ -135,38 +131,6 @@ describe("loadCatalog only adds", () => {
     const codesAfter = await prisma.code.findMany({ where: { id: { in: codesBefore.map((c) => c.id) } }, orderBy: { id: "asc" } });
     expect(codesAfter).toEqual(codesBefore);
     expect(await prisma.listing.findMany({ where: { itemId: samba.id }, orderBy: { id: "asc" } })).toEqual(listingsBefore);
-  });
-});
-
-describe("refreshDemoCodes (the daily cron keeps demo codes fresh)", () => {
-  it("re-checks live demo codes, and skips dead, expired and other codes", async () => {
-    // Seeded 30 hours ago, so every seed code is outside the default window.
-    await seed(prisma, new Date(NOW.getTime() - 30 * H));
-    const other = await prisma.code.create({
-      data: { storeId: "store-amazon", code: "NOTDEMO", label: "5% off", type: "PCT", value: 5, status: "LIVE", lastCheckedAt: new Date(NOW.getTime() - 30 * H) },
-    });
-    await prisma.code.update({ where: { id: "code-br-10" }, data: { status: "DEAD" } });
-    await prisma.code.update({ where: { id: "code-walmart-10" }, data: { expiresAt: new Date(NOW.getTime() - H) } });
-    const before = new Map((await prisma.code.findMany()).map((c) => [c.id, c.lastCheckedAt.toISOString()]));
-
-    // Live demo codes in the seed: SAMBA20, SAVE25, WELCOME15 (BR10 is now dead, SAVE10 has ended).
-    expect(await refreshDemoCodes(prisma, NOW)).toBe(3);
-
-    const after = await prisma.code.findMany();
-    const changed = after.filter((c) => c.lastCheckedAt.toISOString() !== before.get(c.id)).map((c) => c.code).sort();
-    expect(changed).toEqual(["SAMBA20", "SAVE25", "WELCOME15"]);
-    expect(after.filter((c) => changed.includes(c.code)).every((c) => c.lastCheckedAt.toISOString() === NOW.toISOString())).toBe(true);
-    expect(after.find((c) => c.id === other.id)?.lastCheckedAt.toISOString()).toBe(before.get(other.id));
-  });
-
-  it("matches on store and code text together, so the same text at another store is left alone", async () => {
-    await loadCatalog(prisma, new Date(NOW.getTime() - 30 * H));
-    const old = new Date(NOW.getTime() - 30 * H);
-    const elsewhere = await prisma.code.create({
-      data: { storeId: "store-target", code: "SAVE10", label: "10% off", type: "PCT", value: 10, status: "LIVE", lastCheckedAt: old },
-    });
-    expect(await refreshDemoCodes(prisma, NOW)).toBe(CATALOG_CODES.length);
-    expect((await prisma.code.findUniqueOrThrow({ where: { id: elsewhere.id } })).lastCheckedAt).toEqual(old);
   });
 });
 

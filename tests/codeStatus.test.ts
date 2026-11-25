@@ -3,7 +3,7 @@ import { CODES_ARE_DEMO, codeState } from "@/lib/codeStatus";
 import { checkedAgo, endsIn } from "@/lib/format";
 
 const now = new Date("2026-10-29T16:00:00.000Z");
-const code = (over: Partial<{ status: "live" | "dead"; lastCheckedAt: string; expiresAt: string | null }>) => ({
+const code = (over: Partial<{ status: "live" | "dead"; lastCheckedAt: string | null; expiresAt: string | null }>) => ({
   status: "live" as const,
   lastCheckedAt: "2026-10-29T13:00:00.000Z",
   expiresAt: null,
@@ -27,6 +27,16 @@ describe("codeState", () => {
     expect(codeState(code({ lastCheckedAt: "2026-10-28T16:00:00.000Z" }), 24, now)).toBe("stale");
     expect(codeState(code({ lastCheckedAt: "2026-10-28T16:00:01.000Z" }), 24, now)).toBe("live");
     expect(codeState(code({ lastCheckedAt: "2026-10-28T10:00:00.000Z" }), 48, now)).toBe("live");
+  });
+
+  it("unchecked when live, not ended, and no one has checked it yet", () => {
+    expect(codeState(code({ lastCheckedAt: null }), 24, now)).toBe("unchecked");
+    expect(codeState(code({ lastCheckedAt: null }), 6, now)).toBe("unchecked");
+  });
+
+  it("dead and expired still win over unchecked", () => {
+    expect(codeState(code({ lastCheckedAt: null, status: "dead" }), 24, now)).toBe("dead");
+    expect(codeState(code({ lastCheckedAt: null, expiresAt: "2026-10-29T15:00:00.000Z" }), 24, now)).toBe("expired");
   });
 
   it("codes are demo data until a code source exists", () => {

@@ -30,6 +30,16 @@ describe("loadCodes", () => {
     expect(codesOf(await loadCodes({ showDead: false, freshnessHours: 24 }))).toEqual(["BR10", "SAMBA20", "SAVE25", "TGT50", "WELCOME15"]);
   });
 
+  it("default: a code no one has checked yet is listed too, after the checked codes", async () => {
+    await prisma.code.create({
+      data: { storeId: "store-target", code: "TARGET10", label: "$10 off orders of $50 or more", type: "FLAT", value: 10, minSpend: 50, status: "LIVE" },
+    });
+    const list = await loadCodes({ showDead: false, freshnessHours: 24 });
+    expect(list.map((c) => c.code)).toContain("TARGET10");
+    expect(list[list.length - 1]).toMatchObject({ code: "TARGET10", lastCheckedAt: null });
+    expect(codesOf(await loadCodes({ showDead: false, freshnessHours: 6 }))).toContain("TARGET10");
+  });
+
   it("showDead: every code, including dead, stale, and expired", async () => {
     expect(await loadCodes({ showDead: true, freshnessHours: 24 })).toHaveLength(8);
   });

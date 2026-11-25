@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { encode } from "next-auth/jwt";
 import { assertNonProdDb } from "@/lib/db-guard";
 import { prisma } from "@/lib/prisma";
+import { loadCatalog } from "@/prisma/catalog";
 import { seed } from "@/prisma/seed";
 import { assertLocalDbHost } from "@/tests/helpers/db";
 
@@ -9,6 +10,8 @@ async function main(): Promise<void> {
   assertNonProdDb();
   assertLocalDbHost(process.env.DATABASE_URL);
   const { demoUserId } = await seed(prisma);
+  // Then the catalog, as on a deploy: it adds TARGET10, a demo code no one has checked yet.
+  await loadCatalog(prisma);
   // On http the cookie is authjs.session-token, and the salt must equal the cookie name.
   const name = "authjs.session-token";
   const value = await encode({
