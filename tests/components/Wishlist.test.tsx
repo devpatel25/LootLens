@@ -8,6 +8,7 @@ import ItemSheet from "@/components/ItemSheet";
 import WishlistCard from "@/components/WishlistCard";
 import WishlistView from "@/components/WishlistView";
 import fixture from "@/fixtures/wishlist.json";
+import { MAX_ITEMS_PER_USER } from "@/lib/itemSchema";
 import type { WishlistItem } from "@/lib/types";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
@@ -332,6 +333,30 @@ describe("ItemSheet", () => {
     expect(JSON.parse(String(init?.body))).toEqual({
       name: "Hoodie", category: "clothes", sizes: ["S", "M"], selectedSize: "M", typicalPrice: 40, sourceUrl: null,
     });
+  });
+
+  it("at the item limit, says so and keeps the sheet open with what was typed", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(409, { error: { code: "item_limit", message: "At most 100 items" } }));
+    const onSaved = vi.fn();
+    render(<ItemSheet open item={null} onClose={() => {}} onSaved={onSaved} onMissing={() => {}} />);
+    const dialog = screen.getByRole("dialog", { name: "Add item" });
+    fill(dialog, { Name: "Hoodie", Category: "clothes", Sizes: "S, M", "Your size": "M", "Typical price (USD)": "40" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect((await within(dialog).findByRole("alert")).textContent).toBe(
+      `You can save up to ${MAX_ITEMS_PER_USER} items. Delete one to add another.`,
+    );
+    expect(onSaved).not.toHaveBeenCalled();
+    expect((within(dialog).getByLabelText("Name") as HTMLInputElement).value).toBe("Hoodie");
+    expect((within(dialog).getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("another 409 on add keeps the reload message", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(json(409, { error: { code: "conflict", message: "x" } }));
+    render(<ItemSheet open item={null} onClose={() => {}} onSaved={() => {}} onMissing={() => {}} />);
+    const dialog = screen.getByRole("dialog", { name: "Add item" });
+    fill(dialog, { Name: "Hoodie", Category: "clothes", Sizes: "S, M", "Your size": "M", "Typical price (USD)": "40" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect((await within(dialog).findByRole("alert")).textContent).toBe("This changed somewhere else. Reload and try again.");
   });
 
   it("edits an item with PATCH to its id", async () => {

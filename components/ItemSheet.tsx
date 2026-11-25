@@ -13,6 +13,7 @@ import {
   type ItemFormErrors,
   type ItemFormValues,
 } from "@/lib/itemForm";
+import { MAX_ITEMS_PER_USER } from "@/lib/itemSchema";
 import type { Item } from "@/lib/types";
 import { useModalDialog } from "@/lib/useModalDialog";
 import { field } from "@/components/styles";
@@ -127,7 +128,12 @@ function OpenItemSheet({ item, onClose, onSaved, onMissing, opener }: ItemSheetP
         onMissing();
         return;
       }
-      setFormError(friendlyMessage(err));
+      // Reloading cannot fix the item limit, so say what can.
+      setFormError(
+        err instanceof ApiClientError && err.code === "item_limit"
+          ? `You can save up to ${MAX_ITEMS_PER_USER} items. Delete one to add another.`
+          : friendlyMessage(err),
+      );
       setBusy(false);
     }
   }
