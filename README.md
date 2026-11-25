@@ -68,7 +68,7 @@ npm run test:e2e               # Playwright, builds and serves on port 3100
 
 Seed, reset, simulate, and test truncation call `assertNonProdDb()` first. It passes only when `DB_TARGET` is `local`, `ci`, or `preview`, and the `DATABASE_URL` host differs from `PROD_DB_HOST`. `PROD_DB_HOST` must be set unless the `DATABASE_URL` host is loopback (`localhost`, `127.0.0.1`, `::1`); if it is missing for any other host, the guard throws. Production sets `DB_TARGET=production`.
 
-The live site still needs stores and codes to show anything, and the seed cannot run there. `prisma/catalog.ts` (`npm run db:catalog`) fills that gap: it adds the stores and the demo promo codes, and gives demo listings to items that have none. It never removes or resets anything, so it is safe on production, and `vercel-build` runs it on every deploy. Everything it adds is demo data and carries the Demo data badge.
+The live site still needs stores and codes to show anything, and the seed cannot run there. `prisma/catalog.ts` (`npm run db:catalog`) fills that gap: it adds the stores and the demo promo codes, and gives demo listings to items that have none. It never removes or resets anything, so it is safe on production, and `vercel-build` runs it on every deploy. Its codes start with no check time, since no one has checked them, so the Codes screen lists them tagged "Not checked yet". Everything it adds is demo data and carries the Demo data badge.
 
 The guard is also fail-closed on Prisma CLI commands. Only `generate`, `version`, `validate`, `format`, `migrate deploy`, `migrate status`, `migrate diff`, and `db seed` run without it (the seed calls the guard itself). Every other command, such as `migrate dev` or `migrate reset`, runs the guard first and stops when it throws.
 
@@ -85,7 +85,7 @@ Vercel builds with `vercel-build` and runs `prisma migrate deploy` first. Produc
 
 Price and stock alerts are the app's stateful core.
 
-- A daily Vercel Cron job (`vercel.json`, 09:00 UTC, daily only because Vercel Hobby allows nothing more often) calls `GET /api/cron/refresh` with `Authorization: Bearer $CRON_SECRET`. It refreshes every item, evaluates every watch, marks expired codes dead, and re-checks the live demo codes so they stay inside the freshness window. Outside demo mode, prices and stock stay as they are until a real data source lands, so the job then only expires codes and re-checks watches.
+- A daily Vercel Cron job (`vercel.json`, 09:00 UTC, daily only because Vercel Hobby allows nothing more often) calls `GET /api/cron/refresh` with `Authorization: Bearer $CRON_SECRET`. It refreshes every item, evaluates every watch, and marks expired codes dead. It never stamps a code as checked. Outside demo mode, prices and stock stay as they are until a real data source lands, so the job then only expires codes and re-checks watches.
 - "Refresh now" is `POST /api/items/{id}/refresh`. Each item can refresh once every 5 minutes. A refresh inside that window returns 429 with `retryAfterSeconds`.
 - Alerts are deduped and fire on crossings. A watch remembers whether its price and stock conditions already hold, so an alert is created only when a condition flips from not met to met. A price that stays below target does not alert again.
 - The Alerts screen re-reads alerts every 60 seconds while the browser tab is visible. The badge on the Alerts tab reads only the unread count (`GET /api/alerts/unread`) on the same schedule, and takes the new count from the Alerts screen when that screen has one. Refresh now on Item Detail updates the badge at once.

@@ -53,7 +53,7 @@ lib/
   useModalDialog.ts     <dialog> as a modal: Escape, data-autofocus, focus back to the opener
   format.ts             formatUsd, checkedAgo, endsIn (display only)
   codes.ts              loadCodes({ showDead, freshnessHours (number or promise) }): uses codeState, so API and browser agree
-  codeStatus.ts         codeState (live, dead, stale, expired) for client components; CODES_ARE_DEMO
+  codeStatus.ts         codeState (live, dead, stale, expired, unchecked) for client components; CODES_ARE_DEMO
   useNow.ts             useServerClock and useNow: tick on server time, re-anchor on refresh; a gap over 5 min is checked with one refresh
   useVisiblePoll.ts     useVisiblePoll(fn, ms): every ms while the tab is visible, and once when it is shown again
   useAnnouncement.ts    useAnnouncement(): status message plus a fresh seq, so a repeated message is read again
@@ -113,7 +113,7 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 - It adds the demo promo codes that are missing. A code that already exists, live or dead, stays exactly as it is.
 - It gives demo listings to items that have none.
 
-It never deletes a row and never touches users, watches, or alerts. The daily cron re-checks the live demo codes (`refreshDemoCodes`), so they stay inside the freshness window. All of it is demo data and shows the Demo data badge (section 3).
+It never deletes a row and never touches users, watches, or alerts. Its codes start with no check time (`lastCheckedAt` null), because no one has checked them. Nothing stamps them as checked: only a person pressing Still works or Mark dead does. All of it is demo data and shows the Demo data badge (section 3).
 
 ## 2. Architecture rules
 
@@ -180,7 +180,7 @@ It never deletes a row and never touches users, watches, or alerts. The daily cr
 
 From the HW2 PRD. Issues and tests trace back to these.
 
-1. **Live codes only.** The Codes view shows only codes with status live AND checked within the freshness window (default 24h; 6/12/24/48/72). Each shows "checked Xh ago" and its terms. Mark dead hides it at once. "Show dead codes" toggle, off by default.
+1. **Live codes only.** The Codes view shows only codes with status live AND checked within the freshness window (default 24h; 6/12/24/48/72). Each shows "checked Xh ago" and its terms. A live code no one has checked yet is also listed, after them, tagged "Not checked yet" instead of a check time; it never counts toward a best deal. Mark dead hides it at once. "Show dead codes" toggle, off by default.
 2. **Code plus cashback.** Item Detail Best Deal card: price minus best applicable code minus cashback (applied to the post-code price) equals the total. Codes failing min spend, or first-order-only while the user's first-order toggle is off, are excluded. Every code card shows a cashback chip.
 3. **Cross-store price view.** Item Detail lists the item's price at every store in one comparison table. The cheapest listing in stock for the saved size gets a "Cheapest" badge. Used and resale listings count. On a price tie, a listing in new condition wins, then the store name A to Z. Used and resale listings are tagged.
 4. **Price drop plus low size alert.** A watch has a target price (or any drop) and a low-stock threshold for the saved size. Alerts fire on crossing, carry an unread badge, and group by item. Deleting the watch stops new alerts.
