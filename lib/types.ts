@@ -67,8 +67,11 @@ export type Code = {
   /** A code with expiresAt at or before now is excluded from the default Codes list and from best totals, even when status is live. */
   expiresAt: string | null;
   status: "live" | "dead";
-  /** Fresh means strictly less than freshnessHours ago; exactly freshnessHours ago is stale. */
-  lastCheckedAt: string;
+  /**
+   * Fresh means strictly less than freshnessHours ago; exactly freshnessHours ago is stale.
+   * null: no one has checked this code yet (the demo codes on the live site start this way).
+   */
+  lastCheckedAt: string | null;
   cashback: CashbackOffer | null;
 };
 

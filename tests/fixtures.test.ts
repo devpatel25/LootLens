@@ -75,7 +75,9 @@ const allCodes = codesAll as unknown as Code[];
 const alertData = alerts as unknown as AlertsResponse;
 const NOW = Date.parse("2026-10-29T16:00:00.000Z");
 const LIMIT = settings.freshnessHours * 3_600_000;
-const isStale = (k: Code) => NOW - Date.parse(k.lastCheckedAt) >= LIMIT;
+// The fixtures have no unchecked code, so every lastCheckedAt here is a string.
+const checkedAt = (k: Code) => Date.parse(k.lastCheckedAt ?? "");
+const isStale = (k: Code) => NOW - checkedAt(k) >= LIMIT;
 const isExpired = (k: Code) => k.expiresAt !== null && Date.parse(k.expiresAt) <= NOW;
 
 const schemas = openapi.components.schemas;
@@ -200,7 +202,7 @@ describe("contract fixtures", () => {
   });
 
   it("has a code checked exactly freshnessHours ago, only in codes-all.json", () => {
-    const edge = allCodes.filter((k) => NOW - Date.parse(k.lastCheckedAt) === LIMIT);
+    const edge = allCodes.filter((k) => NOW - checkedAt(k) === LIMIT);
     expect(edge.map((k) => k.code)).toEqual(["STALE15"]);
     expect(isStale(edge[0])).toBe(true);
     expect(codeList.map((k) => k.code)).not.toContain("STALE15");

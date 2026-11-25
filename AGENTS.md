@@ -53,7 +53,7 @@ lib/
   useModalDialog.ts     <dialog> as a modal: Escape, data-autofocus, focus back to the opener
   format.ts             formatUsd, checkedAgo, endsIn (display only)
   codes.ts              loadCodes({ showDead, freshnessHours (number or promise) }): uses codeState, so API and browser agree
-  codeStatus.ts         codeState (live, dead, stale, expired) for client components; CODES_ARE_DEMO
+  codeStatus.ts         codeState (live, dead, stale, expired, unchecked) for client components; CODES_ARE_DEMO
   useNow.ts             useServerClock and useNow: tick on server time, re-anchor on refresh; a gap over 5 min is checked with one refresh
   useVisiblePoll.ts     useVisiblePoll(fn, ms): every ms while the tab is visible, and once when it is shown again
   useAnnouncement.ts    useAnnouncement(): status message plus a fresh seq, so a repeated message is read again
@@ -69,7 +69,7 @@ lib/
   comparison.ts         loadComparison: item, listings, stores, best deals for the comparison route
   itemSchema.ts         zod schemas for item bodies and the id route param
   generated/            Prisma client output (gitignored)
-prisma/                 schema.prisma, migrations/, seed.ts
+prisma/                 schema.prisma, migrations/, seed.ts, catalog.ts (stores and demo codes; safe on production)
 prisma.config.ts        Prisma CLI config (env loading, seed command)
 fixtures/               demo JSON in API shapes, for UI work and tests
 tests/                  Vitest unit + integration (helpers/ for db reset)
@@ -85,7 +85,7 @@ Put new code in this map. If the map has to change, update this section in the s
 | Resource | Owner | Rule |
 |---|---|---|
 | Item, Listing (via Item), Watch, Alert, UserSettings | the signed-in user | Every query filters by `userId` from the session. A request for another user's record, or one naming a parent ID the user does not own, returns 404. |
-| Store, Code | shared | Any signed-in user can read. Mark dead/alive is open to any signed-in user and records `lastCheckedAt` and `lastCheckedById`. Codes are created and deleted only by seed or ingestion, never by a public endpoint. |
+| Store, Code | shared | Any signed-in user can read. Mark dead/alive is open to any signed-in user and records `lastCheckedAt` and `lastCheckedById`. Codes are created only by seed, `prisma/catalog.ts`, or ingestion, and deleted only by seed or ingestion, never by a public endpoint. |
 | Demo simulate/reset | dev only | Requires `DEMO_MODE=true` and `assertNonProdDb()`. |
 | `/api/cron/refresh` | Vercel Cron | No session. Requires `Authorization: Bearer ${CRON_SECRET}`, else 401. Exempt from auth middleware. |
 
@@ -97,8 +97,8 @@ Take `userId` from `auth()` only. Request bodies, query strings, and route param
 |---|---|---|---|
 | Local dev | Neon `dev` branch or local Docker PG | `prisma migrate dev` | `.env.local` (gitignored), `DEMO_MODE=true` |
 | CI | Postgres service container | `prisma migrate deploy` before tests | GitHub Actions env, throwaway values, `DEMO_MODE=true` |
-| PR preview | Neon `preview` branch, shared by all previews | `prisma migrate deploy` in Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
-| Production | Neon `main` | `prisma migrate deploy` in Vercel build | Vercel Production scope, no demo |
+| PR preview | Neon `preview` branch, shared by all previews | `prisma migrate deploy`, then `prisma/catalog.ts`, in Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
+| Production | Neon `main` | `prisma migrate deploy`, then `prisma/catalog.ts`, in Vercel build | Vercel Production scope, no demo |
 
 Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-guard.ts`) first. It is fail-closed:
 
@@ -106,6 +106,14 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 - Production sets `DB_TARGET=production`. `PROD_DB_HOST` is set in Vercel and in each maintainer's `.env.local`.
 - `VERCEL_ENV` is an extra check only, never the sole signal.
 - Unit tests keep these cases rejected: `DB_TARGET` missing, `DB_TARGET=production`, and a production host with `VERCEL_ENV` unset.
+
+`prisma/catalog.ts` is the one loader that runs without the guard, on every deploy, production included. It never removes anything:
+
+- It creates the stores, or brings their details up to date.
+- It adds the demo promo codes that are missing. A code that already exists, live or dead, stays exactly as it is.
+- It gives demo listings to items that have none.
+
+It never deletes a row and never touches users, watches, or alerts. Its codes start with no check time (`lastCheckedAt` null), because no one has checked them. Nothing stamps them as checked: only a person pressing Still works or Mark dead does. All of it is demo data and shows the Demo data badge (section 3).
 
 ## 2. Architecture rules
 
@@ -172,7 +180,7 @@ Seed, reset, simulate, and test truncation call `assertNonProdDb()` (`lib/db-gua
 
 From the HW2 PRD. Issues and tests trace back to these.
 
-1. **Live codes only.** The Codes view shows only codes with status live AND checked within the freshness window (default 24h; 6/12/24/48/72). Each shows "checked Xh ago" and its terms. Mark dead hides it at once. "Show dead codes" toggle, off by default.
+1. **Live codes only.** The Codes view shows live codes checked within the freshness window (default 24h; 6/12/24/48/72), each with "checked Xh ago" and its terms, then live codes no one has checked yet, tagged "Not checked yet" instead of a check time. A code that is not checked inside the window never counts toward a best deal. Mark dead hides it at once. "Show dead codes" toggle, off by default.
 2. **Code plus cashback.** Item Detail Best Deal card: price minus best applicable code minus cashback (applied to the post-code price) equals the total. Codes failing min spend, or first-order-only while the user's first-order toggle is off, are excluded. Every code card shows a cashback chip.
 3. **Cross-store price view.** Item Detail lists the item's price at every store in one comparison table. The cheapest listing in stock for the saved size gets a "Cheapest" badge. Used and resale listings count. On a price tie, a listing in new condition wins, then the store name A to Z. Used and resale listings are tagged.
 4. **Price drop plus low size alert.** A watch has a target price (or any drop) and a low-stock threshold for the saved size. Alerts fire on crossing, carry an unread badge, and group by item. Deleting the watch stops new alerts.

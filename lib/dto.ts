@@ -62,7 +62,7 @@ export function toCode(c: DbCode & { store: DbStore }): Code {
     firstOrderOnly: c.firstOrderOnly,
     expiresAt: c.expiresAt ? iso(c.expiresAt) : null,
     status: c.status.toLowerCase() as Code["status"],
-    lastCheckedAt: iso(c.lastCheckedAt),
+    lastCheckedAt: c.lastCheckedAt ? iso(c.lastCheckedAt) : null,
     cashback: bestCashback(c.store.cashback as CashbackOffer[]),
   };
 }

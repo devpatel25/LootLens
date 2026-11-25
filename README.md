@@ -63,10 +63,12 @@ npm run test:e2e               # Playwright, builds and serves on port 3100
 |---|---|---|---|
 | Local dev | Neon `dev` branch or local Docker PostgreSQL | `prisma migrate dev` | `.env.local`, `DEMO_MODE=true` |
 | CI | PostgreSQL service container | `prisma migrate deploy` before tests | GitHub Actions env, throwaway values, `DEMO_MODE=true` |
-| PR preview | Neon `preview` branch, shared by all previews | `prisma migrate deploy` in the Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
-| Production | Neon `main` | `prisma migrate deploy` in the Vercel build | Vercel Production scope, no demo |
+| PR preview | Neon `preview` branch, shared by all previews | `prisma migrate deploy`, then the demo catalog, in the Vercel build | Vercel Preview scope, `DEMO_MODE=true` |
+| Production | Neon `main` | `prisma migrate deploy`, then the demo catalog, in the Vercel build | Vercel Production scope, no demo |
 
 Seed, reset, simulate, and test truncation call `assertNonProdDb()` first. It passes only when `DB_TARGET` is `local`, `ci`, or `preview`, and the `DATABASE_URL` host differs from `PROD_DB_HOST`. `PROD_DB_HOST` must be set unless the `DATABASE_URL` host is loopback (`localhost`, `127.0.0.1`, `::1`); if it is missing for any other host, the guard throws. Production sets `DB_TARGET=production`.
+
+The live site still needs stores and codes to show anything, and the seed cannot run there. `prisma/catalog.ts` (`npm run db:catalog`) fills that gap: it adds the stores and the demo promo codes, and gives demo listings to items that have none. It never removes or resets anything, so it is safe on production, and `vercel-build` runs it on every deploy. Its codes start with no check time, since no one has checked them, so the Codes screen lists them tagged "Not checked yet". Everything it adds is demo data and carries the Demo data badge.
 
 The guard is also fail-closed on Prisma CLI commands. Only `generate`, `version`, `validate`, `format`, `migrate deploy`, `migrate status`, `migrate diff`, and `db seed` run without it (the seed calls the guard itself). Every other command, such as `migrate dev` or `migrate reset`, runs the guard first and stops when it throws.
 
@@ -75,7 +77,7 @@ The guard is also fail-closed on Prisma CLI commands. Only `generate`, `version`
 What exists today:
 
 - `vercel.json` registers the daily cron for `/api/cron/refresh`.
-- `npm run vercel-build` runs `prisma generate`, then `prisma migrate deploy`, then `next build`.
+- `npm run vercel-build` runs `prisma generate`, then `prisma migrate deploy`, then the demo catalog (`prisma/catalog.ts`), then `next build`.
 
 Vercel builds with `vercel-build` and runs `prisma migrate deploy` first. Production deploys from `main` and uses the Neon `main` branch. Every pull request preview uses one shared Neon `preview` branch (the free plan allows 10 branches per project, too few for one per PR). Secrets live in Vercel env vars, never in the repo. New variables go into `.env.example` with an empty value.
 
@@ -83,7 +85,7 @@ Vercel builds with `vercel-build` and runs `prisma migrate deploy` first. Produc
 
 Price and stock alerts are the app's stateful core.
 
-- A daily Vercel Cron job (`vercel.json`, 09:00 UTC, daily only because Vercel Hobby allows nothing more often) calls `GET /api/cron/refresh` with `Authorization: Bearer $CRON_SECRET`. It refreshes every item, evaluates every watch, and marks expired codes dead. Outside demo mode, prices and stock stay as they are until a real data source lands, so the job then only expires codes and re-checks watches.
+- A daily Vercel Cron job (`vercel.json`, 09:00 UTC, daily only because Vercel Hobby allows nothing more often) calls `GET /api/cron/refresh` with `Authorization: Bearer $CRON_SECRET`. It refreshes every item, evaluates every watch, and marks expired codes dead. It never stamps a code as checked. Outside demo mode, prices and stock stay as they are until a real data source lands, so the job then only expires codes and re-checks watches.
 - "Refresh now" is `POST /api/items/{id}/refresh`. Each item can refresh once every 5 minutes. A refresh inside that window returns 429 with `retryAfterSeconds`.
 - Alerts are deduped and fire on crossings. A watch remembers whether its price and stock conditions already hold, so an alert is created only when a condition flips from not met to met. A price that stays below target does not alert again.
 - The Alerts screen re-reads alerts every 60 seconds while the browser tab is visible. The badge on the Alerts tab reads only the unread count (`GET /api/alerts/unread`) on the same schedule, and takes the new count from the Alerts screen when that screen has one. Refresh now on Item Detail updates the badge at once.
@@ -102,7 +104,8 @@ All prices, stock, and codes in this repo are demo data until a real data source
 | `npm run typecheck` | `next typegen && tsc --noEmit` |
 | `npm test` | Vitest unit and integration tests |
 | `npm run test:e2e` | Playwright E2E (builds, then runs `next start` on port 3100) |
-| `npm run vercel-build` | What Vercel runs: Prisma client, migrate deploy, `next build` |
+| `npm run vercel-build` | What Vercel runs: Prisma client, migrate deploy, demo catalog, `next build` |
+| `npm run db:catalog` | Add the stores and demo codes, and demo listings for items with none. Never removes anything, so it is safe on any database |
 | `npm run db:up` | Start (or create) the local PostgreSQL container on port 5433 |
 | `npm run db:migrate` | `prisma migrate dev` against the dev database. Refuses a production target |
 | `npm run db:test:migrate` | Apply migrations to the test database from `.env.test` |

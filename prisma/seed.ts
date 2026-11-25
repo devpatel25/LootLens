@@ -1,19 +1,8 @@
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { assertNonProdDb } from "@/lib/db-guard";
+import { SEARCH, upsertStores } from "@/prisma/catalog";
 import type { PrismaClient } from "@/lib/generated/prisma/client";
-
-type S = [id: string, name: string, domain: string, seller: string, https: boolean, photos: number, rating: number, fictional: boolean, cashbackPct: number];
-const STORES: S[] = [
-  ["store-amazon", "Amazon", "amazon.com", "Amazon Retail", true, 950, 4.5, false, 3],
-  ["store-walmart", "Walmart", "walmart.com", "Walmart Retail", true, 610, 4.3, false, 2],
-  ["store-target", "Target", "target.com", "Target Retail", true, 540, 4.4, false, 0],
-  ["store-ae", "American Eagle", "ae.com", "American Eagle Official", true, 210, 4.2, false, 0],
-  ["store-br", "Banana Republic", "bananarepublic.com", "Banana Republic Official", true, 130, 4.1, false, 0],
-  ["store-adidas", "Adidas", "adidas.com", "Adidas Official", true, 420, 4.7, false, 5],
-  ["store-fbm", "Facebook Marketplace", "facebook.com", "Individual sellers", true, 35, 3.8, false, 0],
-  ["store-kickswap", "KickSwap (fictional demo store)", "kickswap.example", "KickSwap Resale", false, 4, 2.9, true, 0],
-];
 
 type L = [store: string, price: number, condition: "NEW" | "USED" | "RESALE", stock: Record<string, number>];
 type I = { name: string; category: string; sizes: string[]; selectedSize: string; typicalPrice: number; listings: L[] };
@@ -48,18 +37,6 @@ const ITEMS: I[] = [
   },
 ];
 
-// Real stores get their own search page for the item. Fictional stores use a reserved .example domain.
-const SEARCH: Record<string, (q: string) => string> = {
-  "store-amazon": (q) => `https://www.amazon.com/s?k=${q}`,
-  "store-walmart": (q) => `https://www.walmart.com/search?q=${q}`,
-  "store-target": (q) => `https://www.target.com/s?searchTerm=${q}`,
-  "store-ae": (q) => `https://www.ae.com/us/en/search?q=${q}`,
-  "store-br": (q) => `https://bananarepublic.gap.com/browse/search.do?searchText=${q}`,
-  "store-adidas": (q) => `https://www.adidas.com/us/search?q=${q}`,
-  "store-fbm": (q) => `https://www.facebook.com/marketplace/search?query=${q}`,
-  "store-kickswap": (q) => `https://kickswap.example/search?q=${q}`,
-};
-
 const H = 3_600_000;
 type C = [id: string, store: string, code: string, label: string, type: "PCT" | "FLAT", value: number, status: "LIVE" | "DEAD", checkedHoursAgo: number, extra?: { minSpend?: number; firstOrderOnly?: boolean; expiresInHours?: number }];
 const CODES: C[] = [
@@ -90,17 +67,15 @@ export async function seed(db: PrismaClient, now = new Date()): Promise<{ demoUs
       });
       await tx.userSettings.upsert({ where: { userId: demo.id }, update: {}, create: { userId: demo.id } });
 
-      for (const [id, name, domain, sellerName, isHttps, photoReviewCount, rating, fictional, pct] of STORES) {
-        const data = {
-          name, domain, sellerName, isHttps, photoReviewCount, rating, fictional,
-          cashback: pct ? [{ provider: "DemoCash", ratePct: pct }] : [],
-        };
-        await tx.store.upsert({ where: { id }, update: data, create: { id, ...data } });
-      }
+      // The same stores the live site gets (prisma/catalog.ts).
+      await upsertStores(tx);
 
       // Seed-owned data is replaced, never truncated: real users in previews keep their rows.
       await tx.item.deleteMany({ where: { userId: demo.id } });
-      await tx.code.deleteMany({ where: { id: { in: CODES.map((c) => c[0]) } } });
+      // By id, and by store and code text: the catalog (prisma/catalog.ts) may have added the same codes.
+      await tx.code.deleteMany({
+        where: { OR: [{ id: { in: CODES.map((c) => c[0]) } }, ...CODES.map(([, storeId, code]) => ({ storeId, code }))] },
+      });
 
       for (const it of ITEMS) {
         await tx.item.create({

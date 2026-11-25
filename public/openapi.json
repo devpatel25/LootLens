@@ -532,7 +532,7 @@
             "sessionCookie": []
           }
         ],
-        "description": "By default only live codes that are fresh (checked less than the user's freshnessHours ago) and not expired. `showDead=true` returns every code, with no freshness filter.",
+        "description": "By default only live codes that are not expired and are either fresh (checked less than the user's freshnessHours ago) or not checked by anyone yet (`lastCheckedAt` null, listed last). `showDead=true` returns every code, with no freshness filter.",
         "tags": [
           "Codes"
         ],
@@ -1976,8 +1976,12 @@
             ]
           },
           "lastCheckedAt": {
-            "type": "string",
-            "format": "date-time"
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "null until someone checks the code. The demo codes on the live site start this way."
           },
           "cashback": {
             "oneOf": [

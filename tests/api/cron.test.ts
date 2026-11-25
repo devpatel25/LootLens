@@ -49,6 +49,16 @@ describe("GET /api/cron/refresh", () => {
     expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-adidas-20" } })).status).toBe("LIVE");
   });
 
+  it("leaves codes no one has checked as they are: it never stamps a check time", async () => {
+    const unchecked = await prisma.code.create({
+      data: { storeId: "store-target", code: "TARGET10", label: "$10 off orders of $50 or more", type: "FLAT", value: 10, minSpend: 50, status: "LIVE" },
+    });
+    const save10 = await prisma.code.findUniqueOrThrow({ where: { id: "code-walmart-10" } });
+    expect((await call("Bearer s3cret-value")).status).toBe(200);
+    expect((await prisma.code.findUniqueOrThrow({ where: { id: unchecked.id } })).lastCheckedAt).toBeNull();
+    expect((await prisma.code.findUniqueOrThrow({ where: { id: "code-walmart-10" } })).lastCheckedAt).toEqual(save10.lastCheckedAt);
+  });
+
   it("one failing item does not stop the rest", async () => {
     vi.stubEnv("DEMO_MODE", "true");
     vi.spyOn(console, "error").mockImplementation(() => {});

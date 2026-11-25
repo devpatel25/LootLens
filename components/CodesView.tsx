@@ -18,7 +18,7 @@ export type CodesViewProps = { codes: Code[]; showDead: boolean; freshnessHours:
  * An optimistic mark. It applies only while the server copy still has the check time it had when the
  * mark was made (`from`). Once a refresh brings a newer check time, from us or anyone else, the server wins.
  */
-type Mark = { status: "live" | "dead"; at: string; from: string };
+type Mark = { status: "live" | "dead"; at: string; from: string | null };
 
 export default function CodesView({ codes, showDead, freshnessHours, now: serverNow }: CodesViewProps) {
   const router = useRouter();
@@ -70,7 +70,7 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
   });
   const stores = [...new Set([...codes.map((c) => c.storeName), ...(store ? [store] : [])])].sort((a, b) => a.localeCompare(b));
   const q = query.trim().toLowerCase();
-  const inMode = shown.filter(({ state }) => showDead || state === "live");
+  const inMode = shown.filter(({ state }) => showDead || state === "live" || state === "unchecked");
   const visible = inMode.filter(
     ({ code }) =>
       (!store || code.storeName === store) && (!q || [code.code, code.label, code.storeName].some((t) => t.toLowerCase().includes(q))),
@@ -128,7 +128,9 @@ export default function CodesView({ codes, showDead, freshnessHours, now: server
         <p className="text-sm text-zinc-600 dark:text-zinc-300">
           {showDead
             ? "All codes, including dead, expired, and not recently checked."
-            : `Codes checked in the last ${freshnessHours} hours that still work.`}
+            : `Codes checked in the last ${freshnessHours} hours that still work.${
+                inMode.some(({ state }) => state === "unchecked") ? " Codes no one has checked yet are tagged." : ""
+              }`}
         </p>
       </div>
 

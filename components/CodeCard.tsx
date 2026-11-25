@@ -21,6 +21,10 @@ export type CodeCardProps = {
 const TAGS: Record<Exclude<CodeState, "live">, { label: string; className: string }> = {
   dead: { label: "Dead", className: "border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100" },
   expired: { label: "Expired", className: "border-zinc-300 bg-zinc-100 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200" },
+  unchecked: {
+    label: "Not checked yet",
+    className: "border-zinc-300 bg-zinc-100 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200",
+  },
   stale: {
     label: "Not checked recently",
     className: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100",
@@ -78,7 +82,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
         ))}
       </ul>
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs text-zinc-600 dark:text-zinc-400">{checkedAgo(code.lastCheckedAt, new Date(now))}</span>
+        <span className="text-xs text-zinc-600 dark:text-zinc-400">{code.lastCheckedAt === null ? "No one has checked this code yet" : checkedAgo(code.lastCheckedAt, new Date(now))}</span>
         {/* An ended code cannot be marked alive: that would stamp it as checked and working for everyone. */}
         {state === "dead" ? (
           !isExpired(code, new Date(now)) && (
@@ -88,7 +92,7 @@ export default function CodeCard({ code, state, now, busy, onMark, onCopied, onC
           )
         ) : state !== "expired" ? (
           <span className="flex flex-wrap gap-2">
-            {state === "stale" && (
+            {(state === "stale" || state === "unchecked") && (
               <button type="button" disabled={busy} onClick={() => onMark("live", `Still works ${code.code}`)} aria-label={`Still works ${code.code}`} className={smallButton}>
                 Still works
               </button>

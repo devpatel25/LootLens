@@ -35,7 +35,7 @@ afterEach(() => {
 
 describe("CodeCard", () => {
   const samba = () => live().find((c) => c.code === "SAMBA40")!;
-  const renderCard = (code: Code, state: "live" | "dead" | "stale" | "expired" = "live") => {
+  const renderCard = (code: Code, state: "live" | "dead" | "stale" | "expired" | "unchecked" = "live") => {
     const onMark = vi.fn();
     const onCopied = vi.fn();
     render(
@@ -106,6 +106,17 @@ describe("CodeCard", () => {
     expect(screen.getByRole("button", { name: "Mark dead STALE15" })).toBeTruthy();
   });
 
+  it("a code no one has checked yet says so instead of a check time, and can be confirmed or marked dead", () => {
+    const { onMark } = renderCard({ ...samba(), lastCheckedAt: null }, "unchecked");
+    const c = card("SAMBA40");
+    expect(within(c).getByText("Not checked yet")).toBeTruthy();
+    expect(within(c).getByText("No one has checked this code yet")).toBeTruthy();
+    expect(within(c).queryByText(/checked .* ago|checked just now/)).toBeNull();
+    fireEvent.click(within(c).getByRole("button", { name: "Still works SAMBA40" }));
+    expect(onMark).toHaveBeenCalledWith("live", "Still works SAMBA40");
+    expect(within(c).getByRole("button", { name: "Mark dead SAMBA40" })).toBeTruthy();
+  });
+
   it("tags stale and expired codes; an expired code cannot be marked", () => {
     renderCard(all().find((c) => c.code === "STALE15")!, "stale");
     expect(within(card("STALE15")).getByText("Not checked recently")).toBeTruthy();
@@ -141,6 +152,13 @@ describe("CodesView", () => {
     expect(within(header).getByText("Demo data")).toBeTruthy();
     expect(within(header).getByText("Codes checked in the last 24 hours that still work.")).toBeTruthy();
     expect(listed()).toEqual(["Code SAMBA40", "Code WELCOME50", "Code SAVE30"]);
+  });
+
+  it("lists a code no one has checked yet with the live codes, and the note says such codes are tagged", () => {
+    view([...live(), { ...live()[0], id: "u1", code: "FRESH5", lastCheckedAt: null }]);
+    expect(listed()).toEqual(["Code SAMBA40", "Code WELCOME50", "Code SAVE30", "Code FRESH5"]);
+    expect(within(card("FRESH5")).getByText("Not checked yet")).toBeTruthy();
+    expect(screen.getByText("Codes checked in the last 24 hours that still work. Codes no one has checked yet are tagged.")).toBeTruthy();
   });
 
   it("Show dead codes is off by default and toggling it changes the URL", () => {
@@ -209,6 +227,16 @@ describe("CodesView", () => {
     view(all(), true);
     fireEvent.click(screen.getByRole("button", { name: "Mark alive OLD25" }));
     expect(within(card("OLD25")).queryByText("Dead")).toBeNull();
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({ status: "live" });
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("Still works on a code no one has checked shows it as checked right away", async () => {
+    view([...live(), { ...live()[0], id: "u1", code: "FRESH5", lastCheckedAt: null }]);
+    fireEvent.click(screen.getByRole("button", { name: "Still works FRESH5" }));
+    expect(within(card("FRESH5")).queryByText("Not checked yet")).toBeNull();
+    expect(within(card("FRESH5")).getByText("checked just now")).toBeTruthy();
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/codes/u1");
     expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({ status: "live" });
     await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
   });
