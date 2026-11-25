@@ -4,10 +4,14 @@ import type { Code } from "@/lib/types";
 /** What the shopper should know about a code right now. No Prisma here, so client components can import it. */
 export type CodeState = "live" | "dead" | "stale" | "expired" | "unchecked";
 
-/** dead beats expired beats stale (not checked inside the freshness window). Same rules as GET /api/codes. */
+/**
+ * dead beats expired beats unchecked (no one has checked it yet) beats stale (not checked inside the freshness
+ * window). Same rules as GET /api/codes.
+ */
 export function codeState(code: Pick<Code, "status" | "lastCheckedAt" | "expiresAt">, freshnessHours: number, now: Date): CodeState {
   if (code.status === "dead") return "dead";
   if (isExpired(code, now)) return "expired";
+  if (code.lastCheckedAt === null) return "unchecked";
   if (!isFresh(code, freshnessHours, now)) return "stale";
   return "live";
 }

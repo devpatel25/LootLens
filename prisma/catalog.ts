@@ -69,7 +69,7 @@ export async function upsertStores(db: Prisma.TransactionClient): Promise<number
 
 export type CatalogResult = { stores: number; codesAdded: number; itemsFilled: number };
 
-export async function loadCatalog(db: PrismaClient, now = new Date()): Promise<CatalogResult> {
+export async function loadCatalog(db: PrismaClient): Promise<CatalogResult> {
   const { stores, codesAdded } = await db.$transaction(async (tx) => {
     const stores = await upsertStores(tx);
     // skipDuplicates on (storeId, code): an existing code, live or dead, is left exactly as it is.
@@ -77,7 +77,8 @@ export async function loadCatalog(db: PrismaClient, now = new Date()): Promise<C
       data: CATALOG_CODES.map((c) => ({
         storeId: c.storeId, code: c.code, label: c.label, type: c.type, value: c.value,
         minSpend: c.minSpend ?? null, firstOrderOnly: c.firstOrderOnly ?? false,
-        status: "LIVE" as const, lastCheckedAt: now,
+        // No one has checked these demo codes, so they get no check time. The Codes screen tags them.
+        status: "LIVE" as const, lastCheckedAt: null,
       })),
       skipDuplicates: true,
     });
@@ -101,25 +102,6 @@ export async function loadCatalog(db: PrismaClient, now = new Date()): Promise<C
     }
   }
   return { stores, codesAdded, itemsFilled };
-}
-
-/**
- * The daily cron's stand-in for checking the demo codes, like the demo price feed stands in for prices.
- * Without it the demo codes would drop off the Codes screen once they leave the freshness window.
- * Dead and ended codes, and codes that are not demo catalog codes, are left alone.
- * A code counts as a demo catalog code by its store and code text. When a real code source lands, give Code
- * a source column and match on that instead, so a real code with the same text is never stamped.
- */
-export async function refreshDemoCodes(db: PrismaClient | Prisma.TransactionClient, now = new Date()): Promise<number> {
-  const { count } = await db.code.updateMany({
-    where: {
-      status: "LIVE",
-      OR: CATALOG_CODES.map((c) => ({ storeId: c.storeId, code: c.code })),
-      AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
-    },
-    data: { lastCheckedAt: now },
-  });
-  return count;
 }
 
 // realpath both sides so a symlinked path still runs it.

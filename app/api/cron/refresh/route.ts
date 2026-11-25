@@ -2,7 +2,6 @@ import { timingSafeEqual } from "node:crypto";
 import { ok, route, unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { refreshItems, refreshSource } from "@/lib/refresh";
-import { refreshDemoCodes } from "@/prisma/catalog";
 
 // Vercel Hobby caps a function at 60s (Fluid compute off). A longer run stops there. The run pages by id from the lowest id each time, so the same high-id items are skipped again next run. #47 tracks ordering by last refreshed.
 export const maxDuration = 60;
@@ -25,8 +24,6 @@ export const GET = route(async (req: Request) => {
     where: { status: "LIVE", expiresAt: { lt: new Date() } },
     data: { status: "DEAD" },
   });
-  // Then the live demo codes are re-checked, so they stay inside the freshness window.
-  const codesChecked = await refreshDemoCodes(prisma);
 
   // ponytail: sequential pages of 50; ends at the function max duration. Upgrade path: a queue with one job per item.
   const source = refreshSource();
@@ -46,5 +43,5 @@ export const GET = route(async (req: Request) => {
     if (page.length < PAGE) break;
     lastId = page[page.length - 1].id;
   }
-  return ok({ ...total, codesExpired, codesChecked });
+  return ok({ ...total, codesExpired });
 });
