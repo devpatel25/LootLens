@@ -231,6 +231,16 @@ describe("CodesView", () => {
     await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
   });
 
+  it("Still works on a code no one has checked shows it as checked right away", async () => {
+    view([...live(), { ...live()[0], id: "u1", code: "FRESH5", lastCheckedAt: null }]);
+    fireEvent.click(screen.getByRole("button", { name: "Still works FRESH5" }));
+    expect(within(card("FRESH5")).queryByText("Not checked yet")).toBeNull();
+    expect(within(card("FRESH5")).getByText("checked just now")).toBeTruthy();
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/codes/u1");
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body))).toEqual({ status: "live" });
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1));
+  });
+
   it("after a refresh, the server's data wins over an earlier optimistic mark", async () => {
     const { rerender } = view(all(), true);
     fireEvent.click(screen.getByRole("button", { name: "Mark alive OLD25" }));

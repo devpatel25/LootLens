@@ -70,9 +70,14 @@ describe("GET /api/codes", () => {
     expect(amazon.some((c) => c.minSpend === 150)).toBe(true);
   });
 
-  it("sorts by lastCheckedAt desc", async () => {
+  it("sorts by lastCheckedAt desc, with codes no one has checked last", async () => {
+    await prisma.code.create({
+      data: { storeId: "store-target", code: "TARGET10", label: "$10 off orders of $50 or more", type: "FLAT", value: 10, status: "LIVE" },
+    });
     const { data } = await list("?showDead=true");
-    const times = (data as unknown as { lastCheckedAt: string }[]).map((c) => Date.parse(c.lastCheckedAt));
+    const rows = data as unknown as { code: string; lastCheckedAt: string | null }[];
+    expect(rows[rows.length - 1]).toMatchObject({ code: "TARGET10", lastCheckedAt: null });
+    const times = rows.filter((c) => c.lastCheckedAt !== null).map((c) => Date.parse(c.lastCheckedAt!));
     expect(times).toEqual([...times].sort((x, y) => y - x));
   });
 
